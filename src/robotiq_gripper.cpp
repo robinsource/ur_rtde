@@ -201,6 +201,12 @@ int RobotiqGripper::getVar(const std::string& var)
   {
     throw std::logic_error("Unexpected response: data " + data[0] + " does not match " + var);
   }
+  // if emergency stop is active, then reading a variable does not return a value
+  // but a questionmark
+  if (data[1][0] == '?')
+  {
+	  throw GripperStateException("Reading gripper values not possible in current device state.");
+  }
   int value = std::stoi(data[1]);
   return value;
 }
@@ -227,6 +233,12 @@ std::vector<int> RobotiqGripper::getVars(const std::vector<std::string>& Vars)
   for (size_t i = 0; i < data.size(); ++i)
   {
 	  auto value = split(data[i]);
+	  // if emergency stop is active, then reading a variable does not return a value
+	  // but a questionmark
+	  if (value[1][0] == '?')
+	  {
+		  throw GripperStateException("Reading gripper values not possible in current device state.");
+	  }
 	  Result[i] = std::stoi(value[1]);
   }
   return Result;
