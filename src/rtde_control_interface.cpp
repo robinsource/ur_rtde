@@ -1698,7 +1698,7 @@ std::vector<double> RTDEControlInterface::getTCPOffset()
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::GET_TCP_OFFSET;
-  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_2;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
 
   if (sendCommand(robot_cmd))
   {
