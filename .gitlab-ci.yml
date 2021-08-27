@@ -102,7 +102,6 @@ polyscope-5.11.1.108318:
       - ./ps-5-11-1-108318.svg
   tags:
     - docker
-#   - linux
 
 .bash-examples:
   stage: test
