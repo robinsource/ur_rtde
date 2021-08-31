@@ -69,6 +69,7 @@ build-WINDOWS:
 polyscope-5.11.1.108318:
   image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-2004-DinD
   stage: test
+  allow_failure: true
   services:
     - docker:dind
   before_script:
