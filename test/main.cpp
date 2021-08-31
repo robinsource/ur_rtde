@@ -7,6 +7,8 @@
 #include <thread>
 #include <chrono>
 
+#include "test-case-01.h"
+
 using namespace ur_rtde;
 
 // Declare ur_rtde interfaces

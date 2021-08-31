@@ -10,6 +10,6 @@ message(STATUS "${DIR}")
 find_package(ur_rtde REQUIRED PATHS "${DIR}/../Build/ur_rtde" "${DIR}/../build/ur_rtde")
 
 # Make test executable
-add_executable(tests main.cpp)
+add_executable(tests main.cpp test-case-01.cpp)
 target_compile_features(tests PRIVATE cxx_std_11)
 target_link_libraries(tests PRIVATE doctest::doctest PUBLIC ur_rtde::rtde)
