@@ -1,5 +1,5 @@
-#ifndef TEST-CASE-01_HPP
-#define TEST-CASE-01_HPP
+#ifndef TEST_CASE_01_HPP
+#define TEST_CASE_01_HPP
 
 #include "doctest.h"
 #include <ur_rtde/dashboard_client.h>
@@ -10,3 +10,6 @@
 #include <chrono>
 
 using namespace ur_rtde;
+
+
+#endif    // end include guard
