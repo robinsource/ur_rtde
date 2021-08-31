@@ -5,9 +5,6 @@
 #include <ur_rtde/rtde_receive_interface.h>
 #include <vector>
 #include <thread>
-#include <chrono>
-
-#include "test-case-01.h"
 
 using namespace ur_rtde;
 
