@@ -136,6 +136,13 @@ SCENARIO("move robot in tool space using a predefined path")
         std::cout << "Actual TCPPose from robot is ";
         for (auto i: actual_tcp_pose)
           std::cout << i << ' ';
+        std::cout << std::endl;
+
+        std::vector<double> joint_positions = rtde_receive.getActualQ();
+        std::cout << "Size of joint positions from robot is " << joint_positions.size() << std::endl;
+        for (auto i: joint_positions)
+          std::cout << i << ' ';
+        std::cout << std::endl;
 
         for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
