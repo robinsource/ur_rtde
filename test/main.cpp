@@ -127,7 +127,7 @@ SCENARIO("move robot in tool space using a predefined path")
 
     WHEN("robot is done moving")
     {
-      REQUIRE(rtde_control.movePath(path, false););
+      REQUIRE(rtde_control.movePath(path, false));
 
       THEN("robot must be at target")
       {
