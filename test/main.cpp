@@ -97,3 +97,48 @@ SCENARIO("move robot in tool space (moveL)")
     }
   }
 }
+
+SCENARIO("move robot in tool space using a predefined path")
+{
+  GIVEN("a cartesian target pose")
+  {
+    // Target is defined in this vector
+    std::vector<double> target_pose{0.280, -0.400, 0.100, 0, 3.14, 0};
+
+    ur_rtde::Path path;
+    double velocity = 0.5;
+    double acceleration = 4;
+
+    path.addEntry({PathEntry::MoveJ,
+                    PathEntry::PositionTcpPose,
+                    {-0.140, -0.400, 0.100, 0, 3.14, 0, velocity, acceleration, 0}});  // move to initial position using movej with inverse kinematics
+    path.addEntry({PathEntry::MoveL,
+                    PathEntry::PositionTcpPose,
+                    {-0.140, -0.400, 0.300, 0, 3.14, 0, velocity, acceleration, 0.099}});
+    path.addEntry({PathEntry::MoveL,
+                    PathEntry::PositionTcpPose,
+                    {-0.140, -0.600, 0.300, 0, 3.14, 0, velocity, acceleration, 0.099}});
+    path.addEntry({PathEntry::MoveL,
+                    PathEntry::PositionTcpPose,
+                    {0.140, -0.600, 0.100, 0, 3.14, 0, velocity, acceleration, 0.099}});
+    path.addEntry({PathEntry::MoveL,
+                    PathEntry::PositionTcpPose,
+                    {0.280, -0.400, 0.100, 0, 3.14, 0, velocity, acceleration, 0}});
+
+    WHEN("robot is done moving")
+    {
+      REQUIRE(rtde_control.movePath(path, false););
+
+      THEN("robot must be at target")
+      {
+        std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
+        std::cout << "ActualTCPPose from robot" << actual_tcp_pose << std::endl;
+
+        for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
+        {
+          REQUIRE(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.005));
+        }
+      }
+    }
+  }
+}
