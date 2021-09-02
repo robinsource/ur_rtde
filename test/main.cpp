@@ -186,9 +186,9 @@ SCENARIO("Move robot in Forcemode (forceMode)")
         auto t_start = high_resolution_clock::now();
         // First we move the robot down for 2 seconds, then up for 2 seconds
         if (i > 1000)
-          rtde_control.forceMode(task_frame, selection_vector, wrench_up, force_type, limits);
+          rtde_control->forceMode(task_frame, selection_vector, wrench_up, force_type, limits);
         else
-          rtde_control.forceMode(task_frame, selection_vector, wrench_down, force_type, limits);
+          rtde_control->forceMode(task_frame, selection_vector, wrench_down, force_type, limits);
         auto t_stop = high_resolution_clock::now();
         auto t_duration = std::chrono::duration<double>(t_stop - t_start);
 
