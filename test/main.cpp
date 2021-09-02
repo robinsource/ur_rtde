@@ -133,7 +133,7 @@ SCENARIO("move robot in tool space using a predefined path")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
         std::cout << "Size of TCPPose from robot is " << actual_tcp_pose.size() << std::endl;
-        std::cout << "Actual TCPPose from robot is " 
+        std::cout << "Actual TCPPose from robot is ";
         for (auto i: actual_tcp_pose)
           std::cout << i << ' ';
 
