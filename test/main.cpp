@@ -274,7 +274,6 @@ SCENARIO("Move robot using servo command (servoJ)")
 
         for(unsigned int i = 0; i < actual_joint_pose.size(); i++)
         {
-//          CHECK(actual_joint_pose[i] == doctest::Approx(joint_q[i]).epsilon(0.005));
           CHECK(actual_joint_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.005));
 
         }
