@@ -57,7 +57,7 @@ SCENARIO("move robot in joint space (moveJ)")
 {
   GIVEN("a target joint configuration")
   {
-    // Move to initial pose, secure that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 0.25, 3);
 
     // Target is Pi / 6 in the robot base joint
@@ -85,7 +85,7 @@ SCENARIO("move robot in tool space (moveL)")
 {
   GIVEN("a cartesian target pose")
   {
-    // Move to initial pose, secure that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 0.25, 3);
 
     // Target 10 cm up in the Z-Axis of the TCP
@@ -113,7 +113,7 @@ SCENARIO("move robot in tool space using a predefined path")
 {
   GIVEN("a cartesian target pose")
   {
-    // Move to initial pose, secure that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 0.25, 3);
 
     // Target is defined in this vector
@@ -182,10 +182,10 @@ SCENARIO("Move robot in Forcemode (forceMode)")
     std::vector<double> limits = {2, 2, 1.5, 1, 1, 1};
     std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
 
-    // Move to initial pose, secure that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 0.25, 3);
 
-    start_pose = rtde_receive->getActualTCPPose();
+    std::vector<double> start_pose = rtde_receive->getActualTCPPose();
 
     WHEN("robot is still moving")
     {
