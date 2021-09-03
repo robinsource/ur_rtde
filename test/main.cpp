@@ -210,13 +210,13 @@ SCENARIO("Move robot in Forcemode (forceMode)")
         }
       }
 
-      THEN("robot must be at target")
+      THEN("robot must be at differet place that at start")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
 
         for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
-          REQUIRE(actual_tcp_pose[i] == doctest::Approx(start_pose[i]).epsilon(0.005));
+          CHECK(actual_tcp_pose[i] != start_pose[i]));
         }
       }
     }
