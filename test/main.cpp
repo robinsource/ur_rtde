@@ -216,7 +216,7 @@ SCENARIO("Move robot in Forcemode (forceMode)")
 
         for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
-          CHECK(actual_tcp_pose[i] != start_pose[i]));
+          CHECK(actual_tcp_pose[i] != start_pose[i]);
         }
       }
     }
