@@ -247,7 +247,7 @@ SCENARIO("Move robot using servo command (servoJ)")
       for (unsigned int i=0; i<1000; i++)
       {
         auto t_start = high_resolution_clock::now();
-        rtde_control.servoJ(joint_q, velocity, acceleration, dt, lookahead_time, gain);
+        rtde_control->servoJ(joint_q, velocity, acceleration, dt, lookahead_time, gain);
         joint_q[0] += 0.001;
         joint_q[1] += 0.001;
         auto t_stop = high_resolution_clock::now();
