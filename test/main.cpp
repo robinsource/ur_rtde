@@ -53,9 +53,9 @@ int main(int argc, char** argv) {
   rtde_control->stopScript();
 }
 
-SCENARIO("move robot in joint space (moveJ)")
+SCENARIO("Move robot in joint space (moveJ)")
 {
-  GIVEN("a target joint configuration")
+  GIVEN("A target joint configuration")
   {
     // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
@@ -64,11 +64,11 @@ SCENARIO("move robot in joint space (moveJ)")
     std::vector<double> target_q = init_q;
     target_q[0] += 0.5235; // ~ Pi / 6
 
-    WHEN("robot is done moving")
+    WHEN("Robot is done moving")
     {
       REQUIRE(rtde_control->moveJ(target_q, 1.05, 1.4));
 
-      THEN("robot must be at target")
+      THEN("Robot must be at target")
       {
         std::vector<double> actual_q = rtde_receive->getActualQ();
 
@@ -81,9 +81,9 @@ SCENARIO("move robot in joint space (moveJ)")
   }
 }
 
-SCENARIO("move robot in tool space (moveL)")
+SCENARIO("Move robot in tool space (moveL)")
 {
-  GIVEN("a cartesian target pose")
+  GIVEN("A cartesian target pose")
   {
     // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
@@ -92,11 +92,11 @@ SCENARIO("move robot in tool space (moveL)")
     std::vector<double> target_pose = init_pose;
     target_pose[2] += 0.10; // ~ Pi / 6
 
-    WHEN("robot is done moving")
+    WHEN("Robot is done moving")
     {
       REQUIRE(rtde_control->moveL(target_pose, 0.25, 0.5));
 
-      THEN("robot must be at target")
+      THEN("Robot must be at target")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
 
@@ -109,9 +109,9 @@ SCENARIO("move robot in tool space (moveL)")
   }
 }
 
-SCENARIO("move robot in tool space using a predefined path")
+SCENARIO("Move robot in tool space using a predefined path")
 {
-  GIVEN("a cartesian target pose")
+  GIVEN("A cartesian target pose")
   {
     // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
@@ -139,11 +139,11 @@ SCENARIO("move robot in tool space using a predefined path")
                     PathEntry::PositionTcpPose,
                     {0.280, -0.400, 0.100, 0, 3.14, 0, velocity, acceleration, 0}});
 
-    WHEN("robot is done moving")
+    WHEN("Robot is done moving")
     {
       REQUIRE(rtde_control->movePath(path, false));
 
-      THEN("robot must be at target")
+      THEN("Robot must be at target")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
         std::cout << "Size of TCPPose from robot is " << actual_tcp_pose.size() << std::endl;
@@ -187,7 +187,7 @@ SCENARIO("Move robot in Forcemode (forceMode)")
 
     std::vector<double> start_pose = rtde_receive->getActualTCPPose();
 
-    WHEN("robot is still moving")
+    WHEN("Robot is still moving")
     {
       // Move to initial joint position with a regular moveJ
       REQUIRE(rtde_control->moveJ(joint_q));
@@ -210,7 +210,7 @@ SCENARIO("Move robot in Forcemode (forceMode)")
         }
       }
 
-      THEN("robot must be at differet place that at start")
+      THEN("Robot must be at differet place that at start")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
 
@@ -223,3 +223,51 @@ SCENARIO("Move robot in Forcemode (forceMode)")
   }
 }
 
+SCENARIO("Move robot using servo command (servoJ)")
+{
+  GIVEN("Servo to position in joint-space) ")
+  {
+    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    rtde_control->moveL(init_pose, 3, 3);
+
+    // Parameters
+    double velocity = 0.5;
+    double acceleration = 0.5;
+    double dt = 1.0/500; // 2ms
+    double lookahead_time = 0.1;
+    double gain = 300;
+    std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
+
+    WHEN("Robot is still moving")
+    {
+      // Move to initial joint position with a regular moveJ
+      REQUIRE(rtde_control->moveJ(joint_q));
+
+      // Execute 500Hz control loop for 2 seconds, each cycle is ~2ms
+      for (unsigned int i=0; i<1000; i++)
+      {
+        auto t_start = high_resolution_clock::now();
+        rtde_control.servoJ(joint_q, velocity, acceleration, dt, lookahead_time, gain);
+        joint_q[0] += 0.001;
+        joint_q[1] += 0.001;
+        auto t_stop = high_resolution_clock::now();
+        auto t_duration = std::chrono::duration<double>(t_stop - t_start);
+
+        if (t_duration.count() < dt)
+        {
+          std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
+        }
+      }
+
+      THEN("Robot must be at target")
+      {
+        std::vector<double> actual_joint_pose = rtde_receive->getActualTCPPose();
+
+        for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
+        {
+          REQUIRE(actual_joint_pose[i] == doctest::Approx(joint_q[i]).epsilon(0.005));
+        }
+      }
+    }
+  }
+}
