@@ -238,7 +238,7 @@ SCENARIO("Move robot using servo command (servoJ)")
     double gain = 300;
     std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
 
-    // Target is defined in this vector
+    // Target is defined in this vector by trial and error
     std::vector<double> target_pose{0.0897976, -0.390249, 0.1918, -0.768298, 2.76098, -0.74687};
 
     WHEN("Robot is still moving")
@@ -274,7 +274,7 @@ SCENARIO("Move robot using servo command (servoJ)")
 
         for(unsigned int i = 0; i < actual_joint_pose.size(); i++)
         {
-          CHECK(actual_joint_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.005));
+          CHECK(actual_joint_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.05));
 
         }
       }
