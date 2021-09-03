@@ -263,9 +263,15 @@ SCENARIO("Move robot using servo command (servoJ)")
       {
         std::vector<double> actual_joint_pose = rtde_receive->getActualTCPPose();
 
+        std::cout << "Size of joint position from robot is " << actual_joint_pose.size() << std::endl;
+        std::cout << "Actual joint positions from robot is ";
+        for (auto i: actual_joint_pose)
+          std::cout << i << ' ';
+        std::cout << std::endl;
+
         for(unsigned int i = 0; i < actual_joint_pose.size(); i++)
         {
-          REQUIRE(actual_joint_pose[i] == doctest::Approx(joint_q[i]).epsilon(0.005));
+          CHECK(actual_joint_pose[i] == doctest::Approx(joint_q[i]).epsilon(0.005));
         }
       }
     }
