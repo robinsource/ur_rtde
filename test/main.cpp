@@ -240,7 +240,7 @@ SCENARIO("Move robot using servo command (servoJ)")
     std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
 
     // Target is defined in this vector by trial and error
-    std::vector<double> target_pose{0.0897976, -0.390249, 0.1918, -0.768298, 2.76098, -0.74687};
+     std::vector<double> target_pose{0.142942, -0.247098, 0.512341, -1.14747, 2.12287, -1.10575};
 
     WHEN("Robot is still moving")
     {
@@ -298,7 +298,8 @@ SCENARIO("Move robot using SpeedJ command (SpeedJ)")
     std::vector<double> joint_speed = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // Target is defined in this vector by trial and error
-    std::vector<double> target_pose{0.0897976, -0.390249, 0.1918, -0.768298, 2.76098, -0.74687};
+    std::vector<double> target_pose{0.0759238, -0.402462, 0.352427, -0.71123, 2.81592, -0.692356};
+
 
     WHEN("Robot is still moving")
     {
