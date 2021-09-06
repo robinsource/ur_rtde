@@ -342,3 +342,46 @@ SCENARIO("Move robot using SpeedJ command (SpeedJ)")
     }
   }
 }
+
+SCENARIO("Move robot using MoveL Path With Blending")
+{
+  GIVEN("A cartesian target pose")
+  {
+    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    rtde_control->moveL(init_pose, 3, 3);
+
+    // Parameters
+    double velocity = 0.5;
+    double acceleration = 0.5;
+    double blend_1 = 0.0;
+    double blend_2 = 0.02;
+    double blend_3 = 0.0;
+    std::vector<double> path_pose1 = {-0.143, -0.435, 0.20, -0.001, 3.12, 0.04, velocity, acceleration, blend_1};
+    std::vector<double> path_pose2 = {-0.143, -0.51, 0.21, -0.001, 3.12, 0.04, velocity, acceleration, blend_2};
+    std::vector<double> path_pose3 = {-0.32, -0.61, 0.31, -0.001, 3.12, 0.04, velocity, acceleration, blend_3};
+
+    // Target is defined as a subset of path_pose3
+    std::vector<double>   target_pose(&path_pose3[0],&path_pose3[6]);
+
+    std::vector<std::vector<double>> path;
+    path.push_back(path_pose1);
+    path.push_back(path_pose2);
+    path.push_back(path_pose3);
+
+    WHEN("Robot is done moving")
+    {
+      REQUIRE(rtde_control->moveL(path));
+
+
+      THEN("Robot must be at target")
+      {
+        std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
+
+        for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
+        {
+          REQUIRE(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.005));
+        }
+      }
+    }
+  }
+}
