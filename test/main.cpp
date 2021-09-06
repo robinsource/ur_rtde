@@ -3,6 +3,7 @@
 #include <ur_rtde/dashboard_client.h>
 #include <ur_rtde/rtde_control_interface.h>
 #include <ur_rtde/rtde_receive_interface.h>
+#include <ur_rtde/rtde_io_interface.h>
 #include <vector>
 #include <thread>
 #include <chrono>
@@ -14,6 +15,8 @@ using namespace std::chrono;
 std::shared_ptr<DashboardClient> db_client;
 std::shared_ptr<RTDEControlInterface> rtde_control;
 std::shared_ptr<RTDEReceiveInterface> rtde_receive;
+std::shared_ptr<RTDEIOInterface>      rtde_io;
+
 
 // Declare initial values
 std::vector<double> init_q;
@@ -39,6 +42,7 @@ int main(int argc, char** argv) {
   // Initialize RTDE
   rtde_control = std::make_shared<RTDEControlInterface>("192.168.56.101");
   rtde_receive = std::make_shared<RTDEReceiveInterface>("192.168.56.101");
+  rtde_io      = std::make_shared<RTDEIOInterface>("192.168.56.101");
   init_q = rtde_receive->getActualQ();
   init_pose = rtde_receive->getActualTCPPose();
 
@@ -381,6 +385,61 @@ SCENARIO("Move robot using MoveL Path With Blending")
         {
           REQUIRE(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.005));
         }
+      }
+    }
+  }
+}
+
+SCENARIO("Controling the IO on the robot")
+{
+  GIVEN("Set output to at specified value")
+  {
+    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    rtde_control->moveL(init_pose, 3, 3);
+
+    // Parameters
+
+    // Set StandardDigitalOut
+    for(unsigned int i = 0; i < 8; i++)
+    {
+      std::cout << "TESTING  " << i << std::endl;
+      rtde_io->setStandardDigitalOut(i, true);
+    }
+    for(unsigned int i = 0; i < 8; i++)
+
+    // Set ConfigurableDigitalOut
+    {
+      std::cout << "TESTING  " << i << std::endl;
+      rtde_io->setConfigurableDigitalOut(i, true);
+    }
+
+    // Set ToolDigitalOut
+    rtde_io->setToolDigitalOut(0, true);
+    rtde_io->setToolDigitalOut(1, true);
+
+    WHEN("Let settings fall into place")
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+      THEN("Reading values from IO must be same as previously specified")
+      {
+        // Reading StandardDigitalOut Output, 0-7 
+        for(unsigned int i = 0; i < 8; i++)
+        {
+          std::cout << "TESTING  " << std::endl;
+          REQUIRE(rtde_receive->getDigitalOutState(i));
+        }
+
+        // Reading ConfigurableDigitalOut, 8-15
+        for(unsigned int i = 8; i < 16; i++)
+        {
+          std::cout << "TESTING  " << std::endl;
+          REQUIRE(rtde_receive->getDigitalOutState(i));
+        }
+
+        // Reading ToolDigitalOut, 16-17
+        REQUIRE(rtde_receive->getDigitalOutState(16));
+        REQUIRE(rtde_receive->getDigitalOutState(17));
       }
     }
   }
