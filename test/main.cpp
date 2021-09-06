@@ -209,6 +209,7 @@ SCENARIO("Move robot in Forcemode (forceMode)")
           std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
         }
       }
+      rtde_control->forceModeStop();
 
       THEN("Robot must be at differet place that at start")
       {
@@ -261,7 +262,7 @@ SCENARIO("Move robot using servo command (servoJ)")
           std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
         }
       }
-      rtde_control->servoStop()
+      rtde_control->servoStop();
 
       THEN("Robot must be at target")
       {
@@ -319,7 +320,7 @@ SCENARIO("Move robot using SpeedJ command (SpeedJ)")
           std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
         }
       }
-      rtde_control->speedStop()
+      rtde_control->speedStop();
 
       THEN("Robot must be at target")
       {
