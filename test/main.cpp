@@ -261,6 +261,7 @@ SCENARIO("Move robot using servo command (servoJ)")
           std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
         }
       }
+      rtde_c->servoStop()
 
       THEN("Robot must be at target")
       {
@@ -318,6 +319,7 @@ SCENARIO("Move robot using SpeedJ command (SpeedJ)")
           std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
         }
       }
+      rtde_c->speedStop()
 
       THEN("Robot must be at target")
       {
