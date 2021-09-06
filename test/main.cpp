@@ -307,7 +307,7 @@ SCENARIO("Move robot using SpeedJ command (SpeedJ)")
       for (unsigned int i=0; i<1000; i++)
       {
         auto t_start = high_resolution_clock::now();
-        rtde_control.speedJ(joint_speed, acceleration, dt);
+        rtde_control->speedJ(joint_speed, acceleration, dt);
         joint_speed[0] += 0.0005;
         joint_speed[1] += 0.0005;
         auto t_stop = high_resolution_clock::now();
