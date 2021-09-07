@@ -25,10 +25,9 @@ std::vector<double> init_pose;
 int main(int argc, char** argv) {
   doctest::Context context;
 
+  // Initialize doctest C++ testing framework
   context.setOption("abort-after", 5); // stop test execution after 5 failed assertions
-
   context.applyCommandLine(argc, argv);
-
   context.setOption("no-breaks", true); // don't break in the debugger when assertions fail
 
   // Power and brake release the robot through dashboard client
@@ -46,6 +45,7 @@ int main(int argc, char** argv) {
   init_q = rtde_receive->getActualQ();
   init_pose = rtde_receive->getActualTCPPose();
 
+  // Activate doctest C++ testing framework and run all test cases
   int res = context.run(); // run test cases unless with --no-run
 
   if(context.shouldExit()) // query flags (and --exit) rely on the user doing this
@@ -186,6 +186,9 @@ SCENARIO("Move robot in Forcemode (forceMode)")
     std::vector<double> limits = {2, 2, 1.5, 1, 1, 1};
     std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
 
+    // Target is defined in this vector by trial and error
+    std::vector<double> target_pose{-0.117025, -0.435893, 0.150533, -0.0124127, 3.11199, -0.0180484};
+
     // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
 
@@ -218,10 +221,15 @@ SCENARIO("Move robot in Forcemode (forceMode)")
       THEN("Robot must be at differet place that at start")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
+        std::cout << "Size of TCPPose from robot is " << actual_tcp_pose.size() << std::endl;
+        std::cout << "Actual TCPPose from robot is ";
+        for (auto i: actual_tcp_pose)
+          std::cout << i << ' ';
+        std::cout << std::endl;
 
         for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
-          CHECK(actual_tcp_pose[i] != start_pose[i]);
+          CHECK(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.05));
         }
       }
     }
@@ -409,7 +417,6 @@ SCENARIO("Controling the IO on the robot")
 
     // Set ConfigurableDigitalOut
     {
-      std::cout << "TESTING  " << i << std::endl;
       rtde_io->setConfigurableDigitalOut(i, true);
     }
 
@@ -426,14 +433,12 @@ SCENARIO("Controling the IO on the robot")
         // Reading StandardDigitalOut Output, 0-7 
         for(unsigned int i = 0; i < 8; i++)
         {
-          std::cout << "TESTING  " << std::endl;
           REQUIRE(rtde_receive->getDigitalOutState(i));
         }
 
         // Reading ConfigurableDigitalOut, 8-15
         for(unsigned int i = 8; i < 16; i++)
         {
-          std::cout << "TESTING  " << std::endl;
           REQUIRE(rtde_receive->getDigitalOutState(i));
         }
 
