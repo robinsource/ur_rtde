@@ -410,7 +410,7 @@ SCENARIO("Controling the IO on the robot")
     // Set StandardDigitalOut
     for(unsigned int i = 0; i < 8; i++)
     {
-      std::cout << "TESTING  " << i << std::endl;
+      std::cout << "Setting StandardDigitalOut no: " << i << std::endl;
       rtde_io->setStandardDigitalOut(i, true);
     }
     for(unsigned int i = 0; i < 8; i++)
