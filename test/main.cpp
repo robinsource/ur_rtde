@@ -463,6 +463,7 @@ SCENARIO("Test ProtectiveStop")
     // Controller real-time thread execution time
     double RobotExecutionTime = rtde_receive->getActualExecutionTime();
     std::cout << "RobotExecutionTime " <<  RobotExecutionTime << std::endl;
+    REQUIRE(RobotExecutionTime > 0.4);
 
     // Check if robot is in protected stop.
     bool protected_stop = rtde_receive->isProtectiveStopped();
