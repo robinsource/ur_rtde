@@ -7,7 +7,9 @@
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <urcl/script_sender.h>
 #endif
+#include <cstdint>
 #include <map>
+#include <tuple>
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 1
@@ -60,6 +62,20 @@ class RTDE;
 namespace ur_rtde
 {
 class Path;
+
+struct Versions {
+  using RawVersions = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>;
+  void operator=(const RawVersions& raw) {
+    major = std::get<0>(raw);
+    minor = std::get<1>(raw);
+    bugfix = std::get<2>(raw);
+    build = std::get<3>(raw);
+  }
+  uint32_t major;
+  uint32_t minor;
+  uint32_t bugfix;
+  uint32_t build;
+};
 
 /**
  * This class provides the interface to control the robot and to execute robot
@@ -653,6 +669,14 @@ class RTDEControlInterface
                                     const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0},
                                     double acceleration = 0.5);
 
+  // Unlocks a protective stop via the dashboard client.
+  void unlockProtectiveStop();
+
+  // Returns the version numbers of the robot.
+  const Versions& versions() const { return versions_; }
+  // Returns the serial number acquired by dashboard client upon connection.
+  const std::string& serial_number() const { return serial_number_; }
+
  private:
   bool setupRecipes(const double &frequency);
 
@@ -750,6 +774,9 @@ class RTDEControlInterface
 #if !defined(_WIN32) && !defined(__APPLE__)
   std::unique_ptr<urcl::comm::ScriptSender> urcl_script_sender_;
 #endif
+  // major, minor, bugfix, build numbers.
+  Versions versions_;
+  std::string serial_number_;
 };
 
 /**
