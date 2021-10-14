@@ -258,11 +258,7 @@ feature. When jogging has started, it is possible to provide new speed
 vectors by calling the jogStart() function over and over again. This
 makes it possible to use a joystick or a 3D Space Navigator to provide
 new speed vectors if the user moves the joystick or the Space
-Navigator cap. Switching the feature (base or tool) is only possible,
-if the jogging has been stopped before the jogStart() function is
-called. That means, with the first call of jogStart() the speed vector
-and feature parameter is evaluated. With all following calls of the
-function only the speed vector will be evaluated.
+Navigator cap.
 
 Parameter ``speed``:
     Speed vector for translation and rotation. Translation values are
@@ -270,7 +266,13 @@ Parameter ``speed``:
 
 Parameter ``feature``:
     Configures to move to move with respect to base frame
-    (FEATURE_BASE) or with respect to tcp frame (FEATURE_TOOL))doc";
+    (FEATURE_BASE), tool frame (FEATURE_TOOL) or custom frame (FEATURE_CUSTOM)
+    If the feature is FEATURE_CUSTOM then the custom_frame parameter needs to
+    be a valid pose.
+
+Parameter ``custom_frame``:
+    The custom_frame given as pose if the selected feature
+    is FEATURE_CUSTOM)doc";
 
 static const char *__doc_ur_rtde_RTDEControlInterface_jogStop = R"doc(Stops jogging that has been started start_jog)doc";
 
