@@ -12,9 +12,21 @@
 
 namespace ur_rtde
 {
+  struct RTDEControlHeader {
+    uint16_t msg_size;
+    uint8_t msg_cmd;
+  };
+
 class RTDEUtility
 {
  public:
+  static inline RTDEControlHeader readRTDEHeader(const std::vector<char> &data, uint32_t &message_offset)
+  {
+    RTDEControlHeader rtde_control_header{};
+    rtde_control_header.msg_size = RTDEUtility::getUInt16(data, message_offset);
+    rtde_control_header.msg_cmd = RTDEUtility::getUInt8(data, message_offset);
+    return rtde_control_header;
+  }
 
   static inline std::vector<char> packUInt32(uint32_t uint32)
   {
@@ -207,6 +219,13 @@ class RTDEUtility
   static inline unsigned char getUChar(const std::vector<char> &data, uint32_t &message_offset)
   {
     unsigned char output = data[message_offset];
+    message_offset += 1;
+    return output;
+  }
+
+  static inline uint8_t getUInt8(const std::vector<char> &data, uint32_t &message_offset)
+  {
+    uint8_t output = data[message_offset];
     message_offset += 1;
     return output;
   }

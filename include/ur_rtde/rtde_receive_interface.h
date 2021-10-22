@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <functional>
 
 #define MAJOR_VERSION 0
 #define CB3_MAJOR_VERSION 3
@@ -139,6 +140,16 @@ class RTDEReceiveInterface
    * @returns Can be used to reconnect to the robot after a lost connection.
    */
   RTDE_EXPORT bool reconnect();
+
+  /**
+   * @returns Can be used to reconnect to the robot after a lost connection.
+   */
+  RTDE_EXPORT bool startFileRecording(const std::string &filename, const std::vector<std::string> &variables={});
+
+  /**
+   * @returns Can be used to reconnect to the robot after a lost connection.
+   */
+  RTDE_EXPORT bool stopFileRecording();
 
   /**
    * @returns Connection status for RTDE, useful for checking for lost connection.
@@ -416,6 +427,8 @@ class RTDEReceiveInterface
 
   RTDE_EXPORT void receiveCallback();
 
+  RTDE_EXPORT void recordCallback();
+
  private:
   bool setupRecipes(const double& frequency);
 
@@ -459,12 +472,15 @@ class RTDEReceiveInterface
   double frequency_;
   double delta_time_;
   std::shared_ptr<RTDE> rtde_;
-  std::atomic<bool> stop_thread{false};
+  std::atomic<bool> stop_receive_thread{false};
+  std::atomic<bool> stop_record_thread{false};
   std::shared_ptr<boost::thread> th_;
+  std::shared_ptr<boost::thread> record_thrd_;
   std::shared_ptr<RobotState> robot_state_;
   std::map<std::string, std::function<double()>> output_reg_func_map_;
   PausingState pausing_state_;
-  double speed_scaling_combined_;
+  std::shared_ptr<std::ofstream> file_recording_;
+  double speed_scaling_combined_{};
   double pausing_ramp_up_increment_;
 };
 

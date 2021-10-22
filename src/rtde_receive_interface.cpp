@@ -1,4 +1,3 @@
-#include <ur_rtde/dashboard_client.h>
 #include <ur_rtde/robot_state.h>
 #include <ur_rtde/rtde.h>
 #include <ur_rtde/rtde_receive_interface.h>
@@ -7,7 +6,9 @@
 #include <boost/thread/thread.hpp>
 #include <chrono>
 #include <iostream>
+#include <iomanip>
 #include <thread>
+#include <fstream>
 
 namespace ur_rtde
 {
@@ -69,7 +70,7 @@ RTDEReceiveInterface::~RTDEReceiveInterface()
 void RTDEReceiveInterface::disconnect()
 {
   // Stop the receive callback function
-  stop_thread = true;
+  stop_receive_thread = true;
   th_->interrupt();
   th_->join();
 
@@ -300,23 +301,27 @@ void RTDEReceiveInterface::initOutputRegFuncMap()
 
 void RTDEReceiveInterface::receiveCallback()
 {
-  while (!stop_thread)
+  while (!stop_receive_thread)
   {
     // Receive and update the robot state
     try
     {
-      rtde_->receiveData(robot_state_);
-      // temporary hack to fix synchronization problems on windows.
-#ifndef _WIN32
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-#endif
+      boost::system::error_code ec = rtde_->receiveData(robot_state_);
+      if(ec)
+      {
+        if(ec == boost::asio::error::eof)
+        {
+          std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+        }
+        throw boost::system::system_error(ec);
+      }
     }
     catch (std::exception& e)
     {
-      std::cerr << e.what() << std::endl;
+      std::cerr << "Exception: " << e.what() << std::endl;
       if (rtde_->isConnected())
         rtde_->disconnect();
-      stop_thread = true;
+      stop_receive_thread = true;
     }
   }
 }
@@ -350,7 +355,7 @@ bool RTDEReceiveInterface::reconnect()
     // Start RTDE data synchronization
     rtde_->sendStart();
 
-    stop_thread = false;
+    stop_receive_thread = false;
 
     // Start executing receiveCallback
     th_ = std::make_shared<boost::thread>(boost::bind(&RTDEReceiveInterface::receiveCallback, this));
@@ -360,6 +365,57 @@ bool RTDEReceiveInterface::reconnect()
   }
 
   return RTDEReceiveInterface::isConnected();
+}
+
+bool RTDEReceiveInterface::startFileRecording(const std::string &filename, const std::vector<std::string> &variables)
+{
+  // Init file recording
+  file_recording_ = std::make_shared<std::ofstream>(filename);
+  *file_recording_ << std::fixed << std::setprecision(6);
+
+  // Write header
+  if (!variables.empty())
+  {
+    for (int i=0; i < variables.size() ; i++)
+    {
+      *file_recording_ << variables[i];
+      if(i != variables.size()-1) // No comma at the end of line
+        *file_recording_ << ",";
+    }
+  }
+  else
+  {
+    for (int i=0; i < variables_.size() ; i++)
+    {
+      *file_recording_ << variables_[i];
+      if(i != variables_.size()-1) // No comma at the end of line
+        *file_recording_ << ",";
+    }
+  }
+
+  // Start recorder thread
+  record_thrd_ = std::make_shared<boost::thread>(boost::bind(&RTDEReceiveInterface::recordCallback, this));
+  return true;
+}
+
+bool RTDEReceiveInterface::stopFileRecording()
+{
+  stop_record_thread = true;
+  record_thrd_->join();
+
+  // Close the file
+  if (file_recording_ != nullptr)
+    file_recording_->close();
+
+  return true;
+}
+
+void RTDEReceiveInterface::recordCallback()
+{
+  while (!stop_record_thread)
+  {
+    // Write data
+  }
 }
 
 bool RTDEReceiveInterface::isConnected()

@@ -12,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <chrono>
+#include <thread>
 #include <tuple>
 #include <type_traits>
 
@@ -405,76 +406,82 @@ void RTDE::receive()
   }
 }
 
-void RTDE::receiveData(std::shared_ptr<RobotState> &robot_state)
+boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_state)
 {
-  DEBUG("Receiving...");
-  // Read Header
-  std::vector<char> data(HEADER_SIZE);
-  boost::asio::read(*socket_, boost::asio::buffer(data));
-  // DEBUG("Reply length is: " << reply_length);
+  boost::system::error_code error;
   uint32_t message_offset = 0;
-  uint16_t msg_size = RTDEUtility::getUInt16(data, message_offset);
-  uint8_t msg_cmd = data.at(2);
+  uint32_t packet_data_offset = 0;
 
-  DEBUG("ControlHeader: ");
-  DEBUG("size is: " << msg_size);
-  DEBUG("command is: " << static_cast<int>(msg_cmd));
+  // Prepare buffer of 4096 bytes
+  std::vector<char> data(4096);
+  size_t data_len = socket_->read_some(boost::asio::buffer(data), error);
+  if (error)
+    return error;
 
-  switch (msg_cmd)
+  // Add it to the buffer
+  buffer_.insert(buffer_.end(), data.begin(), data.begin() + data_len);
+
+  while (buffer_.size() >= HEADER_SIZE)
   {
-    case RTDE_TEXT_MESSAGE:
+    message_offset = 0;
+    // Read RTDEControlHeader
+    RTDEControlHeader packet_header = RTDEUtility::readRTDEHeader(buffer_, message_offset);
+    //std::cout << "RTDEControlHeader: " << std::endl;
+    //std::cout << "size is: " << packet_header.msg_size << std::endl;
+    //std::cout << "command is: " << static_cast<int>(packet_header.msg_cmd) << std::endl;
+
+    if(buffer_.size() >= packet_header.msg_size)
     {
-      // Read Body
-      data.resize(msg_size - HEADER_SIZE);
-      boost::asio::read(*socket_, boost::asio::buffer(data));
+     // Read data package and adjust buffer
+     std::vector<char> packet(buffer_.begin()+HEADER_SIZE, buffer_.begin()+packet_header.msg_size);
+     buffer_.erase(buffer_.begin(), buffer_.begin()+packet_header.msg_size);
 
-      message_offset = 0;
-      uint8_t msg_length = data.at(0);
-      for (int i = 1; i < msg_length; i++)
-      {
-        DEBUG(data[i]);
-      }
-      break;
+     if (buffer_.size() >= HEADER_SIZE && packet_header.msg_cmd == RTDE_DATA_PACKAGE)
+     {
+       RTDEControlHeader next_packet_header = RTDEUtility::readRTDEHeader(buffer_, message_offset);
+       if(next_packet_header.msg_cmd == RTDE_DATA_PACKAGE)
+       {
+         std::cout << "skipping package(1)" << std::endl;
+         continue;
+       }
+     }
+
+     if (packet_header.msg_cmd == RTDE_DATA_PACKAGE)
+     {
+       packet_data_offset = 0;
+       RTDEUtility::getUChar(packet, packet_data_offset);
+
+       robot_state->lockUpdateStateMutex();
+
+       // Read all the variables specified by the user.
+       for (const auto &output_name : output_names_)
+       {
+         // check if key exists
+         if (cb_map_.count(output_name) > 0)
+         {
+           // call handling function
+           cb_map_[output_name](robot_state, packet, packet_data_offset);
+         }
+         else
+         {
+           DEBUG("Unknown variable name: " << output_name << " please verify the output setup!");
+         }
+       }
+
+       robot_state->unlockUpdateStateMutex();
+       break;
+     }
+     else
+     {
+       std::cout << "skipping package(2)" << std::endl;
+     }
     }
-
-    case RTDE_DATA_PACKAGE:
+    else
     {
-      // Read Body
-      data.resize(msg_size - HEADER_SIZE);
-      boost::asio::read(*socket_, boost::asio::buffer(data));
-
-      // Read ID
-      message_offset = 0;
-      RTDEUtility::getUChar(data, message_offset);
-
-      robot_state->lockUpdateStateMutex();
-
-      // Read all the variables specified by the user.
-      for (const auto &output_name : output_names_)
-      {
-        // check if key exists
-        if (cb_map_.count(output_name) > 0)
-        {
-          // call handling function
-          cb_map_[output_name](robot_state, data, message_offset);
-        }
-        else
-        {
-          DEBUG("Unknown variable name: " << output_name << " please verify the output setup!");
-        }
-      }
-
-      robot_state->unlockUpdateStateMutex();
-
-      // TODO: Handle IN_USE and NOT_FOUND case
-
-      break;
+     break;
     }
-
-    default:
-      DEBUG("Unknown Command: " << static_cast<int>(msg_cmd));
-      break;
   }
+  return error;
 }
 
 std::tuple<std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t> RTDE::getControllerVersion()

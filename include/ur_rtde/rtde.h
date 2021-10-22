@@ -172,7 +172,7 @@ class RTDE
   RTDE_EXPORT bool negotiateProtocolVersion();
   RTDE_EXPORT std::tuple<std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t> getControllerVersion();
   RTDE_EXPORT void receive();
-  RTDE_EXPORT void receiveData(std::shared_ptr<RobotState> &robot_state);
+  RTDE_EXPORT boost::system::error_code receiveData(std::shared_ptr<RobotState> &robot_state);
 
   RTDE_EXPORT void send(const RobotCommand &robot_cmd);
   RTDE_EXPORT void sendAll(const std::uint8_t &command, std::string payload = "");
@@ -194,6 +194,7 @@ class RTDE
   std::shared_ptr<boost::asio::io_service> io_service_;
   std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
   std::shared_ptr<boost::asio::ip::tcp::resolver> resolver_;
+  std::vector<char> buffer_;
 };
 
 }  // namespace ur_rtde
