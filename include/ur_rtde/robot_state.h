@@ -3,16 +3,20 @@
 #define RTDE_ROBOT_STATE_H
 
 #include <ur_rtde/rtde_export.h>
+#include <boost/variant.hpp>
 #include <vector>
 #include <cstdint>
 #include <mutex>
 
 namespace ur_rtde
 {
+using rtde_type_variant_ = boost::variant<bool, uint32_t, uint64_t, int32_t, double, std::vector<double>,
+    std::vector<int32_t>, std::string>;
+
 class RobotState
 {
  public:
-  RTDE_EXPORT explicit RobotState();
+  RTDE_EXPORT explicit RobotState(const std::vector<std::string> &variables);
 
   RTDE_EXPORT virtual ~RobotState();
 
@@ -296,6 +300,14 @@ class RobotState
   RTDE_EXPORT void setOutput_double_register_47(double output_double_register_47);
 
  private:
+  void initRobotState(const std::vector<std::string> &variables);
+  template <typename T> bool getStateData(const std::string& name, T& val);
+  template <typename T> bool setStateData(const std::string& name, T& val);
+
+ private:
+  std::unordered_map<std::string, rtde_type_variant_> state_types_;
+  std::unordered_map<std::string, rtde_type_variant_> state_data_;
+
   double timestamp_;
   std::vector<double> target_q_;
   std::vector<double> target_qd_;
