@@ -6,12 +6,27 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/deadline_timer.hpp>
+#include <stdexcept>
 #include <memory>
 #include <mutex>
 #include <string>
 
 namespace ur_rtde
 {
+/**
+ * This exception is thrown if the gripper is in a wrong state to perform
+ * the requested operation.
+ * If the robot is in emergency stop state, then reading variables from the
+ * gripper only returns a questionmark instead of the requested value.
+ * In this case, the functions for reading values from the robot will throw
+ * this exception
+ */
+class GripperStateException : public std::runtime_error
+{
+public:
+	using std::runtime_error::runtime_error;
+};
+
 /**
  * C++ driver for Robot IQ grippers
  * Communicates with the gripper directly, via socket with string commands,

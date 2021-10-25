@@ -184,6 +184,7 @@ PYBIND11_MODULE(rtde_control, m)
               py::call_guard<py::gil_scoped_release>());
   control.def("jogStart", &RTDEControlInterface::jogStart, DOC(ur_rtde, RTDEControlInterface, jogStart), py::arg("speeds"),
               py::arg("feature") = RTDEControlInterface::Feature::FEATURE_BASE,
+              py::arg("custom_frame") = std::vector<double>{0, 0, 0, 0, 0, 0},
               py::call_guard<py::gil_scoped_release>());
   control.def("jogStop", &RTDEControlInterface::jogStop, DOC(ur_rtde, RTDEControlInterface, jogStop), py::call_guard<py::gil_scoped_release>());
   control.def("__repr__", [](const RTDEControlInterface &a) { return "<rtde_control.RTDEControlInterface>"; });

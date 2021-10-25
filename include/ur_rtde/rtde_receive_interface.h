@@ -429,6 +429,10 @@ class RTDEReceiveInterface
 
   RTDE_EXPORT void recordCallback();
 
+  const std::shared_ptr<RobotState>& robot_state() const {
+    return robot_state_;
+  }
+
  private:
   bool setupRecipes(const double& frequency);
 

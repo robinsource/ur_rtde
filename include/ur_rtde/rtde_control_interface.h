@@ -7,7 +7,9 @@
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <urcl/script_sender.h>
 #endif
+#include <cstdint>
 #include <map>
+#include <tuple>
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 1
@@ -60,6 +62,20 @@ class RTDE;
 namespace ur_rtde
 {
 class Path;
+
+struct Versions {
+  using RawVersions = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>;
+  void operator=(const RawVersions& raw) {
+    major = std::get<0>(raw);
+    minor = std::get<1>(raw);
+    bugfix = std::get<2>(raw);
+    build = std::get<3>(raw);
+  }
+  uint32_t major;
+  uint32_t minor;
+  uint32_t bugfix;
+  uint32_t build;
+};
 
 /**
  * This class provides the interface to control the robot and to execute robot
@@ -125,7 +141,7 @@ class RTDEControlInterface
   {
     FEATURE_BASE,
     FEATURE_TOOL,
-    FEATURE_CUSTOM  // not supported yet - reserved for future
+    FEATURE_CUSTOM
   };
 
   /**
@@ -386,17 +402,17 @@ class RTDEControlInterface
    * calling the jogStart() function over and over again. This makes it
    * possible to use a joystick or a 3D Space Navigator to provide new speed
    * vectors if the user moves the joystick or the Space Navigator cap.
-   * Switching the feature (base or tool) is only possible, if the jogging has
-   * been stopped before the jogStart() function is called. That means, with
-   * the first call of jogStart() the speed vector and feature parameter is
-   * evaluated. With all following calls of the function only the speed vector
-   * will be evaluated.
    * @param speed Speed vector for translation and rotation. Translation values
    * are given in mm / s and rotation values in rad / s.
    * @param feature Configures to move to move with respect to base frame
-   * (FEATURE_BASE) or with respect to tcp frame (FEATURE_TOOL)
+   * (FEATURE_BASE), tool frame (FEATURE_TOOL) or custom frame (FEATURE_CUSTOM)
+   * If the feature is FEATURE_CUSTOM then the custom_frame parameter needs to
+   * be a valid pose.
+   * @param custom_frame The custom_frame given as pose if the selected feature
+   * is FEATURE_CUSTOM
    */
-  RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE);
+  RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE,
+	  const std::vector<double>& custom_frame = {});
 
   /**
    * Stops jogging that has been started start_jog
@@ -653,6 +669,14 @@ class RTDEControlInterface
                                     const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0},
                                     double acceleration = 0.5);
 
+  // Unlocks a protective stop via the dashboard client.
+  void unlockProtectiveStop();
+
+  // Returns the version numbers of the robot.
+  const Versions& versions() const { return versions_; }
+  // Returns the serial number acquired by dashboard client upon connection.
+  const std::string& serial_number() const { return serial_number_; }
+
  private:
   bool setupRecipes(const double &frequency);
 
@@ -750,6 +774,9 @@ class RTDEControlInterface
 #if !defined(_WIN32) && !defined(__APPLE__)
   std::unique_ptr<urcl::comm::ScriptSender> urcl_script_sender_;
 #endif
+  // major, minor, bugfix, build numbers.
+  Versions versions_;
+  std::string serial_number_;
 };
 
 /**

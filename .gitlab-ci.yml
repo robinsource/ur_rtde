@@ -69,6 +69,7 @@ build-WINDOWS:
 polyscope-5.11.1.108318:
   image: cruizba/ubuntu-dind:19.03.11
   stage: test
+  allow_failure: true
   services:
     - docker:dind
   before_script:
@@ -110,7 +111,7 @@ polyscope-5.11.1.108318:
     paths:
       - ./ps-5-11-1-108318.svg
   tags:
-    - docker
+    - linux
 
 .bash-examples:
   stage: test

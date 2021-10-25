@@ -50,6 +50,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
   // Create a connection to the dashboard server
   db_client_ = std::make_shared<DashboardClient>(hostname_);
   db_client_->connect();
+  serial_number_ = db_client_->getSerialNumber();
 
   // Only check if in remote on real robot or when not using the ExternalControl UR Cap.
   if (!use_external_control_ur_cap_)
@@ -73,13 +74,11 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
   rtde_ = std::make_shared<RTDE>(hostname_, port_, verbose_);
   rtde_->connect();
   rtde_->negotiateProtocolVersion();
-  auto controller_version = rtde_->getControllerVersion();
-  uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
-  uint32_t minor_version = std::get<MINOR_VERSION>(controller_version);
+  versions_ = rtde_->getControllerVersion();
 
   frequency_ = 125;
   // If e-Series Robot set frequency to 500Hz
-  if (major_version > CB3_MAJOR_VERSION)
+  if (versions_.major > CB3_MAJOR_VERSION)
     frequency_ = 500;
 
   // Set delta time to be used by receiveCallback
@@ -92,7 +91,8 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
   initOutputRegFuncMap();
 
   // Create a connection to the script server
-  script_client_ = std::make_shared<ScriptClient>(hostname_, major_version, minor_version);
+  script_client_ = std::make_shared<ScriptClient>(hostname_, versions_.major,
+                                                  versions_.minor);
   script_client_->connect();
 
   // If user want to use upper range of RTDE registers, add the register offset in control script
@@ -299,8 +299,10 @@ void RTDEControlInterface::disconnect()
 
   if (db_client_ != nullptr)
   {
-    if (db_client_->isConnected())
+    if (db_client_->isConnected()) {
       db_client_->disconnect();
+      serial_number_.clear();
+    }
   }
 
   // Wait until everything has disconnected
@@ -315,15 +317,15 @@ bool RTDEControlInterface::isConnected()
 bool RTDEControlInterface::reconnect()
 {
   db_client_->connect();
+  serial_number_ = db_client_->getSerialNumber();
   script_client_->connect();
   rtde_->connect();
   rtde_->negotiateProtocolVersion();
-  auto controller_version = rtde_->getControllerVersion();
-  uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
+  versions_ = rtde_->getControllerVersion();
 
   frequency_ = 125;
   // If e-Series Robot set frequency to 500Hz
-  if (major_version > CB3_MAJOR_VERSION)
+  if (versions_.major > CB3_MAJOR_VERSION)
     frequency_ = 500;
 
   // Set delta time to be used by receiveCallback
@@ -573,7 +575,9 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
 
   // Recipe 14
   std::vector<std::string> jog_input = {inIntReg(0),    inDoubleReg(0), inDoubleReg(1), inDoubleReg(2),
-                                        inDoubleReg(3), inDoubleReg(4), inDoubleReg(5), inDoubleReg(6)};
+                                        inDoubleReg(3), inDoubleReg(4), inDoubleReg(5), inDoubleReg(6),
+                                        inDoubleReg(7),  inDoubleReg(8), inDoubleReg(9), inDoubleReg(10),
+                                        inDoubleReg(11), inDoubleReg(12)};
   rtde_->sendInputSetup(jog_input);
 
   // Recipe 15
@@ -1119,13 +1123,24 @@ bool RTDEControlInterface::moveL(const std::vector<double> &transform, double sp
   return sendCommand(robot_cmd);
 }
 
-bool RTDEControlInterface::jogStart(const std::vector<double> &speeds, int feature)
+bool RTDEControlInterface::jogStart(const std::vector<double> &speeds, int feature,
+	const std::vector<double>& custom_frame)
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::JOG_START;
   robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_14;
   robot_cmd.val_ = speeds;
   robot_cmd.val_.push_back(feature);
+  if (!custom_frame.empty())
+  {
+    for (const auto &val : custom_frame)
+      robot_cmd.val_.push_back(val);
+  }
+  else
+  {
+	for (int i = 0; i < 6; ++i)
+      robot_cmd.val_.push_back(0);
+  }
   return sendCommand(robot_cmd);
 }
 
@@ -1798,6 +1813,10 @@ bool RTDEControlInterface::moveUntilContact(const std::vector<double> &xd, const
 
   robot_cmd.val_.push_back(acceleration);
   return sendCommand(robot_cmd);
+}
+
+void RTDEControlInterface::unlockProtectiveStop() {
+  db_client_->unlockProtectiveStop();
 }
 
 bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
