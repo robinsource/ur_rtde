@@ -197,12 +197,16 @@ PYBIND11_MODULE(rtde_receive, m)
 {
   m.doc() = "RTDE Receive Interface";
   py::class_<RTDEReceiveInterface>(m, "RTDEReceiveInterface")
-      .def(py::init<std::string, std::vector<std::string>, bool, bool>(), py::arg("hostname"),
+      .def(py::init<std::string, double, std::vector<std::string>, bool, bool>(), py::arg("hostname"),
+           py::arg("frequency") = -1.0,
            py::arg("variables") = std::vector<std::string>(), py::arg("verbose") = false,
            py::arg("use_upper_range_registers") = false)
       .def("disconnect", &RTDEReceiveInterface::disconnect, py::call_guard<py::gil_scoped_release>())
       .def("reconnect", &RTDEReceiveInterface::reconnect, DOC(ur_rtde, RTDEReceiveInterface, reconnect),
            py::call_guard<py::gil_scoped_release>())
+      .def("startFileRecording", &RTDEReceiveInterface::startFileRecording, py::arg("filename"),
+           py::arg("variables") = std::vector<std::string>(), py::call_guard<py::gil_scoped_release>())
+      .def("stopFileRecording", &RTDEReceiveInterface::stopFileRecording, py::call_guard<py::gil_scoped_release>())
       .def("isConnected", &RTDEReceiveInterface::isConnected, DOC(ur_rtde, RTDEReceiveInterface, isConnected),
            py::call_guard<py::gil_scoped_release>())
       .def("getTimestamp", &RTDEReceiveInterface::getTimestamp, DOC(ur_rtde, RTDEReceiveInterface, getTimestamp),

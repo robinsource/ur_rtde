@@ -3,6 +3,7 @@
 #define RTDE_RECEIVE_INTERFACE_H
 
 #include <ur_rtde/rtde_export.h>
+#include <ur_rtde/robot_state.h>
 
 #include <atomic>
 #include <chrono>
@@ -38,7 +39,8 @@ namespace ur_rtde
 class RTDEReceiveInterface
 {
  public:
-  RTDE_EXPORT explicit RTDEReceiveInterface(std::string hostname, std::vector<std::string> variables = {},
+  RTDE_EXPORT explicit RTDEReceiveInterface(std::string hostname, double frequency = -1.0,
+                                            std::vector<std::string> variables = {},
                                             bool verbose = false, bool use_upper_range_registers = false);
 
   RTDE_EXPORT virtual ~RTDEReceiveInterface();
@@ -436,8 +438,6 @@ class RTDEReceiveInterface
  private:
   bool setupRecipes(const double& frequency);
 
-  void initOutputRegFuncMap();
-
   std::string outDoubleReg(int reg) const
   {
     return "output_double_register_" + std::to_string(register_offset_ + reg);
@@ -446,18 +446,6 @@ class RTDEReceiveInterface
   std::string outIntReg(int reg) const
   {
     return "output_int_register_" + std::to_string(register_offset_ + reg);
-  };
-
-  double getOutputDoubleReg(int reg)
-  {
-    std::string func_name = "getOutput_double_register_" + std::to_string(reg);
-    return output_reg_func_map_[func_name]();
-  };
-
-  int getOutputIntReg(int reg)
-  {
-    std::string func_name = "getOutput_int_register_" + std::to_string(reg);
-    return output_reg_func_map_[func_name]();
   };
 
   template <typename T>
@@ -481,9 +469,9 @@ class RTDEReceiveInterface
   std::shared_ptr<boost::thread> th_;
   std::shared_ptr<boost::thread> record_thrd_;
   std::shared_ptr<RobotState> robot_state_;
-  std::map<std::string, std::function<double()>> output_reg_func_map_;
   PausingState pausing_state_;
   std::shared_ptr<std::ofstream> file_recording_;
+  std::vector<std::string> record_variables_;
   double speed_scaling_combined_{};
   double pausing_ramp_up_increment_;
 };

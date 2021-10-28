@@ -7,6 +7,7 @@
 #include <boost/asio/read.hpp>
 #include <boost/asio/socket_base.hpp>
 #include <boost/asio/write.hpp>
+
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -37,9 +38,11 @@ using namespace std::chrono;
 namespace ur_rtde
 {
 RTDE::RTDE(const std::string hostname, int port, bool verbose)
-    : hostname_(std::move(hostname)), port_(port), verbose_(verbose), conn_state_(ConnectionState::DISCONNECTED)
+    : hostname_(std::move(hostname)),
+      port_(port),
+      verbose_(verbose),
+      conn_state_(ConnectionState::DISCONNECTED)
 {
-  setupCallbacks();
 }
 
 RTDE::~RTDE() = default;
@@ -66,8 +69,9 @@ void RTDE::connect()
     if (verbose_)
       std::cout << "Connected successfully to: " << hostname_ << " at " << port_ << std::endl;
   }
-  catch (const boost::system::system_error &)
+  catch (const boost::system::system_error &error)
   {
+    std::cerr << error.what() << std::endl;
     std::string error_msg =
         "Error: Could not connect to: " + hostname_ + " at " + std::to_string(port_) + ", verify the IP";
     throw std::runtime_error(error_msg);
@@ -432,53 +436,81 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
 
     if(buffer_.size() >= packet_header.msg_size)
     {
-     // Read data package and adjust buffer
-     std::vector<char> packet(buffer_.begin()+HEADER_SIZE, buffer_.begin()+packet_header.msg_size);
-     buffer_.erase(buffer_.begin(), buffer_.begin()+packet_header.msg_size);
+      // Read data package and adjust buffer
+      std::vector<char> packet(buffer_.begin()+HEADER_SIZE, buffer_.begin()+packet_header.msg_size);
+      buffer_.erase(buffer_.begin(), buffer_.begin()+packet_header.msg_size);
 
-     if (buffer_.size() >= HEADER_SIZE && packet_header.msg_cmd == RTDE_DATA_PACKAGE)
-     {
-       RTDEControlHeader next_packet_header = RTDEUtility::readRTDEHeader(buffer_, message_offset);
-       if(next_packet_header.msg_cmd == RTDE_DATA_PACKAGE)
-       {
-         std::cout << "skipping package(1)" << std::endl;
-         continue;
-       }
-     }
+      if (buffer_.size() >= HEADER_SIZE && packet_header.msg_cmd == RTDE_DATA_PACKAGE)
+      {
+        RTDEControlHeader next_packet_header = RTDEUtility::readRTDEHeader(buffer_, message_offset);
+        if(next_packet_header.msg_cmd == RTDE_DATA_PACKAGE)
+        {
+          std::cout << "skipping package(1)" << std::endl;
+          continue;
+        }
+      }
 
-     if (packet_header.msg_cmd == RTDE_DATA_PACKAGE)
-     {
-       packet_data_offset = 0;
-       RTDEUtility::getUChar(packet, packet_data_offset);
+      if (packet_header.msg_cmd == RTDE_DATA_PACKAGE)
+      {
+        packet_data_offset = 0;
+        RTDEUtility::getUChar(packet, packet_data_offset);
 
-       robot_state->lockUpdateStateMutex();
+        robot_state->lockUpdateStateMutex();
 
-       // Read all the variables specified by the user.
-       for (const auto &output_name : output_names_)
-       {
-         // check if key exists
-         if (cb_map_.count(output_name) > 0)
-         {
-           // call handling function
-           cb_map_[output_name](robot_state, packet, packet_data_offset);
-         }
-         else
-         {
-           DEBUG("Unknown variable name: " << output_name << " please verify the output setup!");
-         }
-       }
+        // Read all the variables specified by the user.
+        for (const auto &output_name : output_names_)
+        {
+          if (robot_state->state_types_.find(output_name) != robot_state->state_types_.end())
+          {
+            rtde_type_variant_ entry = robot_state->state_types_[output_name];
+            if(entry.type() == typeid(std::vector<double>))
+            {
+              std::vector<double> parsed_data = RTDEUtility::unpackVector6d(packet, packet_data_offset);
+              robot_state->setStateData(output_name, parsed_data);
+            }
+            else if(entry.type() == typeid(double))
+            {
+              double parsed_data = RTDEUtility::getDouble(packet, packet_data_offset);
+              robot_state->setStateData(output_name, parsed_data);
+            }
+            else if(entry.type() == typeid(int32_t))
+            {
+              int32_t parsed_data = RTDEUtility::getInt32(packet, packet_data_offset);
+              robot_state->setStateData(output_name, parsed_data);
+            }
+            else if(entry.type() == typeid(uint32_t))
+            {
+              uint32_t parsed_data = RTDEUtility::getUInt32(packet, packet_data_offset);
+              robot_state->setStateData(output_name, parsed_data);
+            }
+            else if(entry.type() == typeid(uint64_t))
+            {
+              uint64_t parsed_data = RTDEUtility::getUInt64(packet, packet_data_offset);
+              robot_state->setStateData(output_name, parsed_data);
+            }
+            else if(entry.type() == typeid(std::vector<int32_t>))
+            {
+              std::vector<int32_t> parsed_data = RTDEUtility::unpackVector6Int32(packet, packet_data_offset);
+              robot_state->setStateData(output_name, parsed_data);
+            }
+          }
+          else
+          {
+            DEBUG("Unknown variable name: " << output_name << " please verify the output setup!");
+          }
+        }
+        robot_state->unlockUpdateStateMutex();
 
-       robot_state->unlockUpdateStateMutex();
-       break;
-     }
-     else
-     {
-       std::cout << "skipping package(2)" << std::endl;
-     }
+        break;
+      }
+      else
+      {
+        std::cout << "skipping package(2)" << std::endl;
+      }
     }
     else
     {
-     break;
+      break;
     }
   }
   return error;
@@ -518,164 +550,4 @@ std::tuple<std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t> RTDE::get
   }
 }
 
-namespace details
-{
-/*! @brief This function creates a callback map entry for a given key
-  @tparam T Fully qualified type of the signature of the function to be called
-  @tparam S Return type of the parsing function, should be of type T with equal or less qualifiers
-  @param map A reference to the callback map
-  @param key The key of the function callback
-  @param fun A pointer to the robot state function that shall be called for the given key with data value T
-  @param parse_fun A pointer to the parsing function, which will parse data and msg_offset to the data value S */
-template <class T, class S>
-void setupCallback(ur_rtde::details::cb_map &map, const std::string &key, void (ur_rtde::RobotState::*fun)(T),
-                   S (*parse_fun)(const std::vector<char> &, uint32_t &))
-{
-  map.emplace(key, [fun, parse_fun](std::shared_ptr<ur_rtde::RobotState> state_ptr, const std::vector<char> &data,
-                                    uint32_t &msg_offset) {
-    // calls robot_state->setVarFun(RTDEUtility::parseVarFun(data,offset))
-    (*state_ptr.*fun)((*parse_fun)(data, msg_offset));
-  });
-}
-
-// helper makros to reduce the manually written code for registration of callbacks for output_registers
-#define NUMBERED_REGISTER_NAME(type, num) "output_" #type "_register_" #num
-#define NUMBERED_REGISTER_FUN(type, num) setOutput_##type##_register_##num
-
-#define OUTPUT_REGISTER_CALLBACK(num)                                                                             \
-  setupCallback(cb_map_, NUMBERED_REGISTER_NAME(int, num), &ur_rtde::RobotState::NUMBERED_REGISTER_FUN(int, num), \
-                &RTDEUtility::getInt32);                                                                          \
-  setupCallback(cb_map_, NUMBERED_REGISTER_NAME(double, num),                                                     \
-                &ur_rtde::RobotState::NUMBERED_REGISTER_FUN(double, num), &RTDEUtility::getDouble);
-}  // namespace details
-
-void RTDE::setupCallbacks()
-{
-  using namespace ur_rtde::details;
-
-  // general
-  setupCallback(cb_map_, "timestamp", &ur_rtde::RobotState::setTimestamp, &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "actual_execution_time", &ur_rtde::RobotState::setActual_execution_time,
-                &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "robot_mode", &ur_rtde::RobotState::setRobot_mode, &RTDEUtility::getInt32);
-  setupCallback(cb_map_, "joint_mode", &ur_rtde::RobotState::setJoint_mode, &RTDEUtility::unpackVector6Int32);
-  setupCallback(cb_map_, "safety_mode", &ur_rtde::RobotState::setSafety_mode, &RTDEUtility::getInt32);
-  setupCallback(cb_map_, "runtime_state", &ur_rtde::RobotState::setRuntime_state, &RTDEUtility::getUInt32);
-
-  // joint space
-  setupCallback(cb_map_, "target_q", &ur_rtde::RobotState::setTarget_q, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "target_qd", &ur_rtde::RobotState::setTarget_qd, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "target_qdd", &ur_rtde::RobotState::setTarget_qdd, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "actual_q", &ur_rtde::RobotState::setActual_q, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "actual_qd", &ur_rtde::RobotState::setActual_qd, &RTDEUtility::unpackVector6d);
-
-  // cartesian space
-  setupCallback(cb_map_, "actual_TCP_pose", &ur_rtde::RobotState::setActual_TCP_pose, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "actual_TCP_speed", &ur_rtde::RobotState::setActual_TCP_speed, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "target_TCP_pose", &ur_rtde::RobotState::setTarget_TCP_pose, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "target_TCP_speed", &ur_rtde::RobotState::setTarget_TCP_speed, &RTDEUtility::unpackVector6d);
-
-  // drives and control
-  setupCallback(cb_map_, "joint_control_output", &ur_rtde::RobotState::setJoint_control_output,
-                &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "joint_temperatures", &ur_rtde::RobotState::setJoint_temperatures,
-                &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "speed_scaling", &ur_rtde::RobotState::setSpeed_scaling, &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "target_speed_fraction", &ur_rtde::RobotState::setTarget_speed_fraction,
-                &RTDEUtility::getDouble);
-
-  // forces
-  setupCallback(cb_map_, "actual_TCP_force", &ur_rtde::RobotState::setActual_TCP_force, &RTDEUtility::unpackVector6d);
-
-  // currents and torque
-  setupCallback(cb_map_, "target_current", &ur_rtde::RobotState::setTarget_current, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "actual_current", &ur_rtde::RobotState::setActual_current, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "target_moment", &ur_rtde::RobotState::setTarget_moment, &RTDEUtility::unpackVector6d);
-  setupCallback(cb_map_, "actual_momentum", &ur_rtde::RobotState::setActual_momentum, &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "actual_main_voltage", &ur_rtde::RobotState::setActual_main_voltage, &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "actual_robot_voltage", &ur_rtde::RobotState::setActual_robot_voltage,
-                &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "actual_robot_current", &ur_rtde::RobotState::setActual_robot_current,
-                &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "actual_joint_voltage", &ur_rtde::RobotState::setActual_joint_voltage,
-                &RTDEUtility::unpackVector6d);
-
-  /* actual_tool_acc is the only function relying on unpackVec3 which can not be differentiated from unpackVec6
-    by the templates of setupCallback() as both are type vec<double>. Therefore pass the parsing function manually (4th
-    arg) Long term fix would be to change vec6 to arr6 and and vec3 to arr3 which makes them different types */
-  setupCallback(cb_map_, "actual_tool_accelerometer", &ur_rtde::RobotState::setActual_tool_accelerometer,
-                &RTDEUtility::unpackVector3d);
-
-  // I/O
-  setupCallback(cb_map_, "actual_digital_input_bits", &ur_rtde::RobotState::setActual_digital_input_bits,
-                &RTDEUtility::getUInt64);
-  setupCallback(cb_map_, "actual_digital_output_bits", &ur_rtde::RobotState::setActual_digital_output_bits,
-                &RTDEUtility::getUInt64);
-  setupCallback(cb_map_, "robot_status_bits", &ur_rtde::RobotState::setRobot_status, &RTDEUtility::getUInt32);
-  setupCallback(cb_map_, "safety_status_bits", &ur_rtde::RobotState::setSafety_status_bits, &RTDEUtility::getUInt32);
-
-  // io registers
-  setupCallback(cb_map_, "standard_analog_input0", &ur_rtde::RobotState::setStandard_analog_input_0,
-                &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "standard_analog_input1", &ur_rtde::RobotState::setStandard_analog_input_1,
-                &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "standard_analog_output0", &ur_rtde::RobotState::setStandard_analog_output_0,
-                &RTDEUtility::getDouble);
-  setupCallback(cb_map_, "standard_analog_output1", &ur_rtde::RobotState::setStandard_analog_output_1,
-                &RTDEUtility::getDouble);
-
-  OUTPUT_REGISTER_CALLBACK(0)
-  OUTPUT_REGISTER_CALLBACK(1)
-  OUTPUT_REGISTER_CALLBACK(2)
-  OUTPUT_REGISTER_CALLBACK(3)
-  OUTPUT_REGISTER_CALLBACK(4)
-  OUTPUT_REGISTER_CALLBACK(5)
-  OUTPUT_REGISTER_CALLBACK(6)
-  OUTPUT_REGISTER_CALLBACK(7)
-
-  OUTPUT_REGISTER_CALLBACK(8)
-  OUTPUT_REGISTER_CALLBACK(9)
-  OUTPUT_REGISTER_CALLBACK(10)
-  OUTPUT_REGISTER_CALLBACK(11)
-  OUTPUT_REGISTER_CALLBACK(12)
-  OUTPUT_REGISTER_CALLBACK(13)
-  OUTPUT_REGISTER_CALLBACK(14)
-  OUTPUT_REGISTER_CALLBACK(15)
-
-  OUTPUT_REGISTER_CALLBACK(16)
-  OUTPUT_REGISTER_CALLBACK(17)
-  OUTPUT_REGISTER_CALLBACK(18)
-  OUTPUT_REGISTER_CALLBACK(19)
-  OUTPUT_REGISTER_CALLBACK(20)
-  OUTPUT_REGISTER_CALLBACK(21)
-  OUTPUT_REGISTER_CALLBACK(22)
-  OUTPUT_REGISTER_CALLBACK(23)
-
-  OUTPUT_REGISTER_CALLBACK(24)
-  OUTPUT_REGISTER_CALLBACK(25)
-  OUTPUT_REGISTER_CALLBACK(26)
-  OUTPUT_REGISTER_CALLBACK(27)
-  OUTPUT_REGISTER_CALLBACK(28)
-  OUTPUT_REGISTER_CALLBACK(29)
-  OUTPUT_REGISTER_CALLBACK(30)
-  OUTPUT_REGISTER_CALLBACK(31)
-
-  OUTPUT_REGISTER_CALLBACK(32)
-  OUTPUT_REGISTER_CALLBACK(33)
-  OUTPUT_REGISTER_CALLBACK(34)
-  OUTPUT_REGISTER_CALLBACK(35)
-  OUTPUT_REGISTER_CALLBACK(36)
-  OUTPUT_REGISTER_CALLBACK(37)
-  OUTPUT_REGISTER_CALLBACK(38)
-  OUTPUT_REGISTER_CALLBACK(39)
-
-  OUTPUT_REGISTER_CALLBACK(40)
-  OUTPUT_REGISTER_CALLBACK(41)
-  OUTPUT_REGISTER_CALLBACK(42)
-  OUTPUT_REGISTER_CALLBACK(43)
-  OUTPUT_REGISTER_CALLBACK(44)
-  OUTPUT_REGISTER_CALLBACK(45)
-  OUTPUT_REGISTER_CALLBACK(46)
-  OUTPUT_REGISTER_CALLBACK(47)
-}
 }  // namespace ur_rtde

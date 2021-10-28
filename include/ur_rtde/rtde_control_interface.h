@@ -718,37 +718,17 @@ class RTDEControlInterface
    */
   void waitForProgramRunning();
 
-  std::string outDoubleReg(int reg) const
-  {
-    return "output_double_register_" + std::to_string(register_offset_ + reg);
-  };
+  std::string outDoubleReg(int reg) const;
 
-  std::string outIntReg(int reg) const
-  {
-    return "output_int_register_" + std::to_string(register_offset_ + reg);
-  };
+  std::string outIntReg(int reg) const;
 
-  std::string inDoubleReg(int reg) const
-  {
-    return "input_double_register_" + std::to_string(register_offset_ + reg);
-  };
+  std::string inDoubleReg(int reg) const;
 
-  std::string inIntReg(int reg) const
-  {
-    return "input_int_register_" + std::to_string(register_offset_ + reg);
-  };
+  std::string inIntReg(int reg) const;
 
-  double getOutputDoubleReg(int reg)
-  {
-    std::string func_name = "getOutput_double_register_" + std::to_string(register_offset_ + reg);
-    return output_reg_func_map_[func_name]();
-  };
+  double getOutputDoubleReg(int reg);
 
-  int getOutputIntReg(int reg)
-  {
-    std::string func_name = "getOutput_int_register_" + std::to_string(register_offset_ + reg);
-    return output_reg_func_map_[func_name]();
-  };
+  int getOutputIntReg(int reg);
 
  private:
   std::string hostname_;
@@ -770,10 +750,10 @@ class RTDEControlInterface
   std::shared_ptr<DashboardClient> db_client_;
   std::shared_ptr<ScriptClient> script_client_;
   std::shared_ptr<RobotState> robot_state_;
-  std::map<std::string, std::function<double()>> output_reg_func_map_;
 #if !defined(_WIN32) && !defined(__APPLE__)
   std::unique_ptr<urcl::comm::ScriptSender> urcl_script_sender_;
 #endif
+  std::vector<std::string> state_names_;
   // major, minor, bugfix, build numbers.
   Versions versions_;
   std::string serial_number_;

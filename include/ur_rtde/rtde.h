@@ -181,10 +181,6 @@ class RTDE
   RTDE_EXPORT bool sendOutputSetup(const std::vector<std::string> &output_names, double frequency);
   RTDE_EXPORT bool sendInputSetup(const std::vector<std::string> &input_names);
 
- private:
-  void setupCallbacks();    //!< creates all callback functions on startup of the controller
-  details::cb_map cb_map_;  //!< stores callback functions for handling the messages received by receiveData()
-
   std::string hostname_;
   int port_;
   bool verbose_;
