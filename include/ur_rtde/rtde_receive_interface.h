@@ -455,13 +455,13 @@ class RTDEReceiveInterface
   }
 
  private:
-  std::vector<std::string> variables_;
   std::string hostname_;
+  double frequency_;
+  std::vector<std::string> variables_;
   int port_;
   bool verbose_;
   bool use_upper_range_registers_;
   int register_offset_;
-  double frequency_;
   double delta_time_;
   std::shared_ptr<RTDE> rtde_;
   std::atomic<bool> stop_receive_thread{false};

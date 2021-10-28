@@ -234,12 +234,12 @@ bool RTDEReceiveInterface::startFileRecording(const std::string &filename, const
     record_variables_ = variables_;
   }
 
-  for (int i=0; i < record_variables_.size() ; i++)
+  for (size_t i=0; i < record_variables_.size() ; i++)
   {
       uint16_t entry_size = robot_state_->getStateEntrySize(record_variables_[i]);
       if (entry_size > 1)
       {
-        for (int j = 0; j < entry_size; j++)
+        for (size_t j = 0; j < entry_size; j++)
         {
           *file_recording_ << record_variables_[i] + '_' + std::to_string(j);
           if (i != record_variables_.size() - 1)  // No comma at the end of line
