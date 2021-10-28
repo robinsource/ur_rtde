@@ -239,7 +239,7 @@ bool RTDEReceiveInterface::startFileRecording(const std::string &filename, const
       uint16_t entry_size = robot_state_->getStateEntrySize(record_variables_[i]);
       if (entry_size > 1)
       {
-        for (size_t j = 0; j < entry_size; j++)
+        for (unsigned int j = 0; j < entry_size; j++)
         {
           *file_recording_ << record_variables_[i] + '_' + std::to_string(j);
           if (i != record_variables_.size() - 1)  // No comma at the end of line
@@ -283,7 +283,7 @@ void RTDEReceiveInterface::recordCallback()
   while (!stop_record_thread)
   {
     auto t_start = std::chrono::steady_clock::now();
-    for (int i=0; i < record_variables_.size() ; i++)
+    for (size_t i=0; i < record_variables_.size() ; i++)
     {
       std::string entry_str = robot_state_->getStateEntryString(record_variables_[i]);
       *file_recording_ << entry_str;
