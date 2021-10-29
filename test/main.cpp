@@ -451,7 +451,7 @@ SCENARIO("Controling the IO on the robot")
 }
 
 //
-// This test must be used as the last test, since it puts the robot in ProtectiveStop
+// This test must be used together with "SCENARIO("Reactivare Robot, remove ProtectiveStop")", since it puts the robot in ProtectiveStop.
 //
 SCENARIO("Test ProtectiveStop")
 {
@@ -484,6 +484,59 @@ SCENARIO("Test ProtectiveStop")
         // Check if robot is in protected stop.
         bool protected_stop = rtde_receive->isProtectiveStopped();
         REQUIRE(protected_stop == true);
+      }
+    }
+  }
+}
+
+SCENARIO("Reactivare Robot, remove ProtectiveStop")
+{
+  GIVEN("Robot is in ProtectiveStop")
+  {
+    // Check if robot is in protected stop.
+    bool protected_stop = rtde_receive->isProtectiveStopped();
+
+    std::this_thread::sleep_for(std::chrono::duration<double>(1));
+
+    WHEN("Require that ProtectiveStop has been occurring for more than 5 seconds")
+    {
+      // Procedure to recover from ProtectiveStop
+      std::chrono::seconds t_max_wait_protected_stop(5);
+      std::chrono::duration<double> t_duration;
+
+      protected_stop = rtde_receive->isProtectiveStopped();
+
+      if (protected_stop = true)
+      {
+        auto t_start = high_resolution_clock::now();
+        while ( (protected_stop = true) and (t_duration < t_max_wait_protected_stop) )
+        {
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+
+          auto t_now = high_resolution_clock::now();
+          t_duration = std::chrono::duration<double>(t_now - t_start);
+
+          std::cout << "t_duration is : " << t_duration.count() << std::endl;
+
+          protected_stop = rtde_receive->isProtectiveStopped();
+        } 
+        std::cout << "Robot not reacting within timelimit" << std::endl;
+      } 
+      REQUIRE(protected_stop == true);
+
+      THEN("Remove ProtectiveStop")
+      {
+        bool script_uploaded = rtde_control->reuploadScript();
+        std::cout << "script_uploaded to robot " << script_uploaded << std::endl;
+
+        // unlockProtectiveStop
+        db_client->unlockProtectiveStop();
+
+        // Check if robot is in protected stop.
+        // We need a litel time to settle.
+        std::this_thread::sleep_for(std::chrono::duration<double>(1));
+        bool protected_stop = rtde_receive->isProtectiveStopped();
+        REQUIRE(protected_stop == false);
       }
     }
   }
