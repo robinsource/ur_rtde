@@ -50,7 +50,11 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
   // Create a connection to the dashboard server
   db_client_ = std::make_shared<DashboardClient>(hostname_);
   db_client_->connect();
-  serial_number_ = db_client_->getSerialNumber();
+  PolyScopeVersion polyscope_version(db_client_->polyscopeVersion());
+  if (polyscope_version.major == 5 && polyscope_version.minor > 5)
+  {
+    serial_number_ = db_client_->getSerialNumber();
+  }
 
   // Only check if in remote on real robot or when not using the ExternalControl UR Cap.
   if (!use_external_control_ur_cap_)
@@ -58,7 +62,6 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
     // 192.168.56.101 is the CI ursim test ip address.
     if (hostname_ != "localhost" && hostname_ != "127.0.0.1" && hostname_ != "192.168.56.101")
     {
-      PolyScopeVersion polyscope_version(db_client_->polyscopeVersion());
       if (polyscope_version.major == 5 && polyscope_version.minor > 5)
       {
         // Check if robot is in remote control
@@ -314,7 +317,11 @@ bool RTDEControlInterface::isConnected()
 bool RTDEControlInterface::reconnect()
 {
   db_client_->connect();
-  serial_number_ = db_client_->getSerialNumber();
+  PolyScopeVersion polyscope_version(db_client_->polyscopeVersion());
+  if (polyscope_version.major == 5 && polyscope_version.minor > 5)
+  {
+    serial_number_ = db_client_->getSerialNumber();
+  }
   script_client_->connect();
   rtde_->connect();
   rtde_->negotiateProtocolVersion();
