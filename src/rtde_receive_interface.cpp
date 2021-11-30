@@ -479,7 +479,7 @@ int32_t RTDEReceiveInterface::getRobotMode()
 uint32_t RTDEReceiveInterface::getRobotStatus()
 {
   uint32_t robot_status;
-  if (robot_state_->getStateData("robot_status", robot_status))
+  if (robot_state_->getStateData("robot_status_bits", robot_status))
     return robot_status;
   else
     throw std::runtime_error("unable to get state data for specified key: robot_status");
