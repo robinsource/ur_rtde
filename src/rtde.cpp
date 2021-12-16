@@ -445,7 +445,8 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
         RTDEControlHeader next_packet_header = RTDEUtility::readRTDEHeader(buffer_, message_offset);
         if(next_packet_header.msg_cmd == RTDE_DATA_PACKAGE)
         {
-          std::cout << "skipping package(1)" << std::endl;
+          if (verbose_)
+            std::cout << "skipping package(1)" << std::endl;
           continue;
         }
       }
@@ -465,7 +466,12 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
             rtde_type_variant_ entry = robot_state->state_types_[output_name];
             if(entry.type() == typeid(std::vector<double>))
             {
-              std::vector<double> parsed_data = RTDEUtility::unpackVector6d(packet, packet_data_offset);
+              std::vector<double> parsed_data;
+              if(output_name == "actual_tool_accelerometer" || output_name == "payload_cog" ||
+                  output_name == "elbow_position" || output_name == "elbow_velocity")
+                parsed_data = RTDEUtility::unpackVector3d(packet, packet_data_offset);
+              else
+                parsed_data = RTDEUtility::unpackVector6d(packet, packet_data_offset);
               robot_state->setStateData(output_name, parsed_data);
             }
             else if(entry.type() == typeid(double))
@@ -505,7 +511,8 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
       }
       else
       {
-        std::cout << "skipping package(2)" << std::endl;
+        if (verbose_)
+          std::cout << "skipping package(2)" << std::endl;
       }
     }
     else
