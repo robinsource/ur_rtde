@@ -47,8 +47,9 @@ void TCPSocket::setOptions(int socket_fd)
 {
   int flag = 1;
   setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+#if defined(__linux) || defined(linux) || defined(__linux__)
   setsockopt(socket_fd, IPPROTO_TCP, TCP_QUICKACK, &flag, sizeof(int));
-
+#endif
   if (recv_timeout_ != nullptr)
   {
     setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, recv_timeout_.get(), sizeof(timeval));
