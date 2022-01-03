@@ -295,6 +295,8 @@ PYBIND11_MODULE(rtde_receive, m)
       .def("getOutputDoubleRegister", &RTDEReceiveInterface::getOutputDoubleRegister,
            DOC(ur_rtde, RTDEReceiveInterface, getOutputDoubleRegister),
            py::call_guard<py::gil_scoped_release>())
+      .def("getAsyncOperationProgress", &RTDEReceiveInterface::getAsyncOperationProgress,
+           py::call_guard<py::gil_scoped_release>())
       .def("getSpeedScalingCombined", &RTDEReceiveInterface::getSpeedScalingCombined,
            DOC(ur_rtde, RTDEReceiveInterface, getSpeedScalingCombined),
            py::call_guard<py::gil_scoped_release>())
