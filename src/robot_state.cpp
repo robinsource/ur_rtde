@@ -43,6 +43,7 @@ std::unordered_map<std::string, rtde_type_variant_> RobotState::state_types_ {
     { "standard_analog_input1", double() },
     { "standard_analog_output0", double() },
     { "standard_analog_output1", double() },
+    { "ft_raw_wrench", std::vector<double>() },
     { "output_bit_registers0_to_31", uint32_t() },
     { "output_bit_registers32_to_63", uint32_t() },
     { "output_int_register_0", int32_t() },

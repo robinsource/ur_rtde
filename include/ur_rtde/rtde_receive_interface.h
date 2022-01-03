@@ -427,6 +427,13 @@ class RTDEReceiveInterface
    */
   RTDE_EXPORT double getSpeedScalingCombined();
 
+  /**
+   * @brief Get the raw force and torque measurement, not compensated for forces and torques caused by the payload
+   *
+   * @returns the raw force and torque measurement
+   */
+  RTDE_EXPORT std::vector<double> getFtRawWrench();
+
   RTDE_EXPORT void receiveCallback();
 
   RTDE_EXPORT void recordCallback();

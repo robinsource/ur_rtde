@@ -127,6 +127,7 @@ bool RTDEReceiveInterface::setupRecipes(const double& frequency)
                   "standard_analog_output1",
                   "robot_status_bits",
                   "safety_status_bits",
+                  "ft_raw_wrench",
                   outIntReg(2),
                   outIntReg(12),
                   outIntReg(13),
@@ -736,6 +737,20 @@ int RTDEReceiveInterface::getAsyncOperationProgress()
     return output_int_register_val;
   else
     throw std::runtime_error("unable to get state data for specified key: "+output_int_register_key);
+}
+
+std::vector<double> RTDEReceiveInterface::getFtRawWrench()
+{
+  std::vector<double> ft_raw_wrench;
+  if (robot_state_->getStateData("ft_raw_wrench", ft_raw_wrench))
+  {
+    if (!ft_raw_wrench.empty())
+      return ft_raw_wrench;
+    else
+      throw std::runtime_error("getFtRawWrench is only supported on PolyScope versions >= 5.9.0");
+  }
+  else
+    throw std::runtime_error("unable to get state data for specified key: ft_raw_wrench");
 }
 
 double RTDEReceiveInterface::getSpeedScalingCombined()

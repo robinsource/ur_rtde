@@ -300,6 +300,8 @@ PYBIND11_MODULE(rtde_receive, m)
       .def("getSpeedScalingCombined", &RTDEReceiveInterface::getSpeedScalingCombined,
            DOC(ur_rtde, RTDEReceiveInterface, getSpeedScalingCombined),
            py::call_guard<py::gil_scoped_release>())
+      .def("getFtRawWrench", &RTDEReceiveInterface::getFtRawWrench,
+           py::call_guard<py::gil_scoped_release>())
       .def("__repr__", [](const RTDEReceiveInterface &a) { return "<rtde_receive.RTDEReceiveInterface>"; });
 }
 };  // namespace rtde_receive
