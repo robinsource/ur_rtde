@@ -133,8 +133,9 @@ bool ScriptClient::sendScript()
 
   while (n != std::string::npos)
   {
-    const std::string major_str(1, ur_script.at(n + 2));
-    const std::string minor_str(1, ur_script.at(n + 3));
+    const std::string version_str = ur_script.substr(n+1, 4);
+    const std::string major_str(1, version_str.at(0));
+    const std::string minor_str = version_str.substr(2, 4);
 
     if (!major_str.empty() && !minor_str.empty() && major_str != " " && minor_str != " ")
     {
@@ -145,8 +146,8 @@ bool ScriptClient::sendScript()
           (major_control_version_ == major_version_needed && minor_control_version_ >= minor_version_needed))
       {
         // Keep the line
-        ur_script.erase(n, 4);
-        ur_script.insert(n, "    ");
+        ur_script.erase(n, 5);
+        ur_script.insert(n, "     ");
       }
       else
       {
@@ -259,8 +260,9 @@ std::string ScriptClient::getScript()
 
   while (n != std::string::npos)
   {
-    const std::string major_str(1, ur_script.at(n + 2));
-    const std::string minor_str(1, ur_script.at(n + 3));
+    const std::string version_str = ur_script.substr(n+1, 4);
+    const std::string major_str(1, version_str.at(0));
+    const std::string minor_str = version_str.substr(2, 4);
 
     if (!major_str.empty() && !minor_str.empty() && major_str != " " && minor_str != " ")
     {
@@ -271,8 +273,8 @@ std::string ScriptClient::getScript()
           (major_control_version_ == major_version_needed && minor_control_version_ >= minor_version_needed))
       {
         // Keep the line
-        ur_script.erase(n, 4);
-        ur_script.insert(n, "    ");
+        ur_script.erase(n, 5);
+        ur_script.insert(n, "     ");
       }
       else
       {
