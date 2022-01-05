@@ -88,8 +88,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
   delta_time_ = 1 / frequency_;
 
   // Create a connection to the script server
-  script_client_ = std::make_shared<ScriptClient>(hostname_, versions_.major,
-                                                  versions_.minor);
+  script_client_ = std::make_shared<ScriptClient>(hostname_, versions_.major, versions_.minor);
   script_client_->connect();
 
   // If user want to use upper range of RTDE registers, add the register offset in control script
@@ -211,7 +210,8 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
 #else
   if (!upload_script_ && use_external_control_ur_cap_)
   {
-    throw std::logic_error("The use of ExternalControl UR Cap is not supported on Windows and Apple yet."
+    throw std::logic_error(
+        "The use of ExternalControl UR Cap is not supported on Windows and Apple yet."
         " Please contact author");
   }
 #endif
@@ -299,7 +299,8 @@ void RTDEControlInterface::disconnect()
 
   if (db_client_ != nullptr)
   {
-    if (db_client_->isConnected()) {
+    if (db_client_->isConnected())
+    {
       db_client_->disconnect();
       serial_number_.clear();
     }
@@ -455,7 +456,8 @@ bool RTDEControlInterface::reconnect()
 #else
   if (!upload_script_ && use_external_control_ur_cap_)
   {
-    throw std::logic_error("The use of ExternalControl UR Cap is not supported on Windows and Apple yet. "
+    throw std::logic_error(
+        "The use of ExternalControl UR Cap is not supported on Windows and Apple yet. "
         "Please contact author");
   }
 #endif
@@ -498,8 +500,8 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
 {
   // Setup output
   state_names_ = {"robot_status_bits", "safety_status_bits", "runtime_state", outIntReg(0),
-                                          outIntReg(1),        outDoubleReg(0),      outDoubleReg(1), outDoubleReg(2),
-                                          outDoubleReg(3),     outDoubleReg(4),      outDoubleReg(5)};
+                  outIntReg(1),        outDoubleReg(0),      outDoubleReg(1), outDoubleReg(2),
+                  outDoubleReg(3),     outDoubleReg(4),      outDoubleReg(5)};
   rtde_->sendOutputSetup(state_names_, frequency);
 
   // Setup input recipes
@@ -575,8 +577,8 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
   rtde_->sendInputSetup(setp_input);
 
   // Recipe 14
-  std::vector<std::string> jog_input = {inIntReg(0),    inDoubleReg(0), inDoubleReg(1), inDoubleReg(2),
-                                        inDoubleReg(3), inDoubleReg(4), inDoubleReg(5), inDoubleReg(6),
+  std::vector<std::string> jog_input = {inIntReg(0),     inDoubleReg(0), inDoubleReg(1), inDoubleReg(2),
+                                        inDoubleReg(3),  inDoubleReg(4), inDoubleReg(5), inDoubleReg(6),
                                         inDoubleReg(7),  inDoubleReg(8), inDoubleReg(9), inDoubleReg(10),
                                         inDoubleReg(11), inDoubleReg(12)};
   rtde_->sendInputSetup(jog_input);
@@ -591,6 +593,12 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
                                                        inDoubleReg(7),  inDoubleReg(8), inDoubleReg(9), inDoubleReg(10),
                                                        inDoubleReg(11), inDoubleReg(12)};
   rtde_->sendInputSetup(move_until_contact_input);
+
+  // Recipe 17
+  std::vector<std::string> freedrive_mode_input = {
+      inIntReg(0),    inIntReg(1),    inIntReg(2),    inIntReg(3),    inIntReg(4),    inIntReg(5),   inIntReg(6),
+      inDoubleReg(0), inDoubleReg(1), inDoubleReg(2), inDoubleReg(3), inDoubleReg(4), inDoubleReg(5)};
+  rtde_->sendInputSetup(freedrive_mode_input);
 
   return true;
 }
@@ -976,7 +984,7 @@ bool RTDEControlInterface::moveL(const std::vector<double> &transform, double sp
 }
 
 bool RTDEControlInterface::jogStart(const std::vector<double> &speeds, int feature,
-	const std::vector<double>& custom_frame)
+                                    const std::vector<double> &custom_frame)
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::JOG_START;
@@ -990,7 +998,7 @@ bool RTDEControlInterface::jogStart(const std::vector<double> &speeds, int featu
   }
   else
   {
-	for (int i = 0; i < 6; ++i)
+    for (int i = 0; i < 6; ++i)
       robot_cmd.val_.push_back(0);
   }
   return sendCommand(robot_cmd);
@@ -1685,7 +1693,48 @@ bool RTDEControlInterface::moveUntilContact(const std::vector<double> &xd, const
   return sendCommand(robot_cmd);
 }
 
-void RTDEControlInterface::unlockProtectiveStop() {
+bool RTDEControlInterface::freedriveMode(const std::vector<int> &free_axes, const std::vector<double> &feature)
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::FREEDRIVE_MODE;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_17;
+  robot_cmd.free_axes_ = free_axes;
+  robot_cmd.val_ = feature;
+  return sendCommand(robot_cmd);
+}
+
+bool RTDEControlInterface::endFreedriveMode()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::END_FREEDRIVE_MODE;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+  return sendCommand(robot_cmd);
+}
+
+int RTDEControlInterface::getFreedriveStatus()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::GET_FREEDRIVE_STATUS;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+  if (sendCommand(robot_cmd))
+  {
+    if (robot_state_ != nullptr)
+    {
+      return getOutputIntReg(1);
+    }
+    else
+    {
+      throw std::logic_error("Please initialize the RobotState, before using it!");
+    }
+  }
+  else
+  {
+    throw std::runtime_error("getFreedriveStatus() function failed to return.");
+  }
+}
+
+void RTDEControlInterface::unlockProtectiveStop()
+{
   db_client_->unlockProtectiveStop();
 }
 
@@ -1716,7 +1765,7 @@ double RTDEControlInterface::getOutputDoubleReg(int reg)
   if (robot_state_->getStateData(output_double_register_key, output_double_register_val))
     return output_double_register_val;
   else
-    throw std::runtime_error("unable to get state data for specified key: "+output_double_register_key);
+    throw std::runtime_error("unable to get state data for specified key: " + output_double_register_key);
 };
 
 int RTDEControlInterface::getOutputIntReg(int reg)
@@ -1726,7 +1775,7 @@ int RTDEControlInterface::getOutputIntReg(int reg)
   if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
     return output_int_register_val;
   else
-    throw std::runtime_error("unable to get state data for specified key: "+output_int_register_key);
+    throw std::runtime_error("unable to get state data for specified key: " + output_int_register_key);
 };
 
 bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
@@ -1773,7 +1822,7 @@ bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
           cmd.type_ == RTDE::RobotCommand::Type::SERVOC || cmd.type_ == RTDE::RobotCommand::Type::SPEEDJ ||
           cmd.type_ == RTDE::RobotCommand::Type::SPEEDL || cmd.type_ == RTDE::RobotCommand::Type::FORCE_MODE ||
           cmd.type_ == RTDE::RobotCommand::Type::WATCHDOG || cmd.type_ == RTDE::RobotCommand::Type::GET_JOINT_TORQUES ||
-        cmd.type_ == RTDE::RobotCommand::Type::TOOL_CONTACT || cmd.type_ == RTDE::RobotCommand::Type::GET_STEPTIME ||
+          cmd.type_ == RTDE::RobotCommand::Type::TOOL_CONTACT || cmd.type_ == RTDE::RobotCommand::Type::GET_STEPTIME ||
           cmd.type_ == RTDE::RobotCommand::Type::GET_ACTUAL_JOINT_POSITIONS_HISTORY)
       {
         // Send command to the controller

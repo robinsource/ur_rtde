@@ -770,7 +770,28 @@ $V54                break
 $V54             end
 $V54          end
               textmsg("move_until_contact done")
+        elif cmd == 52:
+              textmsg("freedrive_mode")
+              free_axes = [1, 1, 1, 1, 1, 1]
+              free_axes[0] = read_input_integer_reg(1)
+              free_axes[1] = read_input_integer_reg(2)
+              free_axes[2] = read_input_integer_reg(3)
+              free_axes[3] = read_input_integer_reg(4)
+              free_axes[4] = read_input_integer_reg(5)
+              free_axes[5] = read_input_integer_reg(6)
 
+              freedrive_feature = pose_from_input_float_registers(0)
+              freedrive_mode(freeAxes=free_axes, feature=freedrive_feature)
+              textmsg("freedrive_mode done")
+        elif cmd == 53:
+              textmsg("end_freedrive_mode")
+              end_freedrive_mode()
+              textmsg("end_freedrive_mode done")
+        elif cmd == 54:
+              textmsg("get_freedrive_status")
+              freedrive_status = get_freedrive_status()
+              write_output_integer_reg(1, freedrive_status)
+              textmsg("get_freedrive_status done")
         elif cmd == 255:
             textmsg("Received stop script!")
         end

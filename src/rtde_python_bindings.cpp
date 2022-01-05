@@ -187,6 +187,10 @@ PYBIND11_MODULE(rtde_control, m)
               py::arg("custom_frame") = std::vector<double>{0, 0, 0, 0, 0, 0},
               py::call_guard<py::gil_scoped_release>());
   control.def("jogStop", &RTDEControlInterface::jogStop, DOC(ur_rtde, RTDEControlInterface, jogStop), py::call_guard<py::gil_scoped_release>());
+  control.def("freedriveMode", &RTDEControlInterface::freedriveMode, py::arg("free_axes") = std::vector<int>{1, 1, 1, 1, 1, 1},
+              py::arg("feature") = std::vector<double>{0, 0, 0, 0, 0, 0}, py::call_guard<py::gil_scoped_release>());
+  control.def("endFreedriveMode", &RTDEControlInterface::endFreedriveMode, py::call_guard<py::gil_scoped_release>());
+  control.def("getFreedriveStatus", &RTDEControlInterface::getFreedriveStatus, py::call_guard<py::gil_scoped_release>());
   control.def("__repr__", [](const RTDEControlInterface &a) { return "<rtde_control.RTDEControlInterface>"; });
 }
 };  // namespace rtde_control

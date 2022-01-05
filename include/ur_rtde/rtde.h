@@ -92,6 +92,9 @@ class RTDE
       SET_INPUT_INT_REGISTER = 49,
       SET_INPUT_DOUBLE_REGISTER = 50,
       MOVE_UNTIL_CONTACT = 51,
+      FREEDRIVE_MODE = 52,
+      END_FREEDRIVE_MODE = 53,
+      GET_FREEDRIVE_STATUS = 54,
       WATCHDOG = 99,
       STOP_SCRIPT = 255
     };
@@ -113,7 +116,8 @@ class RTDE
       RECIPE_13 = 13,
       RECIPE_14 = 14,
       RECIPE_15 = 15,
-      RECIPE_16 = 16
+      RECIPE_16 = 16,
+      RECIPE_17 = 17
     };
 
     RobotCommand() : type_(NO_CMD), recipe_id_(1)
@@ -127,6 +131,7 @@ class RTDE
     double reg_double_val_;
     std::vector<double> val_;
     std::vector<int> selection_vector_;
+    std::vector<int> free_axes_;
     std::int32_t force_mode_type_;
     std::uint8_t std_digital_out_;
     std::uint8_t std_digital_out_mask_;

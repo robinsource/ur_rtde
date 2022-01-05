@@ -156,6 +156,13 @@ void RTDE::send(const RobotCommand &robot_cmd)
   std::vector<char> cmd_packed;
   cmd_packed = RTDEUtility::packInt32(robot_cmd.type_);
 
+  if (robot_cmd.type_ == RobotCommand::FREEDRIVE_MODE)
+  {
+    std::vector<char> free_axes_packed = RTDEUtility::packVectorNInt32(robot_cmd.free_axes_);
+    cmd_packed.insert(cmd_packed.end(), std::make_move_iterator(free_axes_packed.begin()),
+                      std::make_move_iterator(free_axes_packed.end()));
+  }
+
   if (robot_cmd.type_ == RobotCommand::SET_INPUT_INT_REGISTER)
   {
     std::vector<char> reg_int_packed = RTDEUtility::packInt32(robot_cmd.reg_int_val_);

@@ -666,8 +666,60 @@ class RTDEControlInterface
    * @returns True once the robot is in contact.
    */
   RTDE_EXPORT bool moveUntilContact(const std::vector<double> &xd,
-                                    const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0},
+                                    const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
                                     double acceleration = 0.5);
+
+  /**
+   * @brief Set robot in freedrive mode. In this mode the robot can be moved around by hand in the same way
+   * as by pressing the "freedrive" button.
+   *
+   * The robot will not be able to follow a trajectory (eg. a movej) in this mode.
+   *
+   * The default parameters enables the robot to move freely in all directions. It is possible to enable
+   * constrained freedrive by providing user specific parameters.
+   *
+   * @param freeAxes A 6 dimensional vector that contains 0's and 1's, these indicates in which axes
+   * movement is allowed. The first three values represents the cartesian directions along x, y, z, and the
+   * last three defines the rotation axis, rx, ry, rz. All relative to the selected feature
+   * @param feature A pose vector that defines a freedrive frame relative to the base frame. For base and
+   * tool reference frames predefined constants "base", and "tool" can be used in place of pose vectors.
+   * @returns true when the robot is in freedrive mode, false otherwise.
+   *
+   * <B>Examples:</B>
+   *  - freedrive_mode()
+   *       - Robot can move freely in all directions.
+   *  - freedrive_mode(freeAxes=[1,0,0,0,0,0], feature=p[0.1,0,0,0,0.785])
+   *       - Example Parameters:
+   *            - freeAxes = [1,0,0,0,0,0] -> The robot is compliant in the x direction relative to the feature.
+   *            - feature = p[0.1,0,0,0,0.785] -> This feature is offset from the base frame with 100 mm in the\n
+   *            x direction and rotated 45 degrees in the rz direction.
+   *
+   * <B>Note:</B> Immediately before entering freedrive mode, avoid:
+   *   - movements in the non-compliant axes
+   *   - high acceleration in freedrive mode
+   *   - high deceleration in freedrive mode
+   */
+  RTDE_EXPORT bool freedriveMode(const std::vector<int> &free_axes = {1, 1, 1, 1, 1, 1},
+                                 const std::vector<double> &feature = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+
+  /**
+   * @brief Set robot back in normal position control mode after freedrive mode.
+   * @returns true when the robot is not in freedrive anymore.
+   */
+  RTDE_EXPORT bool endFreedriveMode();
+
+  /**
+   * @brief Returns status of freedrive mode for current robot pose.
+   *
+   * Constrained freedrive usability is reduced near singularities. Value returned by this function
+   * corresponds to distance to the nearest singularity.
+   *
+   * It can be used to advice operator to follow different path or switch to unconstrained freedrive.
+   *
+   * @returns - 0 = Normal operation.\n - 1 = Near singularity.\n - 2 = Too close to singularity.
+   * High movement resistance in freedrive.
+   */
+  RTDE_EXPORT int getFreedriveStatus();
 
   // Unlocks a protective stop via the dashboard client.
   void unlockProtectiveStop();
@@ -679,8 +731,6 @@ class RTDEControlInterface
 
  private:
   bool setupRecipes(const double &frequency);
-
-  void initOutputRegFuncMap();
 
   bool sendCommand(const RTDE::RobotCommand &cmd);
 
