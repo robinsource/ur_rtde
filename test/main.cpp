@@ -1,12 +1,14 @@
 #define DOCTEST_CONFIG_IMPLEMENT
-#include "doctest.h"
 #include <ur_rtde/dashboard_client.h>
 #include <ur_rtde/rtde_control_interface.h>
-#include <ur_rtde/rtde_receive_interface.h>
 #include <ur_rtde/rtde_io_interface.h>
-#include <vector>
-#include <thread>
+#include <ur_rtde/rtde_receive_interface.h>
+
 #include <chrono>
+#include <thread>
+#include <vector>
+
+#include "doctest.h"
 
 using namespace ur_rtde;
 using namespace std::chrono;
@@ -15,20 +17,20 @@ using namespace std::chrono;
 std::shared_ptr<DashboardClient> db_client;
 std::shared_ptr<RTDEControlInterface> rtde_control;
 std::shared_ptr<RTDEReceiveInterface> rtde_receive;
-std::shared_ptr<RTDEIOInterface>      rtde_io;
-
+std::shared_ptr<RTDEIOInterface> rtde_io;
 
 // Declare initial values
 std::vector<double> init_q;
 std::vector<double> init_pose;
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   doctest::Context context;
 
   // Initialize doctest C++ testing framework
-  context.setOption("abort-after", 5); // stop test execution after 5 failed assertions
+  context.setOption("abort-after", 5);  // stop test execution after 5 failed assertions
   context.applyCommandLine(argc, argv);
-  context.setOption("no-breaks", true); // don't break in the debugger when assertions fail
+  context.setOption("no-breaks", true);  // don't break in the debugger when assertions fail
 
   // Power and brake release the robot through dashboard client
   db_client = std::make_shared<DashboardClient>("192.168.56.101", 29999, true);
@@ -41,17 +43,17 @@ int main(int argc, char** argv) {
   // Initialize RTDE
   rtde_control = std::make_shared<RTDEControlInterface>("192.168.56.101");
   rtde_receive = std::make_shared<RTDEReceiveInterface>("192.168.56.101");
-  rtde_io      = std::make_shared<RTDEIOInterface>("192.168.56.101");
+  rtde_io = std::make_shared<RTDEIOInterface>("192.168.56.101");
   init_q = rtde_receive->getActualQ();
   init_pose = rtde_receive->getActualTCPPose();
 
   // Activate doctest C++ testing framework and run all test cases
-  int res = context.run(); // run test cases unless with --no-run
+  int res = context.run();  // run test cases unless with --no-run
 
-  if(context.shouldExit()) // query flags (and --exit) rely on the user doing this
-    return res;            // propagate the result of the tests
+  if (context.shouldExit())  // query flags (and --exit) rely on the user doing this
+    return res;              // propagate the result of the tests
 
-  return res; // the result from doctest is propagated here as well
+  return res;  // the result from doctest is propagated here as well
 
   // Stop the RTDE control script
   rtde_control->stopScript();
@@ -61,12 +63,12 @@ SCENARIO("Move robot in joint space (moveJ)")
 {
   GIVEN("A target joint configuration")
   {
-    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test don't leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
 
     // Target is Pi / 6 in the robot base joint
     std::vector<double> target_q = init_q;
-    target_q[0] += 0.5235; // ~ Pi / 6
+    target_q[0] += 0.5235;  // ~ Pi / 6
 
     WHEN("Robot is done moving")
     {
@@ -76,7 +78,7 @@ SCENARIO("Move robot in joint space (moveJ)")
       {
         std::vector<double> actual_q = rtde_receive->getActualQ();
 
-        for(unsigned int i = 0; i < actual_q.size(); i++)
+        for (unsigned int i = 0; i < actual_q.size(); i++)
         {
           REQUIRE(actual_q[i] == doctest::Approx(target_q[i]).epsilon(0.005));
         }
@@ -89,12 +91,12 @@ SCENARIO("Move robot in tool space (moveL)")
 {
   GIVEN("A cartesian target pose")
   {
-    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test don't leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
 
     // Target 10 cm up in the Z-Axis of the TCP
     std::vector<double> target_pose = init_pose;
-    target_pose[2] += 0.10; // ~ Pi / 6
+    target_pose[2] += 0.10;
 
     WHEN("Robot is done moving")
     {
@@ -104,7 +106,7 @@ SCENARIO("Move robot in tool space (moveL)")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
 
-        for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
+        for (unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
           REQUIRE(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.005));
         }
@@ -117,7 +119,7 @@ SCENARIO("Move robot in tool space using a predefined path")
 {
   GIVEN("A cartesian target pose")
   {
-    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test don't leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
 
     // Target is defined in this vector
@@ -128,20 +130,20 @@ SCENARIO("Move robot in tool space using a predefined path")
     double acceleration = 4;
 
     path.addEntry({PathEntry::MoveJ,
-                    PathEntry::PositionTcpPose,
-                    {-0.140, -0.400, 0.100, 0, 3.14, 0, velocity, acceleration, 0}});  // move to initial position using movej with inverse kinematics
+                   PathEntry::PositionTcpPose,
+                   {-0.140, -0.400, 0.100, 0, 3.14, 0, velocity, acceleration,
+                    0}});  // move to initial position using movej with inverse kinematics
     path.addEntry({PathEntry::MoveL,
-                    PathEntry::PositionTcpPose,
-                    {-0.140, -0.400, 0.300, 0, 3.14, 0, velocity, acceleration, 0.099}});
+                   PathEntry::PositionTcpPose,
+                   {-0.140, -0.400, 0.300, 0, 3.14, 0, velocity, acceleration, 0.099}});
     path.addEntry({PathEntry::MoveL,
-                    PathEntry::PositionTcpPose,
-                    {-0.140, -0.600, 0.300, 0, 3.14, 0, velocity, acceleration, 0.099}});
+                   PathEntry::PositionTcpPose,
+                   {-0.140, -0.600, 0.300, 0, 3.14, 0, velocity, acceleration, 0.099}});
     path.addEntry({PathEntry::MoveL,
-                    PathEntry::PositionTcpPose,
-                    {0.140, -0.600, 0.100, 0, 3.14, 0, velocity, acceleration, 0.099}});
-    path.addEntry({PathEntry::MoveL,
-                    PathEntry::PositionTcpPose,
-                    {0.280, -0.400, 0.100, 0, 3.14, 0, velocity, acceleration, 0}});
+                   PathEntry::PositionTcpPose,
+                   {0.140, -0.600, 0.100, 0, 3.14, 0, velocity, acceleration, 0.099}});
+    path.addEntry(
+        {PathEntry::MoveL, PathEntry::PositionTcpPose, {0.280, -0.400, 0.100, 0, 3.14, 0, velocity, acceleration, 0}});
 
     WHEN("Robot is done moving")
     {
@@ -150,20 +152,7 @@ SCENARIO("Move robot in tool space using a predefined path")
       THEN("Robot must be at target")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
-        std::cout << "Size of TCPPose from robot is " << actual_tcp_pose.size() << std::endl;
-        std::cout << "Actual TCPPose from robot is ";
-        for (auto i: actual_tcp_pose)
-          std::cout << i << ' ';
-        std::cout << std::endl;
-
-        std::vector<double> joint_positions = rtde_receive->getActualQ();
-        std::cout << "Size of joint position from robot is " << joint_positions.size() << std::endl;
-        std::cout << "Actual joint positions from robot is ";
-        for (auto i: joint_positions)
-          std::cout << i << ' ';
-        std::cout << std::endl;
-
-        for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
+        for (unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
           REQUIRE(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.005));
         }
@@ -182,14 +171,14 @@ SCENARIO("Move robot in Forcemode (forceMode)")
     std::vector<double> wrench_down = {0, 0, -10, 0, 0, 0};
     std::vector<double> wrench_up = {0, 0, 10, 0, 0, 0};
     int force_type = 2;
-    double dt = 1.0/500; // 2ms
+    double dt = 1.0 / 500;  // 2ms
     std::vector<double> limits = {2, 2, 1.5, 1, 1, 1};
     std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
 
-    // Target is defined in this vector by trial and error
+    // This target is defined specifically for the test
     std::vector<double> target_pose{-0.117025, -0.435893, 0.150533, -0.0124127, 3.11199, -0.0180484};
 
-    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test don't leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
 
     std::vector<double> start_pose = rtde_receive->getActualTCPPose();
@@ -200,7 +189,7 @@ SCENARIO("Move robot in Forcemode (forceMode)")
       REQUIRE(rtde_control->moveJ(joint_q));
 
       // Execute 500Hz control loop for a total of 4 seconds, each cycle is ~2ms
-      for (unsigned int i=0; i<2000; i++)
+      for (unsigned int i = 0; i < 2000; i++)
       {
         auto t_start = high_resolution_clock::now();
         // First we move the robot down for 2 seconds, then up for 2 seconds
@@ -218,16 +207,10 @@ SCENARIO("Move robot in Forcemode (forceMode)")
       }
       rtde_control->forceModeStop();
 
-      THEN("Robot must be at differet place that at start")
+      THEN("Robot must be at different place than at start")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
-        std::cout << "Size of TCPPose from robot is " << actual_tcp_pose.size() << std::endl;
-        std::cout << "Actual TCPPose from robot is ";
-        for (auto i: actual_tcp_pose)
-          std::cout << i << ' ';
-        std::cout << std::endl;
-
-        for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
+        for (unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
           CHECK(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.05));
         }
@@ -238,21 +221,21 @@ SCENARIO("Move robot in Forcemode (forceMode)")
 
 SCENARIO("Move robot using servo command (servoJ)")
 {
-  GIVEN("Servo to position in joint-space) ")
+  GIVEN("Servo to position in joint-space")
   {
-    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test don't leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
 
     // Parameters
     double velocity = 0.5;
     double acceleration = 0.5;
-    double dt = 1.0/500; // 2ms
+    double dt = 1.0 / 500;  // 2ms
     double lookahead_time = 0.1;
     double gain = 300;
     std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
 
-    // Target is defined in this vector by trial and error
-     std::vector<double> target_pose{0.142942, -0.247098, 0.512341, -1.14747, 2.12287, -1.10575};
+    // This target is defined specifically for the test
+    std::vector<double> target_pose{0.142942, -0.247098, 0.512341, -1.14747, 2.12287, -1.10575};
 
     WHEN("Robot is still moving")
     {
@@ -260,7 +243,7 @@ SCENARIO("Move robot using servo command (servoJ)")
       REQUIRE(rtde_control->moveJ(joint_q));
 
       // Execute 500Hz control loop for 2 seconds, each cycle is ~2ms
-      for (unsigned int i=0; i<1000; i++)
+      for (unsigned int i = 0; i < 1000; i++)
       {
         auto t_start = high_resolution_clock::now();
         rtde_control->servoJ(joint_q, velocity, acceleration, dt, lookahead_time, gain);
@@ -279,17 +262,9 @@ SCENARIO("Move robot using servo command (servoJ)")
       THEN("Robot must be at target")
       {
         std::vector<double> actual_joint_pose = rtde_receive->getActualTCPPose();
-
-        std::cout << "Size of joint position from robot is " << actual_joint_pose.size() << std::endl;
-        std::cout << "Actual joint positions from robot is ";
-        for (auto i: actual_joint_pose)
-          std::cout << i << ' ';
-        std::cout << std::endl;
-
-        for(unsigned int i = 0; i < actual_joint_pose.size(); i++)
+        for (unsigned int i = 0; i < actual_joint_pose.size(); i++)
         {
           CHECK(actual_joint_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.05));
-
         }
       }
     }
@@ -298,20 +273,19 @@ SCENARIO("Move robot using servo command (servoJ)")
 
 SCENARIO("Move robot using SpeedJ command (SpeedJ)")
 {
-  GIVEN("Servo to position in joint-space) ")
+  GIVEN("Servo to position in joint-space")
   {
-    // Move to initial pose, securing that former test dont leave robot in a strange state.
+    // Move to initial pose, securing that former test don't leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
 
     // Parameters
     double acceleration = 0.5;
-    double dt = 1.0/500; // 2ms
+    double dt = 1.0 / 500;  // 2ms
     std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
     std::vector<double> joint_speed = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-    // Target is defined in this vector by trial and error
+    // This target is defined specifically for the test
     std::vector<double> target_pose{0.0759238, -0.402462, 0.352427, -0.71123, 2.81592, -0.692356};
-
 
     WHEN("Robot is still moving")
     {
@@ -319,7 +293,7 @@ SCENARIO("Move robot using SpeedJ command (SpeedJ)")
       REQUIRE(rtde_control->moveJ(joint_q));
 
       // Execute 500Hz control loop for 2 seconds, each cycle is ~2ms
-      for (unsigned int i=0; i<1000; i++)
+      for (unsigned int i = 0; i < 1000; i++)
       {
         auto t_start = high_resolution_clock::now();
         rtde_control->speedJ(joint_speed, acceleration, dt);
@@ -338,17 +312,9 @@ SCENARIO("Move robot using SpeedJ command (SpeedJ)")
       THEN("Robot must be at target")
       {
         std::vector<double> actual_joint_pose = rtde_receive->getActualTCPPose();
-
-        std::cout << "Size of joint position from robot is " << actual_joint_pose.size() << std::endl;
-        std::cout << "Actual joint positions from robot is ";
-        for (auto i: actual_joint_pose)
-          std::cout << i << ' ';
-        std::cout << std::endl;
-
-        for(unsigned int i = 0; i < actual_joint_pose.size(); i++)
+        for (unsigned int i = 0; i < actual_joint_pose.size(); i++)
         {
           CHECK(actual_joint_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.05));
-
         }
       }
     }
@@ -373,7 +339,7 @@ SCENARIO("Move robot using MoveL Path With Blending")
     std::vector<double> path_pose3 = {-0.32, -0.61, 0.31, -0.001, 3.12, 0.04, velocity, acceleration, blend_3};
 
     // Target is defined as a subset of path_pose3
-    std::vector<double>   target_pose(&path_pose3[0],&path_pose3[6]);
+    std::vector<double> target_pose(&path_pose3[0], &path_pose3[6]);
 
     std::vector<std::vector<double>> path;
     path.push_back(path_pose1);
@@ -384,12 +350,11 @@ SCENARIO("Move robot using MoveL Path With Blending")
     {
       REQUIRE(rtde_control->moveL(path));
 
-
       THEN("Robot must be at target")
       {
         std::vector<double> actual_tcp_pose = rtde_receive->getActualTCPPose();
 
-        for(unsigned int i = 0; i < actual_tcp_pose.size(); i++)
+        for (unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
           REQUIRE(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.005));
         }
@@ -398,22 +363,16 @@ SCENARIO("Move robot using MoveL Path With Blending")
   }
 }
 
-SCENARIO("Controling the IO on the robot")
+SCENARIO("Controlling the IO of the robot")
 {
-  GIVEN("Set output to at specified value")
+  GIVEN("Set output to a specified value")
   {
-    // Move to initial pose, securing that former test dont leave robot in a strange state.
-    rtde_control->moveL(init_pose, 3, 3);
-
-    // Parameters
-
     // Set StandardDigitalOut
-    for(unsigned int i = 0; i < 8; i++)
+    for (unsigned int i = 0; i < 8; i++)
     {
-      std::cout << "Setting StandardDigitalOut no: " << i << std::endl;
       rtde_io->setStandardDigitalOut(i, true);
     }
-    for(unsigned int i = 0; i < 8; i++)
+    for (unsigned int i = 0; i < 8; i++)
 
     // Set ConfigurableDigitalOut
     {
@@ -424,20 +383,20 @@ SCENARIO("Controling the IO on the robot")
     rtde_io->setToolDigitalOut(0, true);
     rtde_io->setToolDigitalOut(1, true);
 
-    WHEN("Let settings fall into place")
+    WHEN("Waiting for output to be actuated")
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-      THEN("Reading values from IO must be same as previously specified")
+      THEN("Reading values from IO, must be true")
       {
-        // Reading StandardDigitalOut Output, 0-7 
-        for(unsigned int i = 0; i < 8; i++)
+        // Reading StandardDigitalOut Output, 0-7
+        for (unsigned int i = 0; i < 8; i++)
         {
           REQUIRE(rtde_receive->getDigitalOutState(i));
         }
 
         // Reading ConfigurableDigitalOut, 8-15
-        for(unsigned int i = 8; i < 16; i++)
+        for (unsigned int i = 8; i < 16; i++)
         {
           REQUIRE(rtde_receive->getDigitalOutState(i));
         }
@@ -451,7 +410,8 @@ SCENARIO("Controling the IO on the robot")
 }
 
 //
-// This test must be used together with "SCENARIO("Reactivare Robot, remove ProtectiveStop")", since it puts the robot in ProtectiveStop.
+// This test must be used together with "SCENARIO("Reactivate Robot, remove ProtectiveStop")", since it puts the robot
+// in ProtectiveStop.
 //
 SCENARIO("Test ProtectiveStop")
 {
@@ -462,7 +422,6 @@ SCENARIO("Test ProtectiveStop")
 
     // Controller real-time thread execution time
     double RobotExecutionTime = rtde_receive->getActualExecutionTime();
-    std::cout << "RobotExecutionTime " <<  RobotExecutionTime << std::endl;
     REQUIRE(RobotExecutionTime > 0.4);
 
     // Check if robot is in protected stop.
@@ -470,7 +429,7 @@ SCENARIO("Test ProtectiveStop")
 
     std::this_thread::sleep_for(std::chrono::duration<double>(1));
 
-    // Check if robot is is fully at rest.
+    // Check if robot is fully at rest.
     bool fully_at_rest = rtde_control->isSteady();
 
     WHEN("ProtectiveStop is not enabled")
@@ -482,63 +441,31 @@ SCENARIO("Test ProtectiveStop")
       {
         rtde_control->triggerProtectiveStop();
         // Check if robot is in protected stop.
-        bool protected_stop = rtde_receive->isProtectiveStopped();
+        protected_stop = rtde_receive->isProtectiveStopped();
         REQUIRE(protected_stop == true);
       }
     }
   }
 }
 
-SCENARIO("Reactivare Robot, remove ProtectiveStop")
+SCENARIO("Reactivate Robot, remove ProtectiveStop")
 {
   GIVEN("Robot is in ProtectiveStop")
   {
-    // Check if robot is in protected stop.
     bool protected_stop = rtde_receive->isProtectiveStopped();
+    REQUIRE(protected_stop == true);
 
-    std::this_thread::sleep_for(std::chrono::duration<double>(1));
-
-    WHEN("Require that ProtectiveStop has been occurring for more than 5 seconds")
+    THEN("Remove ProtectiveStop")
     {
-      // Procedure to recover from ProtectiveStop
-      std::chrono::seconds t_max_wait_protected_stop(5);
-      std::chrono::duration<double> t_duration;
+      REQUIRE(rtde_control->reuploadScript());
 
+      // unlockProtectiveStop
+      db_client->unlockProtectiveStop();
+
+      // Check if robot is in protected stop.
+      std::this_thread::sleep_for(std::chrono::duration<double>(1));
       protected_stop = rtde_receive->isProtectiveStopped();
-
-      if (protected_stop = true)
-      {
-        auto t_start = high_resolution_clock::now();
-        while ( (protected_stop = true) and (t_duration < t_max_wait_protected_stop) )
-        {
-          std::this_thread::sleep_for(std::chrono::seconds(1));
-
-          auto t_now = high_resolution_clock::now();
-          t_duration = std::chrono::duration<double>(t_now - t_start);
-
-          std::cout << "t_duration is : " << t_duration.count() << std::endl;
-
-          protected_stop = rtde_receive->isProtectiveStopped();
-        } 
-        std::cout << "Robot not reacting within timelimit" << std::endl;
-      } 
-      REQUIRE(protected_stop == true);
-
-      THEN("Remove ProtectiveStop")
-      {
-        bool script_uploaded = rtde_control->reuploadScript();
-        std::cout << "script_uploaded to robot " << script_uploaded << std::endl;
-
-        // unlockProtectiveStop
-        db_client->unlockProtectiveStop();
-
-        // Check if robot is in protected stop.
-        // We need a litel time to settle.
-        std::this_thread::sleep_for(std::chrono::duration<double>(1));
-        bool protected_stop = rtde_receive->isProtectiveStopped();
-        REQUIRE(protected_stop == false);
-      }
+      REQUIRE(protected_stop == false);
     }
   }
 }
-
