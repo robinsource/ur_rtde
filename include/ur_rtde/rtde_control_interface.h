@@ -7,7 +7,9 @@
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <urcl/script_sender.h>
 #endif
+#include <cstdint>
 #include <map>
+#include <tuple>
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 1
@@ -60,6 +62,20 @@ class RTDE;
 namespace ur_rtde
 {
 class Path;
+
+struct Versions {
+  using RawVersions = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>;
+  void operator=(const RawVersions& raw) {
+    major = std::get<0>(raw);
+    minor = std::get<1>(raw);
+    bugfix = std::get<2>(raw);
+    build = std::get<3>(raw);
+  }
+  uint32_t major;
+  uint32_t minor;
+  uint32_t bugfix;
+  uint32_t build;
+};
 
 /**
  * This class provides the interface to control the robot and to execute robot
@@ -125,7 +141,7 @@ class RTDEControlInterface
   {
     FEATURE_BASE,
     FEATURE_TOOL,
-    FEATURE_CUSTOM  // not supported yet - reserved for future
+    FEATURE_CUSTOM
   };
 
   /**
@@ -219,66 +235,66 @@ class RTDEControlInterface
    * @param q joint positions
    * @param speed joint speed of leading axis [rad/s]
    * @param acceleration joint acceleration of leading axis [rad/s^2]
-   * @param async a bool specifying if the move command should be asynchronous. If async is true it is possible to
-   * stop a move command using either the stopJ or stopL function. Default is false, this means the function will
-   * block until the movement has completed.
+   * @param asynchronous a bool specifying if the move command should be asynchronous. If asynchronous is true it is
+   * possible to stop a move command using either the stopJ or stopL function. Default is false, this means the
+   * function will block until the movement has completed.
    */
   RTDE_EXPORT bool moveJ(const std::vector<double> &q, double speed = 1.05, double acceleration = 1.4,
-                         bool async = false);
+                         bool asynchronous = false);
 
   /**
    * @brief Move to each joint position specified in a path
    * @param path with joint positions that includes acceleration, speed and blend for each position
-   * @param async a bool specifying if the move command should be asynchronous. If async is true it is possible to
-   * stop a move command using either the stopJ or stopL function. Default is false, this means the function will
-   * block until the movement has completed.
+   * @param asynchronous a bool specifying if the move command should be asynchronous. If asynchronous is true it is
+   * possible to stop a move command using either the stopJ or stopL function. Default is false, this means the
+   * function will block until the movement has completed.
    */
-  RTDE_EXPORT bool moveJ(const std::vector<std::vector<double>> &path, bool async = false);
+  RTDE_EXPORT bool moveJ(const std::vector<std::vector<double>> &path, bool asynchronous = false);
 
   /**
    * @brief Move to pose (linear in joint-space)
    * @param pose target pose
    * @param speed joint speed of leading axis [rad/s]
    * @param acceleration joint acceleration of leading axis [rad/s^2]
-   * @param async a bool specifying if the move command should be asynchronous. If async is true it is possible to
-   * stop a move command using either the stopJ or stopL function. Default is false, this means the function will
-   * block until the movement has completed.
+   * @param asynchronous a bool specifying if the move command should be asynchronous. If asynchronous is true it is
+   * possible to stop a move command using either the stopJ or stopL function. Default is false, this means the
+   * function will block until the movement has completed.
    */
   RTDE_EXPORT bool moveJ_IK(const std::vector<double> &pose, double speed = 1.05, double acceleration = 1.4,
-                            bool async = false);
+                            bool asynchronous = false);
 
   /**
    * @brief Move to position (linear in tool-space)
    * @param pose target pose
    * @param speed tool speed [m/s]
    * @param acceleration tool acceleration [m/s^2]
-   * @param async a bool specifying if the move command should be asynchronous. If async is true it is possible to
-   * stop a move command using either the stopJ or stopL function. Default is false, this means the function will
-   * block until the movement has completed.
+   * @param asynchronous a bool specifying if the move command should be asynchronous. If asynchronous is true it is
+   * possible to stop a move command using either the stopJ or stopL function. Default is false, this means the
+   * function will block until the movement has completed.
    */
   RTDE_EXPORT bool moveL(const std::vector<double> &pose, double speed = 0.25, double acceleration = 1.2,
-                         bool async = false);
+                         bool asynchronous = false);
 
   /**
    * @brief Move to each pose specified in a path
    * @param path with tool poses that includes acceleration, speed and blend for each position
-   * @param async a bool specifying if the move command should be asynchronous. If async is true it is possible to
-   * stop a move command using either the stopJ or stopL function. Default is false, this means the function will
-   * block until the movement has completed.
+   * @param asynchronous a bool specifying if the move command should be asynchronous. If asynchronous is true it is
+   * possible to stop a move command using either the stopJ or stopL function. Default is false, this means the
+   * function will block until the movement has completed.
    */
-  RTDE_EXPORT bool moveL(const std::vector<std::vector<double>> &path, bool async = false);
+  RTDE_EXPORT bool moveL(const std::vector<std::vector<double>> &path, bool asynchronous = false);
 
   /**
    * @brief Move to position (linear in tool-space)
    * @param q joint positions
    * @param speed tool speed [m/s]
    * @param acceleration tool acceleration [m/s^2]
-   * @param async a bool specifying if the move command should be asynchronous. If async is true it is possible to
-   * stop a move command using either the stopJ or stopL function. Default is false, this means the function will
-   * block until the movement has completed.
+   * @param asynchronous a bool specifying if the move command should be asynchronous. If asynchronous is true it is
+   * possible to stop a move command using either the stopJ or stopL function. Default is false, this means the
+   * function will block until the movement has completed.
    */
   RTDE_EXPORT bool moveL_FK(const std::vector<double> &q, double speed = 0.25, double acceleration = 1.2,
-                            bool async = false);
+                            bool asynchronous = false);
 
   /**
    * @brief Joint speed - Accelerate linearly in joint space and continue with constant joint speed
@@ -324,12 +340,12 @@ class RTDEControlInterface
   /**
    * Move to each waypoint specified in the given path
    * @param path The path with waypoints
-   * @param @param async a bool specifying if the move command should be asynchronous.
-   * If async is true it is possible to stop a move command using either the
+   * @param asynchronous a bool specifying if the move command should be asynchronous.
+   * If asynchronous is true it is possible to stop a move command using either the
    * stopJ or stopL function. Default is false, this means the function will
    * block until the movement has completed.
    */
-  RTDE_EXPORT bool movePath(const Path &path, bool async = false);
+  RTDE_EXPORT bool movePath(const Path &path, bool asynchronous = false);
 
   /**
    * @brief Stop servo mode and decelerate the robot.
@@ -386,17 +402,17 @@ class RTDEControlInterface
    * calling the jogStart() function over and over again. This makes it
    * possible to use a joystick or a 3D Space Navigator to provide new speed
    * vectors if the user moves the joystick or the Space Navigator cap.
-   * Switching the feature (base or tool) is only possible, if the jogging has
-   * been stopped before the jogStart() function is called. That means, with
-   * the first call of jogStart() the speed vector and feature parameter is
-   * evaluated. With all following calls of the function only the speed vector
-   * will be evaluated.
    * @param speed Speed vector for translation and rotation. Translation values
    * are given in mm / s and rotation values in rad / s.
    * @param feature Configures to move to move with respect to base frame
-   * (FEATURE_BASE) or with respect to tcp frame (FEATURE_TOOL)
+   * (FEATURE_BASE), tool frame (FEATURE_TOOL) or custom frame (FEATURE_CUSTOM)
+   * If the feature is FEATURE_CUSTOM then the custom_frame parameter needs to
+   * be a valid pose.
+   * @param custom_frame The custom_frame given as pose if the selected feature
+   * is FEATURE_CUSTOM
    */
-  RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE);
+  RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE,
+	  const std::vector<double>& custom_frame = {});
 
   /**
    * Stops jogging that has been started start_jog
@@ -650,13 +666,71 @@ class RTDEControlInterface
    * @returns True once the robot is in contact.
    */
   RTDE_EXPORT bool moveUntilContact(const std::vector<double> &xd,
-                                    const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0},
+                                    const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
                                     double acceleration = 0.5);
+
+  /**
+   * @brief Set robot in freedrive mode. In this mode the robot can be moved around by hand in the same way
+   * as by pressing the "freedrive" button.
+   *
+   * The robot will not be able to follow a trajectory (eg. a movej) in this mode.
+   *
+   * The default parameters enables the robot to move freely in all directions. It is possible to enable
+   * constrained freedrive by providing user specific parameters.
+   *
+   * @param freeAxes A 6 dimensional vector that contains 0's and 1's, these indicates in which axes
+   * movement is allowed. The first three values represents the cartesian directions along x, y, z, and the
+   * last three defines the rotation axis, rx, ry, rz. All relative to the selected feature
+   * @param feature A pose vector that defines a freedrive frame relative to the base frame. For base and
+   * tool reference frames predefined constants "base", and "tool" can be used in place of pose vectors.
+   * @returns true when the robot is in freedrive mode, false otherwise.
+   *
+   * <B>Examples:</B>
+   *  - freedrive_mode()
+   *       - Robot can move freely in all directions.
+   *  - freedrive_mode(freeAxes=[1,0,0,0,0,0], feature=p[0.1,0,0,0,0.785])
+   *       - Example Parameters:
+   *            - freeAxes = [1,0,0,0,0,0] -> The robot is compliant in the x direction relative to the feature.
+   *            - feature = p[0.1,0,0,0,0.785] -> This feature is offset from the base frame with 100 mm in the\n
+   *            x direction and rotated 45 degrees in the rz direction.
+   *
+   * <B>Note:</B> Immediately before entering freedrive mode, avoid:
+   *   - movements in the non-compliant axes
+   *   - high acceleration in freedrive mode
+   *   - high deceleration in freedrive mode
+   */
+  RTDE_EXPORT bool freedriveMode(const std::vector<int> &free_axes = {1, 1, 1, 1, 1, 1},
+                                 const std::vector<double> &feature = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+
+  /**
+   * @brief Set robot back in normal position control mode after freedrive mode.
+   * @returns true when the robot is not in freedrive anymore.
+   */
+  RTDE_EXPORT bool endFreedriveMode();
+
+  /**
+   * @brief Returns status of freedrive mode for current robot pose.
+   *
+   * Constrained freedrive usability is reduced near singularities. Value returned by this function
+   * corresponds to distance to the nearest singularity.
+   *
+   * It can be used to advice operator to follow different path or switch to unconstrained freedrive.
+   *
+   * @returns - 0 = Normal operation.\n - 1 = Near singularity.\n - 2 = Too close to singularity.
+   * High movement resistance in freedrive.
+   */
+  RTDE_EXPORT int getFreedriveStatus();
+
+  // Unlocks a protective stop via the dashboard client.
+  void unlockProtectiveStop();
+
+  // Returns the version numbers of the robot.
+  const Versions& versions() const { return versions_; }
+  // Returns the serial number acquired by dashboard client upon connection.
+  const std::string& serial_number() const { return serial_number_; }
 
  private:
   bool setupRecipes(const double &frequency);
-
-  void initOutputRegFuncMap();
 
   bool sendCommand(const RTDE::RobotCommand &cmd);
 
@@ -694,37 +768,17 @@ class RTDEControlInterface
    */
   void waitForProgramRunning();
 
-  std::string outDoubleReg(int reg) const
-  {
-    return "output_double_register_" + std::to_string(register_offset_ + reg);
-  };
+  std::string outDoubleReg(int reg) const;
 
-  std::string outIntReg(int reg) const
-  {
-    return "output_int_register_" + std::to_string(register_offset_ + reg);
-  };
+  std::string outIntReg(int reg) const;
 
-  std::string inDoubleReg(int reg) const
-  {
-    return "input_double_register_" + std::to_string(register_offset_ + reg);
-  };
+  std::string inDoubleReg(int reg) const;
 
-  std::string inIntReg(int reg) const
-  {
-    return "input_int_register_" + std::to_string(register_offset_ + reg);
-  };
+  std::string inIntReg(int reg) const;
 
-  double getOutputDoubleReg(int reg)
-  {
-    std::string func_name = "getOutput_double_register_" + std::to_string(register_offset_ + reg);
-    return output_reg_func_map_[func_name]();
-  };
+  double getOutputDoubleReg(int reg);
 
-  int getOutputIntReg(int reg)
-  {
-    std::string func_name = "getOutput_int_register_" + std::to_string(register_offset_ + reg);
-    return output_reg_func_map_[func_name]();
-  };
+  int getOutputIntReg(int reg);
 
  private:
   std::string hostname_;
@@ -746,10 +800,13 @@ class RTDEControlInterface
   std::shared_ptr<DashboardClient> db_client_;
   std::shared_ptr<ScriptClient> script_client_;
   std::shared_ptr<RobotState> robot_state_;
-  std::map<std::string, std::function<double()>> output_reg_func_map_;
 #if !defined(_WIN32) && !defined(__APPLE__)
   std::unique_ptr<urcl::comm::ScriptSender> urcl_script_sender_;
 #endif
+  std::vector<std::string> state_names_;
+  // major, minor, bugfix, build numbers.
+  Versions versions_;
+  std::string serial_number_;
 };
 
 /**

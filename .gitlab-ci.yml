@@ -67,7 +67,7 @@ build-WINDOWS:
 ############################################
 
 polyscope-5.11.1.108318:
-  image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-2004-DinD
+  image: cruizba/ubuntu-dind:19.03.11
   stage: test
   allow_failure: true
   services:
@@ -102,7 +102,7 @@ polyscope-5.11.1.108318:
     paths:
       - ./ps-5-11-1-108318.svg
   tags:
-    - docker
+    - linux
 
 .bash-examples:
   stage: test

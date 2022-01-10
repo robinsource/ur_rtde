@@ -43,7 +43,7 @@ if(${CODE})
 
 endif()
 
-project(ur_rtde VERSION 1.4.5 LANGUAGES ${PROJECT_LANGUAGES})
+project(ur_rtde VERSION 1.4.7 LANGUAGES ${PROJECT_LANGUAGES})
 set(PROJECT_VERSION_SUFFIX "") # alpha/beta/rc, e.g. "-rc0"
 set(PROJECT_VERSION "${PROJECT_VERSION}${PROJECT_VERSION_SUFFIX}")
 set(PROJECT_AUTHOR "Anders Prier Lindvig")
@@ -62,7 +62,7 @@ if(${CODE})
 		set(Boost_USE_STATIC_LIBS ON)
 		set(Boost_ADDITIONAL_VERSIONS 1.75.0)
 	endif()
-	find_package(Boost REQUIRED COMPONENTS system thread)
+	find_package(Boost REQUIRED COMPONENTS system thread program_options)
 	find_package(Threads)
 
 	if(${PYTHON_BINDINGS})
@@ -308,6 +308,10 @@ if(${CODE})
 		target_include_directories(move_until_contact_example PUBLIC ${Boost_INCLUDE_DIRS} $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 		target_link_libraries(move_until_contact_example PRIVATE rtde ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
 
+		add_executable(record_data_example examples/cpp/record_data_example.cpp)
+		target_include_directories(record_data_example PUBLIC ${Boost_INCLUDE_DIRS} $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+		target_link_libraries(record_data_example PRIVATE rtde ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY})
+
 		if (UNIX)
 			find_package(Curses)
 			if(Curses_FOUND)
@@ -322,7 +326,7 @@ if(${CODE})
 			endif()
 		endif (UNIX)
 
-		set_target_properties(servoj_example forcemode_example speedj_example movej_path_with_blend_example io_example move_async_example move_path_async_example robotiq_gripper_example move_until_contact_example
+		set_target_properties(servoj_example forcemode_example speedj_example movej_path_with_blend_example io_example move_async_example move_path_async_example robotiq_gripper_example move_until_contact_example record_data_example
 				PROPERTIES
 				RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
 				)
@@ -342,6 +346,7 @@ if(${CODE})
 		add_executable(ur_rtde::move_path_async_example ALIAS move_path_async_example)
 		add_executable(ur_rtde::robotiq_gripper_example ALIAS robotiq_gripper_example)
 		add_executable(ur_rtde::move_until_contact_example ALIAS move_until_contact_example)
+		add_executable(ur_rtde::record_data_example ALIAS record_data_example)
 	endif()
 
 	if (CMAKE_COMPILER_IS_GNUCXX)

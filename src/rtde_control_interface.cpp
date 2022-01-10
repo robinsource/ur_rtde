@@ -50,6 +50,11 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
   // Create a connection to the dashboard server
   db_client_ = std::make_shared<DashboardClient>(hostname_);
   db_client_->connect();
+  PolyScopeVersion polyscope_version(db_client_->polyscopeVersion());
+  if (polyscope_version.major == 5 && polyscope_version.minor > 5)
+  {
+    serial_number_ = db_client_->getSerialNumber();
+  }
 
   // Only check if in remote on real robot or when not using the ExternalControl UR Cap.
   if (!use_external_control_ur_cap_)
@@ -57,7 +62,6 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
     // 192.168.56.101 is the CI ursim test ip address.
     if (hostname_ != "localhost" && hostname_ != "127.0.0.1" && hostname_ != "192.168.56.101")
     {
-      PolyScopeVersion polyscope_version(db_client_->polyscopeVersion());
       if (polyscope_version.major == 5 && polyscope_version.minor > 5)
       {
         // Check if robot is in remote control
@@ -73,26 +77,18 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
   rtde_ = std::make_shared<RTDE>(hostname_, port_, verbose_);
   rtde_->connect();
   rtde_->negotiateProtocolVersion();
-  auto controller_version = rtde_->getControllerVersion();
-  uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
-  uint32_t minor_version = std::get<MINOR_VERSION>(controller_version);
+  versions_ = rtde_->getControllerVersion();
 
   frequency_ = 125;
   // If e-Series Robot set frequency to 500Hz
-  if (major_version > CB3_MAJOR_VERSION)
+  if (versions_.major > CB3_MAJOR_VERSION)
     frequency_ = 500;
 
   // Set delta time to be used by receiveCallback
   delta_time_ = 1 / frequency_;
 
-  // Init Robot state
-  robot_state_ = std::make_shared<RobotState>();
-
-  // Map the output registers to functions
-  initOutputRegFuncMap();
-
   // Create a connection to the script server
-  script_client_ = std::make_shared<ScriptClient>(hostname_, major_version, minor_version);
+  script_client_ = std::make_shared<ScriptClient>(hostname_, versions_.major, versions_.minor);
   script_client_->connect();
 
   // If user want to use upper range of RTDE registers, add the register offset in control script
@@ -111,6 +107,9 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
 
   // Setup default recipes
   setupRecipes(frequency_);
+
+  // Init Robot state
+  robot_state_ = std::make_shared<RobotState>(state_names_);
 
   // Wait until RTDE data synchronization has started
   if (verbose_)
@@ -211,7 +210,8 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
 #else
   if (!upload_script_ && use_external_control_ur_cap_)
   {
-    throw std::logic_error("The use of ExternalControl UR Cap is not supported on Windows and Apple yet."
+    throw std::logic_error(
+        "The use of ExternalControl UR Cap is not supported on Windows and Apple yet."
         " Please contact author");
   }
 #endif
@@ -300,7 +300,10 @@ void RTDEControlInterface::disconnect()
   if (db_client_ != nullptr)
   {
     if (db_client_->isConnected())
+    {
       db_client_->disconnect();
+      serial_number_.clear();
+    }
   }
 
   // Wait until everything has disconnected
@@ -315,25 +318,23 @@ bool RTDEControlInterface::isConnected()
 bool RTDEControlInterface::reconnect()
 {
   db_client_->connect();
+  PolyScopeVersion polyscope_version(db_client_->polyscopeVersion());
+  if (polyscope_version.major == 5 && polyscope_version.minor > 5)
+  {
+    serial_number_ = db_client_->getSerialNumber();
+  }
   script_client_->connect();
   rtde_->connect();
   rtde_->negotiateProtocolVersion();
-  auto controller_version = rtde_->getControllerVersion();
-  uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
+  versions_ = rtde_->getControllerVersion();
 
   frequency_ = 125;
   // If e-Series Robot set frequency to 500Hz
-  if (major_version > CB3_MAJOR_VERSION)
+  if (versions_.major > CB3_MAJOR_VERSION)
     frequency_ = 500;
 
   // Set delta time to be used by receiveCallback
   delta_time_ = 1 / frequency_;
-
-  // Init Robot state
-  robot_state_ = std::make_shared<RobotState>();
-
-  // Map the output registers to functions
-  initOutputRegFuncMap();
 
   // If user want to use upper range of RTDE registers, add the register offset in control script
   if (use_upper_range_registers_)
@@ -351,6 +352,9 @@ bool RTDEControlInterface::reconnect()
 
   // Setup default recipes
   setupRecipes(frequency_);
+
+  // Init Robot state
+  robot_state_ = std::make_shared<RobotState>(state_names_);
 
   // Wait until RTDE data synchronization has started.
   if (verbose_)
@@ -452,7 +456,8 @@ bool RTDEControlInterface::reconnect()
 #else
   if (!upload_script_ && use_external_control_ur_cap_)
   {
-    throw std::logic_error("The use of ExternalControl UR Cap is not supported on Windows and Apple yet. "
+    throw std::logic_error(
+        "The use of ExternalControl UR Cap is not supported on Windows and Apple yet. "
         "Please contact author");
   }
 #endif
@@ -494,10 +499,10 @@ bool RTDEControlInterface::reconnect()
 bool RTDEControlInterface::setupRecipes(const double &frequency)
 {
   // Setup output
-  std::vector<std::string> state_names = {"robot_status_bits", "safety_status_bits", "runtime_state", outIntReg(0),
-                                          outIntReg(1),        outDoubleReg(0),      outDoubleReg(1), outDoubleReg(2),
-                                          outDoubleReg(3),     outDoubleReg(4),      outDoubleReg(5)};
-  rtde_->sendOutputSetup(state_names, frequency);
+  state_names_ = {"robot_status_bits", "safety_status_bits", "runtime_state", outIntReg(0),
+                  outIntReg(1),        outDoubleReg(0),      outDoubleReg(1), outDoubleReg(2),
+                  outDoubleReg(3),     outDoubleReg(4),      outDoubleReg(5)};
+  rtde_->sendOutputSetup(state_names_, frequency);
 
   // Setup input recipes
   // Recipe 1
@@ -572,8 +577,10 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
   rtde_->sendInputSetup(setp_input);
 
   // Recipe 14
-  std::vector<std::string> jog_input = {inIntReg(0),    inDoubleReg(0), inDoubleReg(1), inDoubleReg(2),
-                                        inDoubleReg(3), inDoubleReg(4), inDoubleReg(5), inDoubleReg(6)};
+  std::vector<std::string> jog_input = {inIntReg(0),     inDoubleReg(0), inDoubleReg(1), inDoubleReg(2),
+                                        inDoubleReg(3),  inDoubleReg(4), inDoubleReg(5), inDoubleReg(6),
+                                        inDoubleReg(7),  inDoubleReg(8), inDoubleReg(9), inDoubleReg(10),
+                                        inDoubleReg(11), inDoubleReg(12)};
   rtde_->sendInputSetup(jog_input);
 
   // Recipe 15
@@ -587,156 +594,13 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
                                                        inDoubleReg(11), inDoubleReg(12)};
   rtde_->sendInputSetup(move_until_contact_input);
 
+  // Recipe 17
+  std::vector<std::string> freedrive_mode_input = {
+      inIntReg(0),    inIntReg(1),    inIntReg(2),    inIntReg(3),    inIntReg(4),    inIntReg(5),   inIntReg(6),
+      inDoubleReg(0), inDoubleReg(1), inDoubleReg(2), inDoubleReg(3), inDoubleReg(4), inDoubleReg(5)};
+  rtde_->sendInputSetup(freedrive_mode_input);
+
   return true;
-}
-
-void RTDEControlInterface::initOutputRegFuncMap()
-{
-  output_reg_func_map_["getOutput_int_register_0"] = std::bind(&RobotState::getOutput_int_register_0, robot_state_);
-  output_reg_func_map_["getOutput_int_register_1"] = std::bind(&RobotState::getOutput_int_register_1, robot_state_);
-  output_reg_func_map_["getOutput_int_register_2"] = std::bind(&RobotState::getOutput_int_register_2, robot_state_);
-  output_reg_func_map_["getOutput_int_register_3"] = std::bind(&RobotState::getOutput_int_register_3, robot_state_);
-  output_reg_func_map_["getOutput_int_register_4"] = std::bind(&RobotState::getOutput_int_register_4, robot_state_);
-  output_reg_func_map_["getOutput_int_register_5"] = std::bind(&RobotState::getOutput_int_register_5, robot_state_);
-  output_reg_func_map_["getOutput_int_register_6"] = std::bind(&RobotState::getOutput_int_register_6, robot_state_);
-  output_reg_func_map_["getOutput_int_register_7"] = std::bind(&RobotState::getOutput_int_register_7, robot_state_);
-  output_reg_func_map_["getOutput_int_register_8"] = std::bind(&RobotState::getOutput_int_register_8, robot_state_);
-  output_reg_func_map_["getOutput_int_register_9"] = std::bind(&RobotState::getOutput_int_register_9, robot_state_);
-  output_reg_func_map_["getOutput_int_register_10"] = std::bind(&RobotState::getOutput_int_register_10, robot_state_);
-  output_reg_func_map_["getOutput_int_register_11"] = std::bind(&RobotState::getOutput_int_register_11, robot_state_);
-  output_reg_func_map_["getOutput_int_register_12"] = std::bind(&RobotState::getOutput_int_register_12, robot_state_);
-  output_reg_func_map_["getOutput_int_register_13"] = std::bind(&RobotState::getOutput_int_register_13, robot_state_);
-  output_reg_func_map_["getOutput_int_register_14"] = std::bind(&RobotState::getOutput_int_register_14, robot_state_);
-  output_reg_func_map_["getOutput_int_register_15"] = std::bind(&RobotState::getOutput_int_register_15, robot_state_);
-  output_reg_func_map_["getOutput_int_register_16"] = std::bind(&RobotState::getOutput_int_register_16, robot_state_);
-  output_reg_func_map_["getOutput_int_register_17"] = std::bind(&RobotState::getOutput_int_register_17, robot_state_);
-  output_reg_func_map_["getOutput_int_register_18"] = std::bind(&RobotState::getOutput_int_register_18, robot_state_);
-  output_reg_func_map_["getOutput_int_register_19"] = std::bind(&RobotState::getOutput_int_register_19, robot_state_);
-  output_reg_func_map_["getOutput_int_register_20"] = std::bind(&RobotState::getOutput_int_register_20, robot_state_);
-  output_reg_func_map_["getOutput_int_register_21"] = std::bind(&RobotState::getOutput_int_register_21, robot_state_);
-  output_reg_func_map_["getOutput_int_register_22"] = std::bind(&RobotState::getOutput_int_register_22, robot_state_);
-  output_reg_func_map_["getOutput_int_register_23"] = std::bind(&RobotState::getOutput_int_register_23, robot_state_);
-  output_reg_func_map_["getOutput_int_register_24"] = std::bind(&RobotState::getOutput_int_register_24, robot_state_);
-  output_reg_func_map_["getOutput_int_register_25"] = std::bind(&RobotState::getOutput_int_register_25, robot_state_);
-  output_reg_func_map_["getOutput_int_register_26"] = std::bind(&RobotState::getOutput_int_register_26, robot_state_);
-  output_reg_func_map_["getOutput_int_register_27"] = std::bind(&RobotState::getOutput_int_register_27, robot_state_);
-  output_reg_func_map_["getOutput_int_register_28"] = std::bind(&RobotState::getOutput_int_register_28, robot_state_);
-  output_reg_func_map_["getOutput_int_register_29"] = std::bind(&RobotState::getOutput_int_register_29, robot_state_);
-  output_reg_func_map_["getOutput_int_register_30"] = std::bind(&RobotState::getOutput_int_register_30, robot_state_);
-  output_reg_func_map_["getOutput_int_register_31"] = std::bind(&RobotState::getOutput_int_register_31, robot_state_);
-  output_reg_func_map_["getOutput_int_register_32"] = std::bind(&RobotState::getOutput_int_register_32, robot_state_);
-  output_reg_func_map_["getOutput_int_register_33"] = std::bind(&RobotState::getOutput_int_register_33, robot_state_);
-  output_reg_func_map_["getOutput_int_register_34"] = std::bind(&RobotState::getOutput_int_register_34, robot_state_);
-  output_reg_func_map_["getOutput_int_register_35"] = std::bind(&RobotState::getOutput_int_register_35, robot_state_);
-  output_reg_func_map_["getOutput_int_register_36"] = std::bind(&RobotState::getOutput_int_register_36, robot_state_);
-  output_reg_func_map_["getOutput_int_register_37"] = std::bind(&RobotState::getOutput_int_register_37, robot_state_);
-  output_reg_func_map_["getOutput_int_register_38"] = std::bind(&RobotState::getOutput_int_register_38, robot_state_);
-  output_reg_func_map_["getOutput_int_register_39"] = std::bind(&RobotState::getOutput_int_register_39, robot_state_);
-  output_reg_func_map_["getOutput_int_register_40"] = std::bind(&RobotState::getOutput_int_register_40, robot_state_);
-  output_reg_func_map_["getOutput_int_register_41"] = std::bind(&RobotState::getOutput_int_register_41, robot_state_);
-  output_reg_func_map_["getOutput_int_register_42"] = std::bind(&RobotState::getOutput_int_register_42, robot_state_);
-  output_reg_func_map_["getOutput_int_register_43"] = std::bind(&RobotState::getOutput_int_register_43, robot_state_);
-  output_reg_func_map_["getOutput_int_register_44"] = std::bind(&RobotState::getOutput_int_register_44, robot_state_);
-  output_reg_func_map_["getOutput_int_register_45"] = std::bind(&RobotState::getOutput_int_register_45, robot_state_);
-  output_reg_func_map_["getOutput_int_register_46"] = std::bind(&RobotState::getOutput_int_register_46, robot_state_);
-  output_reg_func_map_["getOutput_int_register_47"] = std::bind(&RobotState::getOutput_int_register_47, robot_state_);
-
-  output_reg_func_map_["getOutput_double_register_0"] =
-      std::bind(&RobotState::getOutput_double_register_0, robot_state_);
-  output_reg_func_map_["getOutput_double_register_1"] =
-      std::bind(&RobotState::getOutput_double_register_1, robot_state_);
-  output_reg_func_map_["getOutput_double_register_2"] =
-      std::bind(&RobotState::getOutput_double_register_2, robot_state_);
-  output_reg_func_map_["getOutput_double_register_3"] =
-      std::bind(&RobotState::getOutput_double_register_3, robot_state_);
-  output_reg_func_map_["getOutput_double_register_4"] =
-      std::bind(&RobotState::getOutput_double_register_4, robot_state_);
-  output_reg_func_map_["getOutput_double_register_5"] =
-      std::bind(&RobotState::getOutput_double_register_5, robot_state_);
-  output_reg_func_map_["getOutput_double_register_6"] =
-      std::bind(&RobotState::getOutput_double_register_6, robot_state_);
-  output_reg_func_map_["getOutput_double_register_7"] =
-      std::bind(&RobotState::getOutput_double_register_7, robot_state_);
-  output_reg_func_map_["getOutput_double_register_8"] =
-      std::bind(&RobotState::getOutput_double_register_8, robot_state_);
-  output_reg_func_map_["getOutput_double_register_9"] =
-      std::bind(&RobotState::getOutput_double_register_9, robot_state_);
-  output_reg_func_map_["getOutput_double_register_10"] =
-      std::bind(&RobotState::getOutput_double_register_10, robot_state_);
-  output_reg_func_map_["getOutput_double_register_11"] =
-      std::bind(&RobotState::getOutput_double_register_11, robot_state_);
-  output_reg_func_map_["getOutput_double_register_12"] =
-      std::bind(&RobotState::getOutput_double_register_12, robot_state_);
-  output_reg_func_map_["getOutput_double_register_13"] =
-      std::bind(&RobotState::getOutput_double_register_13, robot_state_);
-  output_reg_func_map_["getOutput_double_register_14"] =
-      std::bind(&RobotState::getOutput_double_register_14, robot_state_);
-  output_reg_func_map_["getOutput_double_register_15"] =
-      std::bind(&RobotState::getOutput_double_register_15, robot_state_);
-  output_reg_func_map_["getOutput_double_register_16"] =
-      std::bind(&RobotState::getOutput_double_register_16, robot_state_);
-  output_reg_func_map_["getOutput_double_register_17"] =
-      std::bind(&RobotState::getOutput_double_register_17, robot_state_);
-  output_reg_func_map_["getOutput_double_register_18"] =
-      std::bind(&RobotState::getOutput_double_register_18, robot_state_);
-  output_reg_func_map_["getOutput_double_register_19"] =
-      std::bind(&RobotState::getOutput_double_register_19, robot_state_);
-  output_reg_func_map_["getOutput_double_register_20"] =
-      std::bind(&RobotState::getOutput_double_register_20, robot_state_);
-  output_reg_func_map_["getOutput_double_register_21"] =
-      std::bind(&RobotState::getOutput_double_register_21, robot_state_);
-  output_reg_func_map_["getOutput_double_register_22"] =
-      std::bind(&RobotState::getOutput_double_register_22, robot_state_);
-  output_reg_func_map_["getOutput_double_register_23"] =
-      std::bind(&RobotState::getOutput_double_register_23, robot_state_);
-  output_reg_func_map_["getOutput_double_register_24"] =
-      std::bind(&RobotState::getOutput_double_register_24, robot_state_);
-  output_reg_func_map_["getOutput_double_register_25"] =
-      std::bind(&RobotState::getOutput_double_register_25, robot_state_);
-  output_reg_func_map_["getOutput_double_register_26"] =
-      std::bind(&RobotState::getOutput_double_register_26, robot_state_);
-  output_reg_func_map_["getOutput_double_register_27"] =
-      std::bind(&RobotState::getOutput_double_register_27, robot_state_);
-  output_reg_func_map_["getOutput_double_register_28"] =
-      std::bind(&RobotState::getOutput_double_register_28, robot_state_);
-  output_reg_func_map_["getOutput_double_register_29"] =
-      std::bind(&RobotState::getOutput_double_register_29, robot_state_);
-  output_reg_func_map_["getOutput_double_register_30"] =
-      std::bind(&RobotState::getOutput_double_register_30, robot_state_);
-  output_reg_func_map_["getOutput_double_register_31"] =
-      std::bind(&RobotState::getOutput_double_register_31, robot_state_);
-  output_reg_func_map_["getOutput_double_register_32"] =
-      std::bind(&RobotState::getOutput_double_register_32, robot_state_);
-  output_reg_func_map_["getOutput_double_register_33"] =
-      std::bind(&RobotState::getOutput_double_register_33, robot_state_);
-  output_reg_func_map_["getOutput_double_register_34"] =
-      std::bind(&RobotState::getOutput_double_register_34, robot_state_);
-  output_reg_func_map_["getOutput_double_register_35"] =
-      std::bind(&RobotState::getOutput_double_register_35, robot_state_);
-  output_reg_func_map_["getOutput_double_register_36"] =
-      std::bind(&RobotState::getOutput_double_register_36, robot_state_);
-  output_reg_func_map_["getOutput_double_register_37"] =
-      std::bind(&RobotState::getOutput_double_register_37, robot_state_);
-  output_reg_func_map_["getOutput_double_register_38"] =
-      std::bind(&RobotState::getOutput_double_register_38, robot_state_);
-  output_reg_func_map_["getOutput_double_register_39"] =
-      std::bind(&RobotState::getOutput_double_register_39, robot_state_);
-  output_reg_func_map_["getOutput_double_register_40"] =
-      std::bind(&RobotState::getOutput_double_register_40, robot_state_);
-  output_reg_func_map_["getOutput_double_register_41"] =
-      std::bind(&RobotState::getOutput_double_register_41, robot_state_);
-  output_reg_func_map_["getOutput_double_register_42"] =
-      std::bind(&RobotState::getOutput_double_register_42, robot_state_);
-  output_reg_func_map_["getOutput_double_register_43"] =
-      std::bind(&RobotState::getOutput_double_register_43, robot_state_);
-  output_reg_func_map_["getOutput_double_register_44"] =
-      std::bind(&RobotState::getOutput_double_register_44, robot_state_);
-  output_reg_func_map_["getOutput_double_register_45"] =
-      std::bind(&RobotState::getOutput_double_register_45, robot_state_);
-  output_reg_func_map_["getOutput_double_register_46"] =
-      std::bind(&RobotState::getOutput_double_register_46, robot_state_);
-  output_reg_func_map_["getOutput_double_register_47"] =
-      std::bind(&RobotState::getOutput_double_register_47, robot_state_);
 }
 
 void RTDEControlInterface::receiveCallback()
@@ -1119,13 +983,24 @@ bool RTDEControlInterface::moveL(const std::vector<double> &transform, double sp
   return sendCommand(robot_cmd);
 }
 
-bool RTDEControlInterface::jogStart(const std::vector<double> &speeds, int feature)
+bool RTDEControlInterface::jogStart(const std::vector<double> &speeds, int feature,
+                                    const std::vector<double> &custom_frame)
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::JOG_START;
   robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_14;
   robot_cmd.val_ = speeds;
   robot_cmd.val_.push_back(feature);
+  if (!custom_frame.empty())
+  {
+    for (const auto &val : custom_frame)
+      robot_cmd.val_.push_back(val);
+  }
+  else
+  {
+    for (int i = 0; i < 6; ++i)
+      robot_cmd.val_.push_back(0);
+  }
   return sendCommand(robot_cmd);
 }
 
@@ -1409,9 +1284,15 @@ bool RTDEControlInterface::isProgramRunning()
 {
   if (robot_state_ != nullptr)
   {
-    // Read Bits 0-3: Is power on(1) | Is program running(2) | Is teach button pressed(4) | Is power button pressed(8)
-    std::bitset<32> status_bits(robot_state_->getRobot_status());
-    return status_bits.test(RobotStatus::ROBOT_STATUS_PROGRAM_RUNNING);
+    uint32_t robot_status;
+    if (robot_state_->getStateData("robot_status_bits", robot_status))
+    {
+      // Read Bits 0-3: Is power on(1) | Is program running(2) | Is teach button pressed(4) | Is power button pressed(8)
+      std::bitset<32> status_bits(robot_status);
+      return status_bits.test(RobotStatus::ROBOT_STATUS_PROGRAM_RUNNING);
+    }
+    else
+      throw std::runtime_error("unable to get state data for specified key: robot_status");
   }
   else
   {
@@ -1574,8 +1455,14 @@ bool RTDEControlInterface::isProtectiveStopped()
 {
   if (robot_state_ != nullptr)
   {
-    std::bitset<32> safety_status_bits(robot_state_->getSafety_status_bits());
-    return safety_status_bits.test(SafetyStatus::IS_PROTECTIVE_STOPPED);
+    uint32_t safety_status_bits;
+    if (robot_state_->getStateData("safety_status_bits", safety_status_bits))
+    {
+      std::bitset<32> safety_status_bitset(safety_status_bits);
+      return safety_status_bitset.test(SafetyStatus::IS_PROTECTIVE_STOPPED);
+    }
+    else
+      throw std::runtime_error("unable to get state data for specified key: safety_status_bits");
   }
   else
   {
@@ -1587,8 +1474,14 @@ bool RTDEControlInterface::isEmergencyStopped()
 {
   if (robot_state_ != nullptr)
   {
-    std::bitset<32> safety_status_bits(robot_state_->getSafety_status_bits());
-    return safety_status_bits.test(SafetyStatus::IS_EMERGENCY_STOPPED);
+    uint32_t safety_status_bits;
+    if (robot_state_->getStateData("safety_status_bits", safety_status_bits))
+    {
+      std::bitset<32> safety_status_bitset(safety_status_bits);
+      return safety_status_bitset.test(SafetyStatus::IS_EMERGENCY_STOPPED);
+    }
+    else
+      throw std::runtime_error("unable to get state data for specified key: safety_status_bits");
   }
   else
   {
@@ -1800,13 +1693,101 @@ bool RTDEControlInterface::moveUntilContact(const std::vector<double> &xd, const
   return sendCommand(robot_cmd);
 }
 
+bool RTDEControlInterface::freedriveMode(const std::vector<int> &free_axes, const std::vector<double> &feature)
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::FREEDRIVE_MODE;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_17;
+  robot_cmd.free_axes_ = free_axes;
+  robot_cmd.val_ = feature;
+  return sendCommand(robot_cmd);
+}
+
+bool RTDEControlInterface::endFreedriveMode()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::END_FREEDRIVE_MODE;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+  return sendCommand(robot_cmd);
+}
+
+int RTDEControlInterface::getFreedriveStatus()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::GET_FREEDRIVE_STATUS;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+  if (sendCommand(robot_cmd))
+  {
+    if (robot_state_ != nullptr)
+    {
+      return getOutputIntReg(1);
+    }
+    else
+    {
+      throw std::logic_error("Please initialize the RobotState, before using it!");
+    }
+  }
+  else
+  {
+    throw std::runtime_error("getFreedriveStatus() function failed to return.");
+  }
+}
+
+void RTDEControlInterface::unlockProtectiveStop()
+{
+  db_client_->unlockProtectiveStop();
+}
+
+std::string RTDEControlInterface::outDoubleReg(int reg) const
+{
+  return "output_double_register_" + std::to_string(register_offset_ + reg);
+};
+
+std::string RTDEControlInterface::outIntReg(int reg) const
+{
+  return "output_int_register_" + std::to_string(register_offset_ + reg);
+};
+
+std::string RTDEControlInterface::inDoubleReg(int reg) const
+{
+  return "input_double_register_" + std::to_string(register_offset_ + reg);
+};
+
+std::string RTDEControlInterface::inIntReg(int reg) const
+{
+  return "input_int_register_" + std::to_string(register_offset_ + reg);
+};
+
+double RTDEControlInterface::getOutputDoubleReg(int reg)
+{
+  std::string output_double_register_key = "output_double_register_" + std::to_string(register_offset_ + reg);
+  double output_double_register_val;
+  if (robot_state_->getStateData(output_double_register_key, output_double_register_val))
+    return output_double_register_val;
+  else
+    throw std::runtime_error("unable to get state data for specified key: " + output_double_register_key);
+};
+
+int RTDEControlInterface::getOutputIntReg(int reg)
+{
+  std::string output_int_register_key = "output_int_register_" + std::to_string(register_offset_ + reg);
+  int32_t output_int_register_val;
+  if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
+    return output_int_register_val;
+  else
+    throw std::runtime_error("unable to get state data for specified key: " + output_int_register_key);
+};
+
 bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
 {
   std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
 
   try
   {
-    int runtime_state = robot_state_->getRuntime_state();
+    uint32_t runtime_state;
+    if (!robot_state_->getStateData("runtime_state", runtime_state))
+      throw std::runtime_error("unable to get state data for specified key: runtime_state");
+
     if (runtime_state == RuntimeState::STOPPED)
     {
       if (!custom_script_running_)
@@ -1841,7 +1822,7 @@ bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
           cmd.type_ == RTDE::RobotCommand::Type::SERVOC || cmd.type_ == RTDE::RobotCommand::Type::SPEEDJ ||
           cmd.type_ == RTDE::RobotCommand::Type::SPEEDL || cmd.type_ == RTDE::RobotCommand::Type::FORCE_MODE ||
           cmd.type_ == RTDE::RobotCommand::Type::WATCHDOG || cmd.type_ == RTDE::RobotCommand::Type::GET_JOINT_TORQUES ||
-        cmd.type_ == RTDE::RobotCommand::Type::TOOL_CONTACT || cmd.type_ == RTDE::RobotCommand::Type::GET_STEPTIME ||
+          cmd.type_ == RTDE::RobotCommand::Type::TOOL_CONTACT || cmd.type_ == RTDE::RobotCommand::Type::GET_STEPTIME ||
           cmd.type_ == RTDE::RobotCommand::Type::GET_ACTUAL_JOINT_POSITIONS_HISTORY)
       {
         // Send command to the controller

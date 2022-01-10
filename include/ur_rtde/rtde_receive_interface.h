@@ -3,6 +3,7 @@
 #define RTDE_RECEIVE_INTERFACE_H
 
 #include <ur_rtde/rtde_export.h>
+#include <ur_rtde/robot_state.h>
 
 #include <atomic>
 #include <chrono>
@@ -10,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <functional>
 
 #define MAJOR_VERSION 0
 #define CB3_MAJOR_VERSION 3
@@ -37,7 +39,8 @@ namespace ur_rtde
 class RTDEReceiveInterface
 {
  public:
-  RTDE_EXPORT explicit RTDEReceiveInterface(std::string hostname, std::vector<std::string> variables = {},
+  RTDE_EXPORT explicit RTDEReceiveInterface(std::string hostname, double frequency = -1.0,
+                                            std::vector<std::string> variables = {},
                                             bool verbose = false, bool use_upper_range_registers = false);
 
   RTDE_EXPORT virtual ~RTDEReceiveInterface();
@@ -139,6 +142,16 @@ class RTDEReceiveInterface
    * @returns Can be used to reconnect to the robot after a lost connection.
    */
   RTDE_EXPORT bool reconnect();
+
+  /**
+   * @returns Can be used to reconnect to the robot after a lost connection.
+   */
+  RTDE_EXPORT bool startFileRecording(const std::string &filename, const std::vector<std::string> &variables={});
+
+  /**
+   * @returns Can be used to reconnect to the robot after a lost connection.
+   */
+  RTDE_EXPORT bool stopFileRecording();
 
   /**
    * @returns Connection status for RTDE, useful for checking for lost connection.
@@ -414,12 +427,23 @@ class RTDEReceiveInterface
    */
   RTDE_EXPORT double getSpeedScalingCombined();
 
+  /**
+   * @brief Get the raw force and torque measurement, not compensated for forces and torques caused by the payload
+   *
+   * @returns the raw force and torque measurement
+   */
+  RTDE_EXPORT std::vector<double> getFtRawWrench();
+
   RTDE_EXPORT void receiveCallback();
+
+  RTDE_EXPORT void recordCallback();
+
+  const std::shared_ptr<RobotState>& robot_state() const {
+    return robot_state_;
+  }
 
  private:
   bool setupRecipes(const double& frequency);
-
-  void initOutputRegFuncMap();
 
   std::string outDoubleReg(int reg) const
   {
@@ -431,18 +455,6 @@ class RTDEReceiveInterface
     return "output_int_register_" + std::to_string(register_offset_ + reg);
   };
 
-  double getOutputDoubleReg(int reg)
-  {
-    std::string func_name = "getOutput_double_register_" + std::to_string(reg);
-    return output_reg_func_map_[func_name]();
-  };
-
-  int getOutputIntReg(int reg)
-  {
-    std::string func_name = "getOutput_int_register_" + std::to_string(reg);
-    return output_reg_func_map_[func_name]();
-  };
-
   template <typename T>
   bool isWithinBounds(const T& value, const T& low, const T& high)
   {
@@ -450,21 +462,24 @@ class RTDEReceiveInterface
   }
 
  private:
-  std::vector<std::string> variables_;
   std::string hostname_;
+  double frequency_;
+  std::vector<std::string> variables_;
   int port_;
   bool verbose_;
   bool use_upper_range_registers_;
   int register_offset_;
-  double frequency_;
   double delta_time_;
   std::shared_ptr<RTDE> rtde_;
-  std::atomic<bool> stop_thread{false};
+  std::atomic<bool> stop_receive_thread{false};
+  std::atomic<bool> stop_record_thread{false};
   std::shared_ptr<boost::thread> th_;
+  std::shared_ptr<boost::thread> record_thrd_;
   std::shared_ptr<RobotState> robot_state_;
-  std::map<std::string, std::function<double()>> output_reg_func_map_;
   PausingState pausing_state_;
-  double speed_scaling_combined_;
+  std::shared_ptr<std::ofstream> file_recording_;
+  std::vector<std::string> record_variables_;
+  double speed_scaling_combined_{};
   double pausing_ramp_up_increment_;
 };
 

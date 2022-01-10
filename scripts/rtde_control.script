@@ -38,11 +38,9 @@
     global force_thrd = 0
 
     global jog_feature = 0 # 0 - base, 1 - tool, 2 - custom
-    global jog_speed_vector_dt = p[0, 0, 0, 0, 0, 0]
-    global jog_start_pose = p[0, 0, 0, 0, 0, 0]
+    global jog_speed_pose = p[0, 0, 0, 0, 0, 0]
+    global jog_custom_feature = p[0, 0, 0, 0, 0, 0]
     global jog_thrd = 0
-    global jog_dt = 0.002
-    global jog_state = 0 # 0 - inactive, 1 - new setpoint, 2 - jogging, 3 - stopping (decelerating)
     
     def read_input_float_reg(register_index):
         return read_input_float_register(register_index + reg_offset_float)
@@ -231,46 +229,64 @@
       return p
     end
 
+    # convert tool_speed expressed in the frame_wrt_base in the robot base frame
+    # examples :
+    # speed_wrt_base([0.020, 0.020,0,0,0,0], plane_1)
+    # speedl(get_speed_wrt_base([0,0,0.02,0,0,1.57], get_actual_tcp_pose()),a=1,t=0.5,aRot=4))
+  
+    #### input arguments
+    # tool_speed : [Tx, Ty, Tz, Rx, Ry, Rz] spatial vector list - Txyz [m/s]), Rxyz [rad/s]
+    # frame_wrt_base : pose
+  
+    #### output arguments
+    # speed_wrt_base : [Tx, Ty, Tz, Rx, Ry, Rz] spatial vector list - Txyz [m/s]), Rxyz [rad/s]
+    def get_speed_wrt_base(tool_speed, frame_wrt_base):    
+      # Translationnal speed vector calculus
+      T_wrt_frame=p[tool_speed[0],tool_speed[1],tool_speed[2],0,0,0]
+      T_wrt_base_raw= pose_trans (frame_wrt_base, T_wrt_frame)
+      T_wrt_base=pose_sub(T_wrt_base_raw,frame_wrt_base)
+    
+      # Rotationnal speed vector calculus
+      R_wrt_frame=p[tool_speed[3],tool_speed[4],tool_speed[5],0,0,0]
+      R_wrt_frame_abs=norm([R_wrt_frame[0],R_wrt_frame[1],R_wrt_frame[2]])
+      if R_wrt_frame_abs != 0:  # test if zero vector
+        R_wrt_base_raw=pose_trans(frame_wrt_base, R_wrt_frame)
+        R_wrt_base=pose_sub(R_wrt_base_raw, frame_wrt_base)
+      else:
+        R_wrt_base=p[0,0,0,0,0,0]
+      end
+    
+      # Concatenate T and R
+      speed_wrt_base_list=[T_wrt_base[0],T_wrt_base[1],T_wrt_base[2],R_wrt_base[0],R_wrt_base[1],R_wrt_base[2]]
+      return speed_wrt_base_list   
+    end
+
+    
     # The jog thread provides jogging functionality similar to the one you
     # find in the teach pendant.
-    thread jog_thread():
-      textmsg("jog_thread started")
-      # We latch the global jog settings. The feature setting is only latched
-      # here. That means, it is not possible to change the feature as soon as the
-      # move started. To change the feature, you first have to stop the move
+    thread jog_speed_thread():
+      textmsg("jog_speed_thread started")
       enter_critical
-      start_pose = jog_start_pose
       feature = jog_feature
       exit_critical
 
       # Initialize target_pose depending on feature
       if feature == 0: # base feature
-        target_pose = start_pose
+        frame_wrt_base = p[0, 0, 0, 0, 0, 0]
       elif feature == 1: # tool feature
-        target_pose = p[0, 0, 0, 0, 0, 0]
+        frame_wrt_base = get_actual_tcp_pose()
+      elif feature == 2: # custom feature
+        enter_critical
+        frame_wrt_base = jog_custom_feature
+        exit_critical
       end
 
       while (True):
         enter_critical
-        if jog_state == 1: # 1 = new setpoint
-          speeds = jog_speed_vector_dt
-          jog_state = 2 # 2 = jogging
-          textmsg("new jog setpoint")
-        end
+        speed_pose = jog_speed_pose
         exit_critical
-
-        if feature == 0: # base feature
-          target_transl = get_pose_translation(pose_add(target_pose, speeds))
-          speeds_rot = get_pose_rotation(speeds)
-          target_rot = pose_trans(speeds_rot, get_pose_rotation(target_pose))
-          target_pose = pose_add(target_transl, target_rot)
-          q = get_inverse_kin(target_pose)
-        elif feature == 1: # tool feature
-          target_pose = pose_add(target_pose, speeds)
-          pose_wrt_base = pose_trans(start_pose, target_pose)
-          q = get_inverse_kin(pose_wrt_base)
-        end
-        servoj(q, jog_dt, lookahead_time=0.03, gain=1000)
+        speed_wrt_base = get_speed_wrt_base(speed_pose, frame_wrt_base)
+        speedl(speed_wrt_base, 0.5)
       end
     end
 
@@ -521,13 +537,13 @@
             cog_y = read_input_float_reg(2)
             cog_z = read_input_float_reg(3)
             cog = [cog_x, cog_y, cog_z]
-$V50        if cog_x == 0 and cog_y == 0 and cog_z == 0:
-$V50            set_payload(mass, get_target_payload_cog())
-$V50        else:
+$5.0        if cog_x == 0 and cog_y == 0 and cog_z == 0:
+$5.0            set_payload(mass, get_target_payload_cog())
+$5.0        else:
                 set_payload(mass, cog)
-$V50        end
-$V50        textmsg("active payload:")
-$V50        textmsg(get_target_payload())
+$5.0        end
+$5.0        textmsg("active payload:")
+$5.0        textmsg(get_target_payload())
             textmsg("set_payload done")
         elif cmd == 18:
             textmsg("teach_mode")
@@ -540,12 +556,12 @@ $V50        textmsg(get_target_payload())
         elif cmd == 20:
             textmsg("force_mode_set_damping")
             damping = read_input_float_reg(0)
-$V35        force_mode_set_damping(damping)
+$3.5        force_mode_set_damping(damping)
             textmsg("force_mode_set_damping done")
         elif cmd == 21:
             textmsg("force_mode_set_gain_scaling")
             scaling = read_input_float_reg(0)
-$V50        force_mode_set_gain_scaling(scaling)
+$5.0        force_mode_set_gain_scaling(scaling)
             textmsg("force_mode_set_gain_scaling done")
         elif cmd == 24:
             pose = pose_from_input_float_registers(0)
@@ -569,21 +585,21 @@ $V50        force_mode_set_gain_scaling(scaling)
         elif cmd == 25:
             # tool_contact
             direction = pose_from_input_float_registers(0)
-$V54        time_steps = tool_contact(direction)
-$V54        write_output_integer_reg(1, time_steps)
+$5.4        time_steps = tool_contact(direction)
+$5.4        write_output_integer_reg(1, time_steps)
         elif cmd == 26:
             # get_steptime
-$V54        step_time = get_steptime()
-$V54        write_output_float_reg(0, step_time)
+$5.4        step_time = get_steptime()
+$5.4        write_output_float_reg(0, step_time)
         elif cmd == 27:
             # get_actual_joint_positions_history
             steps = read_input_integer_reg(1)
-$V54        joint_positions_history = get_actual_joint_positions_history(steps)
-$V54        q_to_output_float_registers(0, joint_positions_history)
+$5.4        joint_positions_history = get_actual_joint_positions_history(steps)
+$5.4        q_to_output_float_registers(0, joint_positions_history)
         elif cmd == 28:
             textmsg("get_target_waypoint")
-$V53        target_waypoint = get_target_waypoint()
-$V53        pose_to_output_float_registers(0, target_waypoint)
+$5.3        target_waypoint = get_target_waypoint()
+$5.3        pose_to_output_float_registers(0, target_waypoint)
             textmsg("get_target_waypoint done")
         elif cmd == 29:
             textmsg("set_tcp")
@@ -602,7 +618,7 @@ $V53        pose_to_output_float_registers(0, target_waypoint)
             textmsg("get_inverse_kin done")
         elif cmd == 31:
             textmsg("protective_stop")
-$V38        protective_stop()
+$3.8        protective_stop()
             textmsg("protective_stop done")
         elif cmd == 33:
             textmsg("stopl")
@@ -661,24 +677,22 @@ $V38        protective_stop()
             textmsg("pose_trans done")
         elif cmd == 40:
             textmsg("get_tcp_offset")
-$V36        tcp_offset = get_tcp_offset()
-$V36        textmsg(tcp_offset)
-$V36        pose_to_output_float_registers(0, tcp_offset)
+$3.6        tcp_offset = get_tcp_offset()
+$3.6        textmsg(tcp_offset)
+$3.6        pose_to_output_float_registers(0, tcp_offset)
             textmsg("get_tcp_offset done")
         elif cmd == 41:
               textmsg("start_jog")
               enter_critical
-              jog_state = 1 # 3 = stopping (decelerating)
-              speed_pose = pose_from_input_float_registers(0)
-              jog_speed_vector_dt = scale_pose(speed_pose, jog_dt)
+              jog_speed_pose = pose_from_input_float_registers(0)
               jog_feature = read_input_float_reg(6)
-              jog_start_pose = get_actual_tcp_pose()
+              jog_custom_feature = pose_from_input_float_registers(7)
               if jog_thrd == 0:
-                jog_thrd = run jog_thread()
+                jog_thrd = run jog_speed_thread()
               end
               exit_critical
-              textmsg("jog_speed_vector_dt: ", jog_speed_vector_dt)
               textmsg("jog_feature: ", jog_feature)
+              textmsg("jog_custom_feature: ", jog_custom_feature)
               textmsg("start_jog done")    
         elif cmd == 42:
               textmsg("stop_jog")
@@ -736,27 +750,48 @@ $V36        pose_to_output_float_registers(0, tcp_offset)
               textmsg("is_steady done")
         elif cmd == 51:
               textmsg("move_until_contact")
-$V54          xd = q_from_input_float_registers(0)
-$V54          contact_dir = pose_from_input_float_registers(6)
-$V54          acc = read_input_float_reg(12)
-$V54          while True:
-$V54             step_back = tool_contact(direction=contact_dir)
-$V54             if step_back <= 0:
-$V54                # Continue moving with specified speed vector
-$V54                speedl(xd, acc, t=get_steptime())
-$V54             else:
-$V54                # Contact detected!
-$V54                # Get q for when the contact was first seen
-$V54                q = get_actual_joint_positions_history(step_back)
-$V54                # Stop the movement
-$V54                stopl(3)
-$V54                # Move to the initial contact point
-$V54                movel(q)
-$V54                break
-$V54             end
-$V54          end
+$5.4          xd = q_from_input_float_registers(0)
+$5.4          contact_dir = pose_from_input_float_registers(6)
+$5.4          acc = read_input_float_reg(12)
+$5.4          while True:
+$5.4             step_back = tool_contact(direction=contact_dir)
+$5.4             if step_back <= 0:
+$5.4                # Continue moving with specified speed vector
+$5.4                speedl(xd, acc, t=get_steptime())
+$5.4             else:
+$5.4                # Contact detected!
+$5.4                # Get q for when the contact was first seen
+$5.4                q = get_actual_joint_positions_history(step_back)
+$5.4                # Stop the movement
+$5.4                stopl(3)
+$5.4                # Move to the initial contact point
+$5.4                movel(q)
+$5.4                break
+$5.4             end
+$5.4          end
               textmsg("move_until_contact done")
+        elif cmd == 52:
+              textmsg("freedrive_mode")
+$5.10         free_axes = [1, 1, 1, 1, 1, 1]
+$5.10         free_axes[0] = read_input_integer_reg(1)
+$5.10         free_axes[1] = read_input_integer_reg(2)
+$5.10         free_axes[2] = read_input_integer_reg(3)
+$5.10         free_axes[3] = read_input_integer_reg(4)
+$5.10         free_axes[4] = read_input_integer_reg(5)
+$5.10         free_axes[5] = read_input_integer_reg(6)
 
+$5.10         freedrive_feature = pose_from_input_float_registers(0)
+$5.10         freedrive_mode(freeAxes=free_axes, feature=freedrive_feature)
+              textmsg("freedrive_mode done")
+        elif cmd == 53:
+              textmsg("end_freedrive_mode")
+$5.10         end_freedrive_mode()
+              textmsg("end_freedrive_mode done")
+        elif cmd == 54:
+              textmsg("get_freedrive_status")
+$5.10         freedrive_status = get_freedrive_status()
+$5.10         write_output_integer_reg(1, freedrive_status)
+              textmsg("get_freedrive_status done")
         elif cmd == 255:
             textmsg("Received stop script!")
         end
@@ -772,41 +807,41 @@ $V54          end
 
 # NODE_CONTROL_LOOP_BEGINS
 
-    ###################################
-    # RTDE Control script - Main loop #
-    ###################################
+        ###################################
+        # RTDE Control script - Main loop #
+        ###################################
 
-    textmsg("RTDE Control Script Loaded (11.05.2021-15:29)")
+        textmsg("RTDE Control Script Loaded (13.10.2021-13:55)")
 
-    # Initialize gain and damping for force mode to a more stable default
-$V50force_mode_set_gain_scaling(0.5)
-$V35force_mode_set_damping(0.025)
+        # Initialize gain and damping for force mode to a more stable default
+$5.0    force_mode_set_gain_scaling(0.5)
+$3.5    force_mode_set_damping(0.025)
 
-    keep_running = True
-    executing_cmd = False
-    reset_async_progress()
-    signal_ready()
+        keep_running = True
+        executing_cmd = False
+        reset_async_progress()
+        signal_ready()
 
-    while keep_running:
-        cmd = rtde_cmd()
-        if cmd == 24 or cmd == 11 or cmd == 9 or cmd == 10 or cmd == 6 or cmd == 25 or cmd == 26 or cmd == 27 or cmd == 38:
-            # for realtime commands simply process and signal ready.
-            keep_running = process_cmd()
-            signal_ready()
-        else:
-            # regular mode
-            if cmd == 0:
-                executing_cmd = False
+        while keep_running:
+            cmd = rtde_cmd()
+            if cmd == 24 or cmd == 11 or cmd == 9 or cmd == 10 or cmd == 6 or cmd == 25 or cmd == 26 or cmd == 27 or cmd == 38:
+                # for realtime commands simply process and signal ready.
+                keep_running = process_cmd()
                 signal_ready()
             else:
-                if not executing_cmd:
-                    keep_running = process_cmd()
+                # regular mode
+                if cmd == 0:
+                    executing_cmd = False
+                    signal_ready()
+                else:
+                    if not executing_cmd:
+                        keep_running = process_cmd()
+                    end
+                    executing_cmd = True
                 end
-                executing_cmd = True
             end
-        end
 
-        sync()
-    end
-    textmsg("RTDE Control Script Terminated")
+            sync()
+        end
+        textmsg("RTDE Control Script Terminated")
 # NODE_CONTROL_LOOP_ENDS

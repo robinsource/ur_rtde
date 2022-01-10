@@ -83,28 +83,28 @@ PYBIND11_MODULE(rtde_control, m)
   control.def("reuploadScript", &RTDEControlInterface::reuploadScript, DOC(ur_rtde, RTDEControlInterface, reuploadScript),
            py::call_guard<py::gil_scoped_release>());
   control.def("moveJ",
-           (bool (RTDEControlInterface::*)(const std::vector<std::vector<double>> &path, bool async)) & RTDEControlInterface::moveJ,
-           DOC(ur_rtde, RTDEControlInterface, moveJ_2), py::arg("path"), py::arg("async") = false, py::call_guard<py::gil_scoped_release>());
+           (bool (RTDEControlInterface::*)(const std::vector<std::vector<double>> &path, bool asynchronous)) & RTDEControlInterface::moveJ,
+           DOC(ur_rtde, RTDEControlInterface, moveJ_2), py::arg("path"), py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("movePath",
-           (bool (RTDEControlInterface::*)(const Path &path, bool async)) & RTDEControlInterface::movePath, DOC(ur_rtde, RTDEControlInterface, movePath),
-           "", py::arg("path"), py::arg("async") = false, py::call_guard<py::gil_scoped_release>());
+           (bool (RTDEControlInterface::*)(const Path &path, bool asynchronous)) & RTDEControlInterface::movePath, DOC(ur_rtde, RTDEControlInterface, movePath),
+           "", py::arg("path"), py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("moveJ",
-           (bool (RTDEControlInterface::*)(const std::vector<double> &q, double speed, double acceleration, bool async)) &
+           (bool (RTDEControlInterface::*)(const std::vector<double> &q, double speed, double acceleration, bool asynchronous)) &
                RTDEControlInterface::moveJ,
            DOC(ur_rtde, RTDEControlInterface, moveJ), py::arg("q"), py::arg("speed") = 1.05,
-           py::arg("acceleration") = 1.4, py::arg("async") = false, py::call_guard<py::gil_scoped_release>());
+           py::arg("acceleration") = 1.4, py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("moveJ_IK", &RTDEControlInterface::moveJ_IK, DOC(ur_rtde, RTDEControlInterface, moveJ_IK), py::arg("pose"),
-           py::arg("speed") = 1.05, py::arg("acceleration") = 1.4, py::arg("async") = false, py::call_guard<py::gil_scoped_release>());
+           py::arg("speed") = 1.05, py::arg("acceleration") = 1.4, py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("moveL",
-           (bool (RTDEControlInterface::*)(const std::vector<std::vector<double>> &path, bool async)) & RTDEControlInterface::moveL,
-           DOC(ur_rtde, RTDEControlInterface, moveL_2), py::arg("path"), py::arg("async") = false, py::call_guard<py::gil_scoped_release>());
+           (bool (RTDEControlInterface::*)(const std::vector<std::vector<double>> &path, bool asynchronous)) & RTDEControlInterface::moveL,
+           DOC(ur_rtde, RTDEControlInterface, moveL_2), py::arg("path"), py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("moveL",
-           (bool (RTDEControlInterface::*)(const std::vector<double> &pose, double speed, double acceleration, bool async)) &
+           (bool (RTDEControlInterface::*)(const std::vector<double> &pose, double speed, double acceleration, bool asynchronous)) &
                RTDEControlInterface::moveL,
            DOC(ur_rtde, RTDEControlInterface, moveL), py::arg("pose"), py::arg("speed") = 0.25,
-           py::arg("acceleration") = 1.2, py::arg("async") = false, py::call_guard<py::gil_scoped_release>());
+           py::arg("acceleration") = 1.2, py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("moveL_FK", &RTDEControlInterface::moveL_FK, DOC(ur_rtde, RTDEControlInterface, moveL_FK), py::arg("q"),
-           py::arg("speed") = 0.25, py::arg("acceleration") = 1.2, py::arg("async") = false, py::call_guard<py::gil_scoped_release>());
+           py::arg("speed") = 0.25, py::arg("acceleration") = 1.2, py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("speedJ", &RTDEControlInterface::speedJ, DOC(ur_rtde, RTDEControlInterface, speedJ), py::arg("qd"),
            py::arg("acceleration") = 0.5, py::arg("time") = 0.0, py::call_guard<py::gil_scoped_release>());
   control.def("speedL", &RTDEControlInterface::speedL, DOC(ur_rtde, RTDEControlInterface, speedL), py::arg("xd"),
@@ -184,8 +184,13 @@ PYBIND11_MODULE(rtde_control, m)
               py::call_guard<py::gil_scoped_release>());
   control.def("jogStart", &RTDEControlInterface::jogStart, DOC(ur_rtde, RTDEControlInterface, jogStart), py::arg("speeds"),
               py::arg("feature") = RTDEControlInterface::Feature::FEATURE_BASE,
+              py::arg("custom_frame") = std::vector<double>{0, 0, 0, 0, 0, 0},
               py::call_guard<py::gil_scoped_release>());
   control.def("jogStop", &RTDEControlInterface::jogStop, DOC(ur_rtde, RTDEControlInterface, jogStop), py::call_guard<py::gil_scoped_release>());
+  control.def("freedriveMode", &RTDEControlInterface::freedriveMode, py::arg("free_axes") = std::vector<int>{1, 1, 1, 1, 1, 1},
+              py::arg("feature") = std::vector<double>{0, 0, 0, 0, 0, 0}, py::call_guard<py::gil_scoped_release>());
+  control.def("endFreedriveMode", &RTDEControlInterface::endFreedriveMode, py::call_guard<py::gil_scoped_release>());
+  control.def("getFreedriveStatus", &RTDEControlInterface::getFreedriveStatus, py::call_guard<py::gil_scoped_release>());
   control.def("__repr__", [](const RTDEControlInterface &a) { return "<rtde_control.RTDEControlInterface>"; });
 }
 };  // namespace rtde_control
@@ -196,12 +201,16 @@ PYBIND11_MODULE(rtde_receive, m)
 {
   m.doc() = "RTDE Receive Interface";
   py::class_<RTDEReceiveInterface>(m, "RTDEReceiveInterface")
-      .def(py::init<std::string, std::vector<std::string>, bool, bool>(), py::arg("hostname"),
+      .def(py::init<std::string, double, std::vector<std::string>, bool, bool>(), py::arg("hostname"),
+           py::arg("frequency") = -1.0,
            py::arg("variables") = std::vector<std::string>(), py::arg("verbose") = false,
            py::arg("use_upper_range_registers") = false)
       .def("disconnect", &RTDEReceiveInterface::disconnect, py::call_guard<py::gil_scoped_release>())
       .def("reconnect", &RTDEReceiveInterface::reconnect, DOC(ur_rtde, RTDEReceiveInterface, reconnect),
            py::call_guard<py::gil_scoped_release>())
+      .def("startFileRecording", &RTDEReceiveInterface::startFileRecording, py::arg("filename"),
+           py::arg("variables") = std::vector<std::string>(), py::call_guard<py::gil_scoped_release>())
+      .def("stopFileRecording", &RTDEReceiveInterface::stopFileRecording, py::call_guard<py::gil_scoped_release>())
       .def("isConnected", &RTDEReceiveInterface::isConnected, DOC(ur_rtde, RTDEReceiveInterface, isConnected),
            py::call_guard<py::gil_scoped_release>())
       .def("getTimestamp", &RTDEReceiveInterface::getTimestamp, DOC(ur_rtde, RTDEReceiveInterface, getTimestamp),
@@ -290,8 +299,12 @@ PYBIND11_MODULE(rtde_receive, m)
       .def("getOutputDoubleRegister", &RTDEReceiveInterface::getOutputDoubleRegister,
            DOC(ur_rtde, RTDEReceiveInterface, getOutputDoubleRegister),
            py::call_guard<py::gil_scoped_release>())
+      .def("getAsyncOperationProgress", &RTDEReceiveInterface::getAsyncOperationProgress,
+           py::call_guard<py::gil_scoped_release>())
       .def("getSpeedScalingCombined", &RTDEReceiveInterface::getSpeedScalingCombined,
            DOC(ur_rtde, RTDEReceiveInterface, getSpeedScalingCombined),
+           py::call_guard<py::gil_scoped_release>())
+      .def("getFtRawWrench", &RTDEReceiveInterface::getFtRawWrench,
            py::call_guard<py::gil_scoped_release>())
       .def("__repr__", [](const RTDEReceiveInterface &a) { return "<rtde_receive.RTDEReceiveInterface>"; });
 }

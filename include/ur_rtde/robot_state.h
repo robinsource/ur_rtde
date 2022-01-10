@@ -3,16 +3,23 @@
 #define RTDE_ROBOT_STATE_H
 
 #include <ur_rtde/rtde_export.h>
+#include <boost/variant.hpp>
 #include <vector>
+#include <unordered_map>
+#include <sstream>
 #include <cstdint>
+#include <iomanip>
 #include <mutex>
 
 namespace ur_rtde
 {
+using rtde_type_variant_ = boost::variant<uint32_t, uint64_t, int32_t, double, std::vector<double>,
+    std::vector<int32_t>>;
+
 class RobotState
 {
  public:
-  RTDE_EXPORT explicit RobotState();
+  RTDE_EXPORT explicit RobotState(const std::vector<std::string> &variables);
 
   RTDE_EXPORT virtual ~RobotState();
 
@@ -20,424 +27,147 @@ class RobotState
 
   RTDE_EXPORT bool unlockUpdateStateMutex();
 
+  RTDE_EXPORT void initRobotState(const std::vector<std::string> &variables);
+
+  uint16_t getStateEntrySize(const std::string& name)
+  {
+    std::lock_guard<std::mutex> lock(update_state_mutex_);
+    if (state_data_.find(name) != state_data_.end())
+    {
+      uint16_t entry_size = boost::apply_visitor(RobotState::SizeVisitor{}, state_data_[name]);
+      return entry_size;
+    }
+    else
+    {
+      throw std::runtime_error("unable to get state entry size for specified key: " + name);
+    }
+  };
+
+  std::string getStateEntryString(const std::string& name)
+  {
+    std::lock_guard<std::mutex> lock(update_state_mutex_);
+    if (state_data_.find(name) != state_data_.end())
+    {
+      std::string entry_str = boost::apply_visitor(RobotState::StringVisitor{}, state_data_[name]);
+      return entry_str;
+    }
+    else
+    {
+      throw std::runtime_error("unable to get state entry as string for specified key: " + name);
+    }
+  };
+
+  template <typename T> bool
+  getStateData(const std::string& name, T& val)
+  {
+    std::lock_guard<std::mutex> lock(update_state_mutex_);
+    if (state_data_.find(name) != state_data_.end())
+    {
+      val = boost::strict_get<T>(state_data_[name]);
+    }
+    else
+    {
+      return false;
+    }
+    return true;
+  };
+
+  template <typename T>
+  bool setStateData(const std::string& name, T& val)
+  {
+    if (state_data_.find(name) != state_data_.end())
+    {
+      state_data_[name] = val;
+    }
+    else
+    {
+      return false;
+    }
+    return true;
+  };
+
+  struct StringVisitor : public boost::static_visitor<std::string>
+  {
+    std::string operator()(uint32_t int_val) const
+    {
+      std::stringstream ss;
+      ss << int_val;
+      return ss.str();
+    }
+    std::string operator()(uint64_t int_val) const
+    {
+      std::stringstream ss;
+      ss << int_val;
+      return ss.str();
+    }
+    std::string operator()(int32_t int_val) const
+    {
+      std::stringstream ss;
+      ss << int_val;
+      return ss.str();
+    }
+    std::string operator()(double double_val) const
+    {
+      std::stringstream ss;
+      ss << std::fixed << std::setprecision(6) << double_val;
+      return ss.str();
+    }
+    std::string operator()(std::vector<double> vec_double_val) const
+    {
+      std::stringstream ss;
+      ss << std::fixed << std::setprecision(6);
+      std::copy(vec_double_val.begin(),  std::prev(vec_double_val.end()), std::ostream_iterator<double>(ss, ","));
+      ss << vec_double_val.back();
+      return ss.str();
+    }
+    std::string operator()(std::vector<int32_t> vec_int_val) const
+    {
+      std::stringstream ss;
+      std::copy(vec_int_val.begin(), std::prev(vec_int_val.end()), std::ostream_iterator<int32_t>(ss, ","));
+      ss << vec_int_val.back();
+      return ss.str();
+    }
+  };
+
+  struct SizeVisitor : public boost::static_visitor<uint16_t>
+  {
+    uint16_t operator()(uint32_t int_val) const
+    {
+      return 1;
+    }
+
+    uint16_t operator()(uint64_t int_val) const
+    {
+      return 1;
+    }
+
+    uint16_t operator()(int32_t int_val) const
+    {
+      return 1;
+    }
+
+    uint16_t operator()(double double_val) const
+    {
+      return 1;
+    }
+
+    uint16_t operator()(std::vector<double> vec_double_val) const
+    {
+      return vec_double_val.size();
+    }
+
+    uint16_t operator()(std::vector<int32_t> vec_int_val) const
+    {
+      return vec_int_val.size();
+    }
+  };
+
  public:
-  RTDE_EXPORT double getTimestamp();
-  RTDE_EXPORT void setTimestamp(double timestamp);
-  RTDE_EXPORT const std::vector<double> getTarget_q();
-  RTDE_EXPORT void setTarget_q(const std::vector<double> &target_q);
-  RTDE_EXPORT const std::vector<double> getTarget_qd();
-  RTDE_EXPORT void setTarget_qd(const std::vector<double> &target_qd);
-  RTDE_EXPORT const std::vector<double> getTarget_qdd();
-  RTDE_EXPORT void setTarget_qdd(const std::vector<double> &target_qdd);
-  RTDE_EXPORT const std::vector<double> getTarget_current();
-  RTDE_EXPORT void setTarget_current(const std::vector<double> &target_current);
-  RTDE_EXPORT const std::vector<double> getTarget_moment();
-  RTDE_EXPORT void setTarget_moment(const std::vector<double> &target_moment);
-  RTDE_EXPORT const std::vector<double> getActual_q();
-  RTDE_EXPORT void setActual_q(const std::vector<double> &actual_q);
-  RTDE_EXPORT const std::vector<double> getActual_qd();
-  RTDE_EXPORT void setActual_qd(const std::vector<double> &actual_qd);
-  RTDE_EXPORT const std::vector<double> getActual_current();
-  RTDE_EXPORT void setActual_current(const std::vector<double> &actual_current);
-  RTDE_EXPORT const std::vector<double> getJoint_control_output();
-  RTDE_EXPORT void setJoint_control_output(const std::vector<double> &joint_control_output);
-  RTDE_EXPORT const std::vector<double> getActual_TCP_pose();
-  RTDE_EXPORT void setActual_TCP_pose(const std::vector<double> &actual_TCP_pose);
-  RTDE_EXPORT const std::vector<double> getActual_TCP_speed();
-  RTDE_EXPORT void setActual_TCP_speed(const std::vector<double> &actual_TCP_speed);
-  RTDE_EXPORT const std::vector<double> getActual_TCP_force();
-  RTDE_EXPORT void setActual_TCP_force(const std::vector<double> &actual_TCP_force);
-  RTDE_EXPORT const std::vector<double> getTarget_TCP_pose();
-  RTDE_EXPORT void setTarget_TCP_pose(const std::vector<double> &target_TCP_pose);
-  RTDE_EXPORT const std::vector<double> getTarget_TCP_speed();
-  RTDE_EXPORT void setTarget_TCP_speed(const std::vector<double> &target_TCP_speed);
-  RTDE_EXPORT uint64_t getActual_digital_input_bits();
-  RTDE_EXPORT void setActual_digital_input_bits(uint64_t actual_digital_input_bits);
-  RTDE_EXPORT const std::vector<double> getJoint_temperatures();
-  RTDE_EXPORT void setJoint_temperatures(const std::vector<double> &joint_temperatures);
-  RTDE_EXPORT double getActual_execution_time();
-  RTDE_EXPORT void setActual_execution_time(double actual_execution_time);
-  RTDE_EXPORT int32_t getRobot_mode();
-  RTDE_EXPORT void setRobot_mode(int32_t robot_mode);
-  RTDE_EXPORT uint32_t getRobot_status();
-  RTDE_EXPORT void setRobot_status(uint32_t robot_status);
-  RTDE_EXPORT uint32_t getSafety_status_bits();
-  RTDE_EXPORT void setSafety_status_bits(uint32_t safety_status_bits);
-  RTDE_EXPORT const std::vector<int32_t> getJoint_mode();
-  RTDE_EXPORT void setJoint_mode(const std::vector<int32_t> &joint_mode);
-  RTDE_EXPORT int32_t getSafety_mode();
-  RTDE_EXPORT void setSafety_mode(int32_t safety_mode);
-  RTDE_EXPORT const std::vector<double> getActual_tool_accelerometer();
-  RTDE_EXPORT void setActual_tool_accelerometer(const std::vector<double> &actual_tool_accelerometer);
-  RTDE_EXPORT double getSpeed_scaling();
-  RTDE_EXPORT void setSpeed_scaling(double speed_scaling);
-  RTDE_EXPORT double getTarget_speed_fraction();
-  RTDE_EXPORT void setTarget_speed_fraction(double target_speed_fraction);
-  RTDE_EXPORT double getActual_momentum();
-  RTDE_EXPORT void setActual_momentum(double actual_momentum);
-  RTDE_EXPORT double getActual_main_voltage();
-  RTDE_EXPORT void setActual_main_voltage(double actual_main_voltage);
-  RTDE_EXPORT double getActual_robot_voltage();
-  RTDE_EXPORT void setActual_robot_voltage(double actual_robot_voltage);
-  RTDE_EXPORT double getActual_robot_current();
-  RTDE_EXPORT void setActual_robot_current(double actual_robot_current);
-  RTDE_EXPORT const std::vector<double> getActual_joint_voltage();
-  RTDE_EXPORT void setActual_joint_voltage(const std::vector<double> &actual_joint_voltage);
-  RTDE_EXPORT uint64_t getActual_digital_output_bits();
-  RTDE_EXPORT void setActual_digital_output_bits(uint64_t actual_digital_output_bits);
-  RTDE_EXPORT uint32_t getRuntime_state();
-  RTDE_EXPORT double getStandard_analog_input_0();
-  RTDE_EXPORT void setStandard_analog_input_0(double standard_analog_input_0);
-  RTDE_EXPORT double getStandard_analog_input_1();
-  RTDE_EXPORT void setStandard_analog_input_1(double standard_analog_input_1);
-  RTDE_EXPORT double getStandard_analog_output_0();
-  RTDE_EXPORT void setStandard_analog_output_0(double standard_analog_output_0);
-  RTDE_EXPORT double getStandard_analog_output_1();
-  RTDE_EXPORT void setStandard_analog_output_1(double standard_analog_output_1);
-  RTDE_EXPORT void setRuntime_state(uint32_t runtime_state);
-  RTDE_EXPORT uint32_t getOutput_bit_registers0_to_31();
-  RTDE_EXPORT void setOutput_bit_registers0_to_31(uint32_t output_bit_registers0_to_31);
-  RTDE_EXPORT uint32_t getOutput_bit_registers32_to_63();
-  RTDE_EXPORT void setOutput_bit_registers32_to_63(uint32_t output_bit_registers32_to_63);
-  RTDE_EXPORT int32_t getOutput_int_register_0();
-  RTDE_EXPORT void setOutput_int_register_0(int32_t output_int_register_0);
-  RTDE_EXPORT int32_t getOutput_int_register_1();
-  RTDE_EXPORT void setOutput_int_register_1(int32_t output_int_register_1);
-  RTDE_EXPORT int32_t getOutput_int_register_2();
-  RTDE_EXPORT void setOutput_int_register_2(int32_t output_int_register_2);
-  RTDE_EXPORT int32_t getOutput_int_register_3();
-  RTDE_EXPORT void setOutput_int_register_3(int32_t output_int_register_3);
-  RTDE_EXPORT int32_t getOutput_int_register_4();
-  RTDE_EXPORT void setOutput_int_register_4(int32_t output_int_register_4);
-  RTDE_EXPORT int32_t getOutput_int_register_5();
-  RTDE_EXPORT void setOutput_int_register_5(int32_t output_int_register_5);
-  RTDE_EXPORT int32_t getOutput_int_register_6();
-  RTDE_EXPORT void setOutput_int_register_6(int32_t output_int_register_6);
-  RTDE_EXPORT int32_t getOutput_int_register_7();
-  RTDE_EXPORT void setOutput_int_register_7(int32_t output_int_register_7);
-  RTDE_EXPORT int32_t getOutput_int_register_8();
-  RTDE_EXPORT void setOutput_int_register_8(int32_t output_int_register_8);
-  RTDE_EXPORT int32_t getOutput_int_register_9();
-  RTDE_EXPORT void setOutput_int_register_9(int32_t output_int_register_9);
-  RTDE_EXPORT int32_t getOutput_int_register_10();
-  RTDE_EXPORT void setOutput_int_register_10(int32_t output_int_register_10);
-  RTDE_EXPORT int32_t getOutput_int_register_11();
-  RTDE_EXPORT void setOutput_int_register_11(int32_t output_int_register_11);
-  RTDE_EXPORT int32_t getOutput_int_register_12();
-  RTDE_EXPORT void setOutput_int_register_12(int32_t output_int_register_12);
-  RTDE_EXPORT int32_t getOutput_int_register_13();
-  RTDE_EXPORT void setOutput_int_register_13(int32_t output_int_register_13);
-  RTDE_EXPORT int32_t getOutput_int_register_14();
-  RTDE_EXPORT void setOutput_int_register_14(int32_t output_int_register_14);
-  RTDE_EXPORT int32_t getOutput_int_register_15();
-  RTDE_EXPORT void setOutput_int_register_15(int32_t output_int_register_15);
-  RTDE_EXPORT int32_t getOutput_int_register_16();
-  RTDE_EXPORT void setOutput_int_register_16(int32_t output_int_register_16);
-  RTDE_EXPORT int32_t getOutput_int_register_17();
-  RTDE_EXPORT void setOutput_int_register_17(int32_t output_int_register_17);
-  RTDE_EXPORT int32_t getOutput_int_register_18();
-  RTDE_EXPORT void setOutput_int_register_18(int32_t output_int_register_18);
-  RTDE_EXPORT int32_t getOutput_int_register_19();
-  RTDE_EXPORT void setOutput_int_register_19(int32_t output_int_register_19);
-  RTDE_EXPORT int32_t getOutput_int_register_20();
-  RTDE_EXPORT void setOutput_int_register_20(int32_t output_int_register_20);
-  RTDE_EXPORT int32_t getOutput_int_register_21();
-  RTDE_EXPORT void setOutput_int_register_21(int32_t output_int_register_21);
-  RTDE_EXPORT int32_t getOutput_int_register_22();
-  RTDE_EXPORT void setOutput_int_register_22(int32_t output_int_register_22);
-  RTDE_EXPORT int32_t getOutput_int_register_23();
-  RTDE_EXPORT void setOutput_int_register_23(int32_t output_int_register_23);
-  
-  RTDE_EXPORT int32_t getOutput_int_register_24();
-  RTDE_EXPORT void setOutput_int_register_24(int32_t output_int_register_24);
-  RTDE_EXPORT int32_t getOutput_int_register_25();
-  RTDE_EXPORT void setOutput_int_register_25(int32_t output_int_register_25);
-  RTDE_EXPORT int32_t getOutput_int_register_26();
-  RTDE_EXPORT void setOutput_int_register_26(int32_t output_int_register_26);
-  RTDE_EXPORT int32_t getOutput_int_register_27();
-  RTDE_EXPORT void setOutput_int_register_27(int32_t output_int_register_27);
-  RTDE_EXPORT int32_t getOutput_int_register_28();
-  RTDE_EXPORT void setOutput_int_register_28(int32_t output_int_register_28);
-  RTDE_EXPORT int32_t getOutput_int_register_29();
-  RTDE_EXPORT void setOutput_int_register_29(int32_t output_int_register_29);
-  RTDE_EXPORT int32_t getOutput_int_register_30();
-  RTDE_EXPORT void setOutput_int_register_30(int32_t output_int_register_30);
-  RTDE_EXPORT int32_t getOutput_int_register_31();
-  RTDE_EXPORT void setOutput_int_register_31(int32_t output_int_register_31);
-  RTDE_EXPORT int32_t getOutput_int_register_32();
-  RTDE_EXPORT void setOutput_int_register_32(int32_t output_int_register_32);
-  RTDE_EXPORT int32_t getOutput_int_register_33();
-  RTDE_EXPORT void setOutput_int_register_33(int32_t output_int_register_33);
-  RTDE_EXPORT int32_t getOutput_int_register_34();
-  RTDE_EXPORT void setOutput_int_register_34(int32_t output_int_register_24);
-  RTDE_EXPORT int32_t getOutput_int_register_35();
-  RTDE_EXPORT void setOutput_int_register_35(int32_t output_int_register_35);
-  RTDE_EXPORT int32_t getOutput_int_register_36();
-  RTDE_EXPORT void setOutput_int_register_36(int32_t output_int_register_36);
-  RTDE_EXPORT int32_t getOutput_int_register_37();
-  RTDE_EXPORT void setOutput_int_register_37(int32_t output_int_register_37);
-  RTDE_EXPORT int32_t getOutput_int_register_38();
-  RTDE_EXPORT void setOutput_int_register_38(int32_t output_int_register_38);
-  RTDE_EXPORT int32_t getOutput_int_register_39();
-  RTDE_EXPORT void setOutput_int_register_39(int32_t output_int_register_39);
-  RTDE_EXPORT int32_t getOutput_int_register_40();
-  RTDE_EXPORT void setOutput_int_register_40(int32_t output_int_register_40);
-  RTDE_EXPORT int32_t getOutput_int_register_41();
-  RTDE_EXPORT void setOutput_int_register_41(int32_t output_int_register_41);
-  RTDE_EXPORT int32_t getOutput_int_register_42();
-  RTDE_EXPORT void setOutput_int_register_42(int32_t output_int_register_42);
-  RTDE_EXPORT int32_t getOutput_int_register_43();
-  RTDE_EXPORT void setOutput_int_register_43(int32_t output_int_register_43);
-  RTDE_EXPORT int32_t getOutput_int_register_44();
-  RTDE_EXPORT void setOutput_int_register_44(int32_t output_int_register_44);
-  RTDE_EXPORT int32_t getOutput_int_register_45();
-  RTDE_EXPORT void setOutput_int_register_45(int32_t output_int_register_45);
-  RTDE_EXPORT int32_t getOutput_int_register_46();
-  RTDE_EXPORT void setOutput_int_register_46(int32_t output_int_register_46);
-  RTDE_EXPORT int32_t getOutput_int_register_47();
-  RTDE_EXPORT void setOutput_int_register_47(int32_t output_int_register_47);
-
-  RTDE_EXPORT double getOutput_double_register_0();
-  RTDE_EXPORT void setOutput_double_register_0(double output_double_register_0);
-  RTDE_EXPORT double getOutput_double_register_1();
-  RTDE_EXPORT void setOutput_double_register_1(double output_double_register_1);
-  RTDE_EXPORT double getOutput_double_register_2();
-  RTDE_EXPORT void setOutput_double_register_2(double output_double_register_2);
-  RTDE_EXPORT double getOutput_double_register_3();
-  RTDE_EXPORT void setOutput_double_register_3(double output_double_register_3);
-  RTDE_EXPORT double getOutput_double_register_4();
-  RTDE_EXPORT void setOutput_double_register_4(double output_double_register_4);
-  RTDE_EXPORT double getOutput_double_register_5();
-  RTDE_EXPORT void setOutput_double_register_5(double output_double_register_5);
-  RTDE_EXPORT double getOutput_double_register_6();
-  RTDE_EXPORT void setOutput_double_register_6(double output_double_register_6);
-  RTDE_EXPORT double getOutput_double_register_7();
-  RTDE_EXPORT void setOutput_double_register_7(double output_double_register_7);
-  RTDE_EXPORT double getOutput_double_register_8();
-  RTDE_EXPORT void setOutput_double_register_8(double output_double_register_8);
-  RTDE_EXPORT double getOutput_double_register_9();
-  RTDE_EXPORT void setOutput_double_register_9(double output_double_register_9);
-  RTDE_EXPORT double getOutput_double_register_10();
-  RTDE_EXPORT void setOutput_double_register_10(double output_double_register_10);
-  RTDE_EXPORT double getOutput_double_register_11();
-  RTDE_EXPORT void setOutput_double_register_11(double output_double_register_11);
-  RTDE_EXPORT double getOutput_double_register_12();
-  RTDE_EXPORT void setOutput_double_register_12(double output_double_register_12);
-  RTDE_EXPORT double getOutput_double_register_13();
-  RTDE_EXPORT void setOutput_double_register_13(double output_double_register_13);
-  RTDE_EXPORT double getOutput_double_register_14();
-  RTDE_EXPORT void setOutput_double_register_14(double output_double_register_14);
-  RTDE_EXPORT double getOutput_double_register_15();
-  RTDE_EXPORT void setOutput_double_register_15(double output_double_register_15);
-  RTDE_EXPORT double getOutput_double_register_16();
-  RTDE_EXPORT void setOutput_double_register_16(double output_double_register_16);
-  RTDE_EXPORT double getOutput_double_register_17();
-  RTDE_EXPORT void setOutput_double_register_17(double output_double_register_17);
-  RTDE_EXPORT double getOutput_double_register_18();
-  RTDE_EXPORT void setOutput_double_register_18(double output_double_register_18);
-  RTDE_EXPORT double getOutput_double_register_19();
-  RTDE_EXPORT void setOutput_double_register_19(double output_double_register_19);
-  RTDE_EXPORT double getOutput_double_register_20();
-  RTDE_EXPORT void setOutput_double_register_20(double output_double_register_20);
-  RTDE_EXPORT double getOutput_double_register_21();
-  RTDE_EXPORT void setOutput_double_register_21(double output_double_register_21);
-  RTDE_EXPORT double getOutput_double_register_22();
-  RTDE_EXPORT void setOutput_double_register_22(double output_double_register_22);
-  RTDE_EXPORT double getOutput_double_register_23();
-  RTDE_EXPORT void setOutput_double_register_23(double output_double_register_23);
-
-  RTDE_EXPORT double getOutput_double_register_24();
-  RTDE_EXPORT void setOutput_double_register_24(double output_double_register_24);
-  RTDE_EXPORT double getOutput_double_register_25();
-  RTDE_EXPORT void setOutput_double_register_25(double output_double_register_25);
-  RTDE_EXPORT double getOutput_double_register_26();
-  RTDE_EXPORT void setOutput_double_register_26(double output_double_register_26);
-  RTDE_EXPORT double getOutput_double_register_27();
-  RTDE_EXPORT void setOutput_double_register_27(double output_double_register_27);
-  RTDE_EXPORT double getOutput_double_register_28();
-  RTDE_EXPORT void setOutput_double_register_28(double output_double_register_28);
-  RTDE_EXPORT double getOutput_double_register_29();
-  RTDE_EXPORT void setOutput_double_register_29(double output_double_register_29);
-  RTDE_EXPORT double getOutput_double_register_30();
-  RTDE_EXPORT void setOutput_double_register_30(double output_double_register_30);
-  RTDE_EXPORT double getOutput_double_register_31();
-  RTDE_EXPORT void setOutput_double_register_31(double output_double_register_31);
-  RTDE_EXPORT double getOutput_double_register_32();
-  RTDE_EXPORT void setOutput_double_register_32(double output_double_register_32);
-  RTDE_EXPORT double getOutput_double_register_33();
-  RTDE_EXPORT void setOutput_double_register_33(double output_double_register_33);
-  RTDE_EXPORT double getOutput_double_register_34();
-  RTDE_EXPORT void setOutput_double_register_34(double output_double_register_34);
-  RTDE_EXPORT double getOutput_double_register_35();
-  RTDE_EXPORT void setOutput_double_register_35(double output_double_register_35);
-  RTDE_EXPORT double getOutput_double_register_36();
-  RTDE_EXPORT void setOutput_double_register_36(double output_double_register_36);
-  RTDE_EXPORT double getOutput_double_register_37();
-  RTDE_EXPORT void setOutput_double_register_37(double output_double_register_37);
-  RTDE_EXPORT double getOutput_double_register_38();
-  RTDE_EXPORT void setOutput_double_register_38(double output_double_register_38);
-  RTDE_EXPORT double getOutput_double_register_39();
-  RTDE_EXPORT void setOutput_double_register_39(double output_double_register_39);
-  RTDE_EXPORT double getOutput_double_register_40();
-  RTDE_EXPORT void setOutput_double_register_40(double output_double_register_40);
-  RTDE_EXPORT double getOutput_double_register_41();
-  RTDE_EXPORT void setOutput_double_register_41(double output_double_register_41);
-  RTDE_EXPORT double getOutput_double_register_42();
-  RTDE_EXPORT void setOutput_double_register_42(double output_double_register_42);
-  RTDE_EXPORT double getOutput_double_register_43();
-  RTDE_EXPORT void setOutput_double_register_43(double output_double_register_43);
-  RTDE_EXPORT double getOutput_double_register_44();
-  RTDE_EXPORT void setOutput_double_register_44(double output_double_register_44);
-  RTDE_EXPORT double getOutput_double_register_45();
-  RTDE_EXPORT void setOutput_double_register_45(double output_double_register_45);
-  RTDE_EXPORT double getOutput_double_register_46();
-  RTDE_EXPORT void setOutput_double_register_46(double output_double_register_46);
-  RTDE_EXPORT double getOutput_double_register_47();
-  RTDE_EXPORT void setOutput_double_register_47(double output_double_register_47);
+  static std::unordered_map<std::string, rtde_type_variant_> state_types_;
 
  private:
-  double timestamp_;
-  std::vector<double> target_q_;
-  std::vector<double> target_qd_;
-  std::vector<double> target_qdd_;
-  std::vector<double> target_current_;
-  std::vector<double> target_moment_;
-  std::vector<double> actual_q_;
-  std::vector<double> actual_qd_;
-  std::vector<double> actual_current_;
-  std::vector<double> joint_control_output_;
-  std::vector<double> actual_TCP_pose_;
-  std::vector<double> actual_TCP_speed_;
-  std::vector<double> actual_TCP_force_;
-  std::vector<double> target_TCP_pose_;
-  std::vector<double> target_TCP_speed_;
-  uint64_t actual_digital_input_bits_;
-  std::vector<double> joint_temperatures_;
-  double actual_execution_time_;
-  int32_t robot_mode_;
-  uint32_t robot_status_;
-  uint32_t safety_status_bits_;
-  std::vector<int32_t> joint_mode_;
-  int32_t safety_mode_;
-  std::vector<double> actual_tool_accelerometer_;
-  double speed_scaling_;
-  double target_speed_fraction_;
-  double actual_momentum_;
-  double actual_main_voltage_;
-  double actual_robot_voltage_;
-  double actual_robot_current_;
-  std::vector<double> actual_joint_voltage_;
-  uint64_t actual_digital_output_bits_;
-  uint32_t runtime_state_;
-  double standard_analog_input_0_;
-  double standard_analog_input_1_;
-  double standard_analog_output_0_;
-  double standard_analog_output_1_;
-
-  uint32_t output_bit_registers0_to_31_;
-  uint32_t output_bit_registers32_to_63_;
-
-  int32_t output_int_register_0_;
-  int32_t output_int_register_1_;
-  int32_t output_int_register_2_;
-  int32_t output_int_register_3_;
-  int32_t output_int_register_4_;
-  int32_t output_int_register_5_;
-  int32_t output_int_register_6_;
-  int32_t output_int_register_7_;
-  int32_t output_int_register_8_;
-  int32_t output_int_register_9_;
-  int32_t output_int_register_10_;
-  int32_t output_int_register_11_;
-  int32_t output_int_register_12_;
-  int32_t output_int_register_13_;
-  int32_t output_int_register_14_;
-  int32_t output_int_register_15_;
-  int32_t output_int_register_16_;
-  int32_t output_int_register_17_;
-  int32_t output_int_register_18_;
-  int32_t output_int_register_19_;
-  int32_t output_int_register_20_;
-  int32_t output_int_register_21_;
-  int32_t output_int_register_22_;
-  int32_t output_int_register_23_;
-
-  int32_t output_int_register_24_;
-  int32_t output_int_register_25_;
-  int32_t output_int_register_26_;
-  int32_t output_int_register_27_;
-  int32_t output_int_register_28_;
-  int32_t output_int_register_29_;
-  int32_t output_int_register_30_;
-  int32_t output_int_register_31_;
-  int32_t output_int_register_32_;
-  int32_t output_int_register_33_;
-  int32_t output_int_register_34_;
-  int32_t output_int_register_35_;
-  int32_t output_int_register_36_;
-  int32_t output_int_register_37_;
-  int32_t output_int_register_38_;
-  int32_t output_int_register_39_;
-  int32_t output_int_register_40_;
-  int32_t output_int_register_41_;
-  int32_t output_int_register_42_;
-  int32_t output_int_register_43_;
-  int32_t output_int_register_44_;
-  int32_t output_int_register_45_;
-  int32_t output_int_register_46_;
-  int32_t output_int_register_47_;
-
-  double output_double_register_0_;
-  double output_double_register_1_;
-  double output_double_register_2_;
-  double output_double_register_3_;
-  double output_double_register_4_;
-  double output_double_register_5_;
-  double output_double_register_6_;
-  double output_double_register_7_;
-  double output_double_register_8_;
-  double output_double_register_9_;
-  double output_double_register_10_;
-  double output_double_register_11_;
-  double output_double_register_12_;
-  double output_double_register_13_;
-  double output_double_register_14_;
-  double output_double_register_15_;
-  double output_double_register_16_;
-  double output_double_register_17_;
-  double output_double_register_18_;
-  double output_double_register_19_;
-  double output_double_register_20_;
-  double output_double_register_21_;
-  double output_double_register_22_;
-  double output_double_register_23_;
-
-  double output_double_register_24_;
-  double output_double_register_25_;
-  double output_double_register_26_;
-  double output_double_register_27_;
-  double output_double_register_28_;
-  double output_double_register_29_;
-  double output_double_register_30_;
-  double output_double_register_31_;
-  double output_double_register_32_;
-  double output_double_register_33_;
-  double output_double_register_34_;
-  double output_double_register_35_;
-  double output_double_register_36_;
-  double output_double_register_37_;
-  double output_double_register_38_;
-  double output_double_register_39_;
-  double output_double_register_40_;
-  double output_double_register_41_;
-  double output_double_register_42_;
-  double output_double_register_43_;
-  double output_double_register_44_;
-  double output_double_register_45_;
-  double output_double_register_46_;
-  double output_double_register_47_;
-
-  std::mutex update_state_mutex_;
+  std::unordered_map<std::string, rtde_type_variant_> state_data_;
+  mutable std::mutex update_state_mutex_;
 };
 
 }  // namespace ur_rtde

@@ -92,6 +92,9 @@ class RTDE
       SET_INPUT_INT_REGISTER = 49,
       SET_INPUT_DOUBLE_REGISTER = 50,
       MOVE_UNTIL_CONTACT = 51,
+      FREEDRIVE_MODE = 52,
+      END_FREEDRIVE_MODE = 53,
+      GET_FREEDRIVE_STATUS = 54,
       WATCHDOG = 99,
       STOP_SCRIPT = 255
     };
@@ -113,7 +116,8 @@ class RTDE
       RECIPE_13 = 13,
       RECIPE_14 = 14,
       RECIPE_15 = 15,
-      RECIPE_16 = 16
+      RECIPE_16 = 16,
+      RECIPE_17 = 17
     };
 
     RobotCommand() : type_(NO_CMD), recipe_id_(1)
@@ -127,6 +131,7 @@ class RTDE
     double reg_double_val_;
     std::vector<double> val_;
     std::vector<int> selection_vector_;
+    std::vector<int> free_axes_;
     std::int32_t force_mode_type_;
     std::uint8_t std_digital_out_;
     std::uint8_t std_digital_out_mask_;
@@ -172,7 +177,7 @@ class RTDE
   RTDE_EXPORT bool negotiateProtocolVersion();
   RTDE_EXPORT std::tuple<std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t> getControllerVersion();
   RTDE_EXPORT void receive();
-  RTDE_EXPORT void receiveData(std::shared_ptr<RobotState> &robot_state);
+  RTDE_EXPORT boost::system::error_code receiveData(std::shared_ptr<RobotState> &robot_state);
 
   RTDE_EXPORT void send(const RobotCommand &robot_cmd);
   RTDE_EXPORT void sendAll(const std::uint8_t &command, std::string payload = "");
@@ -180,10 +185,6 @@ class RTDE
   RTDE_EXPORT void sendPause();
   RTDE_EXPORT bool sendOutputSetup(const std::vector<std::string> &output_names, double frequency);
   RTDE_EXPORT bool sendInputSetup(const std::vector<std::string> &input_names);
-
- private:
-  void setupCallbacks();    //!< creates all callback functions on startup of the controller
-  details::cb_map cb_map_;  //!< stores callback functions for handling the messages received by receiveData()
 
   std::string hostname_;
   int port_;
@@ -194,6 +195,7 @@ class RTDE
   std::shared_ptr<boost::asio::io_service> io_service_;
   std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
   std::shared_ptr<boost::asio::ip::tcp::resolver> resolver_;
+  std::vector<char> buffer_;
 };
 
 }  // namespace ur_rtde
