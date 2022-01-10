@@ -455,17 +455,21 @@ SCENARIO("Reactivate Robot, remove ProtectiveStop")
     bool protected_stop = rtde_receive->isProtectiveStopped();
     REQUIRE(protected_stop == true);
 
-    THEN("Remove ProtectiveStop")
+    WHEN("At least 5 seconds has passed")
     {
-      REQUIRE(rtde_control->reuploadScript());
+      std::this_thread::sleep_for(std::chrono::seconds(6));
+      THEN("Remove ProtectiveStop")
+      {
+        REQUIRE(rtde_control->reuploadScript());
 
-      // unlockProtectiveStop
-      db_client->unlockProtectiveStop();
+        // unlockProtectiveStop
+        db_client->unlockProtectiveStop();
 
-      // Check if robot is in protected stop.
-      std::this_thread::sleep_for(std::chrono::duration<double>(1));
-      protected_stop = rtde_receive->isProtectiveStopped();
-      REQUIRE(protected_stop == false);
+        // Check if robot is in protected stop.
+        std::this_thread::sleep_for(std::chrono::duration<double>(1));
+        protected_stop = rtde_receive->isProtectiveStopped();
+        REQUIRE(protected_stop == false);
+      }
     }
   }
 }
