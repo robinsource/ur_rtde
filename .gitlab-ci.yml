@@ -109,6 +109,7 @@ polyscope-5.11.1.108318:
     - build-ubuntu-2004
   needs: ["build-ubuntu-2004"]
   artifacts:
+    when: always
     paths:
       - ps-5-11-1-108318.svg
   tags:
