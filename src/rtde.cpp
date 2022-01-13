@@ -7,6 +7,9 @@
 #include <boost/asio/read.hpp>
 #include <boost/asio/socket_base.hpp>
 #include <boost/asio/write.hpp>
+#include <boost/bind.hpp>
+#include <boost/lambda/bind.hpp>
+#include <boost/lambda/lambda.hpp>
 
 #include <cstdint>
 #include <iostream>
@@ -41,8 +44,16 @@ RTDE::RTDE(const std::string hostname, int port, bool verbose)
     : hostname_(std::move(hostname)),
       port_(port),
       verbose_(verbose),
-      conn_state_(ConnectionState::DISCONNECTED)
+      conn_state_(ConnectionState::DISCONNECTED),
+      deadline_(io_service_)
 {
+  // No deadline is required until the first socket operation is started. We
+  // set the deadline to positive infinity so that the actor takes no action
+  // until a specific deadline is set.
+  deadline_.expires_at(boost::posix_time::pos_infin);
+
+  // Start the persistent actor that checks for deadline expiry.
+  check_deadline();
 }
 
 RTDE::~RTDE() = default;
@@ -51,8 +62,7 @@ void RTDE::connect()
 {
   try
   {
-    io_service_ = std::make_shared<boost::asio::io_service>();
-    socket_.reset(new boost::asio::ip::tcp::socket(*io_service_));
+    socket_.reset(new boost::asio::ip::tcp::socket(io_service_));
     socket_->open(boost::asio::ip::tcp::v4());
     boost::asio::ip::tcp::no_delay no_delay_option(true);
     boost::asio::socket_base::reuse_address sol_reuse_option(true);
@@ -62,7 +72,7 @@ void RTDE::connect()
     boost::asio::detail::socket_option::boolean<IPPROTO_TCP, TCP_QUICKACK> quickack(true);
     socket_->set_option(quickack);
 #endif
-    resolver_ = std::make_shared<boost::asio::ip::tcp::resolver>(*io_service_);
+    resolver_ = std::make_shared<boost::asio::ip::tcp::resolver>(io_service_);
     boost::asio::ip::tcp::resolver::query query(hostname_, std::to_string(port_));
     boost::asio::connect(*socket_, resolver_->resolve(query));
     conn_state_ = ConnectionState::CONNECTED;
@@ -285,8 +295,14 @@ void RTDE::sendAll(const std::uint8_t &command, std::string payload)
   std::string sent(header_packed.begin(), header_packed.end());
   DEBUG("SENDING buf containing: " << sent << " with len: " << sent.size());
 
-  boost::asio::write(*socket_, boost::asio::buffer(header_packed, header_packed.size()));
+  // This is a workaround for the moment to prevent crash when calling this
+  // function is RTDE is disconnected - i.e. in case of desynchronization
+  if (isConnected())
+  {
+	  boost::asio::write(*socket_, boost::asio::buffer(header_packed, header_packed.size()));
+  }
 }
+
 
 void RTDE::sendStart()
 {
@@ -417,6 +433,51 @@ void RTDE::receive()
   }
 }
 
+
+template <typename AsyncReadStream, typename MutableBufferSequence>
+std::size_t RTDE::async_read_some(AsyncReadStream& s, const MutableBufferSequence& buffers,
+	int timeout_ms)
+{
+	if (timeout_ms < 0)
+	{
+		timeout_ms = 500;
+	}
+
+	// Set a deadline for the asynchronous operation. Since this function uses
+	// a composed operation (async_read_until), the deadline applies to the
+	// entire operation, rather than individual reads from the socket.
+	deadline_.expires_from_now(boost::posix_time::milliseconds(timeout_ms));
+
+    // Set up the variable that receives the result of the asynchronous
+    // operation. The error code is set to would_block to signal that the
+    // operation is incomplete. Asio guarantees that its asynchronous
+    // operations will never fail with would_block, so any other value in
+    // ec indicates completion.
+    boost::system::error_code ec = boost::asio::error::would_block;
+    size_t BytesReceived = 0;
+
+    // Start the asynchronous operation itself. The boost::lambda function
+    // object is used as a callback and will update the ec variable when the
+    // operation completes.
+    //boost::asio::async_read(s, buffers, boost::lambda::var(ec) = boost::lambda::_1);
+    s.async_read_some(buffers,
+    	[&](const boost::system::error_code& error, std::size_t bytes_transferred)
+    	{
+    		ec = error;
+    		BytesReceived = bytes_transferred;
+    	});
+
+    // Block until the asynchronous operation has completed.
+    do io_service_.run_one(); while (ec == boost::asio::error::would_block);
+	if (ec)
+	{
+		throw boost::system::system_error(ec);
+	}
+
+	return BytesReceived;
+}
+
+
 boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_state)
 {
   boost::system::error_code error;
@@ -425,7 +486,8 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
 
   // Prepare buffer of 4096 bytes
   std::vector<char> data(4096);
-  size_t data_len = socket_->read_some(boost::asio::buffer(data), error);
+  //size_t data_len = socket_->read_some(boost::asio::buffer(data), error);
+  size_t data_len = async_read_some(*socket_, boost::asio::buffer(data));
   if (error)
     return error;
 
@@ -563,5 +625,32 @@ std::tuple<std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t> RTDE::get
     return std::make_tuple(v_major, v_minor, v_bugfix, v_build);
   }
 }
+
+
+void RTDE::check_deadline()
+{
+  // Check whether the deadline has passed. We compare the deadline against
+  // the current time since a new asynchronous operation may have moved the
+  // deadline before this actor had a chance to run.
+  if (deadline_.expires_at() <= boost::asio::deadline_timer::traits_type::now())
+  {
+    // The deadline has passed. The socket is closed so that any outstanding
+    // asynchronous operations are cancelled. This allows the blocked
+    // connect(), read_line() or write_line() functions to return.
+    boost::system::error_code ignored_ec;
+    socket_->close(ignored_ec);
+    conn_state_ = ConnectionState::DISCONNECTED;
+    socket_.reset();
+    DEBUG("socket timeout");
+
+    // There is no longer an active deadline. The expiry is set to positive
+    // infinity so that the actor takes no action until a new deadline is set.
+    deadline_.expires_at(boost::posix_time::pos_infin);
+  }
+
+  // Put the actor back to sleep.
+  deadline_.async_wait(boost::bind(&RTDE::check_deadline, this));
+}
+
 
 }  // namespace ur_rtde
