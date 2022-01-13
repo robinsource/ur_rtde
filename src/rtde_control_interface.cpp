@@ -605,6 +605,7 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
 
 void RTDEControlInterface::receiveCallback()
 {
+  bool Reconnect = false;
   while (!stop_thread_)
   {
     // Receive and update the robot state
@@ -620,22 +621,38 @@ void RTDEControlInterface::receiveCallback()
     {
       std::cerr << "RTDEControlInterface: Could not receive data from robot..." << std::endl;
       std::cerr << e.what() << std::endl;
-      if (rtde_ != nullptr)
-      {
-        if (rtde_->isConnected())
-          rtde_->disconnect();
+      Reconnect = true;
+    }
 
-        if (!rtde_->isConnected())
-        {
-          std::cerr << "RTDEControlInterface: Robot is disconnected, reconnecting..." << std::endl;
-          reconnect();
-        }
+    if (Reconnect)
+    {
+    	try
+    	{
+          if (rtde_ != nullptr)
+		  {
+        	std::cout << "Reconnecting..." << std::endl;
+			if (rtde_->isConnected())
+			  rtde_->disconnect();
 
-        if (rtde_->isConnected())
-          std::cout << "RTDEControlInterface: Successfully reconnected!" << std::endl;
-        else
-          throw std::runtime_error("Could not recover from losing connection to robot!");
-      }
+			if (!rtde_->isConnected())
+			{
+			  std::cerr << "RTDEControlInterface: Robot is disconnected, reconnecting..." << std::endl;
+			  reconnect();
+			}
+
+			if (rtde_->isConnected())
+			  std::cout << "RTDEControlInterface: Successfully reconnected!" << std::endl;
+			else
+			  throw std::runtime_error("Could not recover from losing connection to robot!");
+		  }
+    	}
+    	catch (std::exception &e)
+    	{
+    		std::cerr << "RTDEControlInterface: Could not reconnect to robot..." << std::endl;
+    		std::cerr << e.what() << std::endl;
+    		stop_thread_ = true;
+    		return;
+    	}
     }
   }
 }
