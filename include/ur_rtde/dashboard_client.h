@@ -7,6 +7,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/streambuf.hpp>
 #include <memory>
 #include <string>
 
@@ -177,6 +178,15 @@ class DashboardClient
 
  private:
   /**
+   * Reads a single line (until newline) with timeout
+   * If no timeout is given (value < 0) then an internal default timeout
+   * values is used
+   * \return The received data string without newline
+   */
+  template <typename AsyncReadStream>
+  std::string async_readline(AsyncReadStream& s, int timeout_ms = -1);
+
+  /**
    * For socket timeouts
    */
   void check_deadline();
@@ -189,6 +199,7 @@ class DashboardClient
   std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
   std::shared_ptr<boost::asio::ip::tcp::resolver> resolver_;
   boost::asio::deadline_timer deadline_;
+  boost::asio::streambuf input_buffer_;
 };
 
 }  // namespace ur_rtde
