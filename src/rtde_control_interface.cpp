@@ -264,7 +264,7 @@ void RTDEControlInterface::waitForProgramRunning()
     std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
     ms_count += sleep_ms;
     ms_retry_count += sleep_ms;
-    if (ms_retry_count >= 400)
+    if (ms_retry_count >= 50)
     {
       ms_retry_count = 0;
       if (verbose_)
