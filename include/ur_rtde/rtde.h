@@ -187,6 +187,7 @@ class RTDE
   RTDE_EXPORT bool sendOutputSetup(const std::vector<std::string> &output_names, double frequency);
   RTDE_EXPORT bool sendInputSetup(const std::vector<std::string> &input_names);
 
+private:
   std::string hostname_;
   int port_;
   bool verbose_;

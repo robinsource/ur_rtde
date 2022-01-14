@@ -62,6 +62,7 @@ void RTDE::connect()
 {
   try
   {
+	buffer_.clear(); // ensure empty state in case of reconnect
     socket_.reset(new boost::asio::ip::tcp::socket(io_service_));
     socket_->open(boost::asio::ip::tcp::v4());
     boost::asio::ip::tcp::no_delay no_delay_option(true);
