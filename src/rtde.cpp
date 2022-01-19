@@ -441,7 +441,7 @@ std::size_t RTDE::async_read_some(AsyncReadStream& s, const MutableBufferSequenc
 {
 	if (timeout_ms < 0)
 	{
-		timeout_ms = 500;
+		timeout_ms = 2500;
 	}
 
 	// Set a deadline for the asynchronous operation. Since this function uses

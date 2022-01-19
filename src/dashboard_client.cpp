@@ -232,7 +232,7 @@ std::string DashboardClient::async_readline(AsyncReadStream& s, int timeout_ms)
 {
 	if (timeout_ms < 0)
 	{
-		timeout_ms = 500;
+		timeout_ms = 2500;
 	}
 
 	// Set a deadline for the asynchronous operation. Since this function uses
@@ -415,6 +415,7 @@ void DashboardClient::check_deadline()
   // deadline before this actor had a chance to run.
   if (deadline_.expires_at() <= boost::asio::deadline_timer::traits_type::now())
   {
+	std::cout << "Dashboard client deadline expired" << std::endl;
     // The deadline has passed. The socket is closed so that any outstanding
     // asynchronous operations are cancelled. This allows the blocked
     // connect(), read_line() or write_line() functions to return.
