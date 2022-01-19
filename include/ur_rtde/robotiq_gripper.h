@@ -98,7 +98,7 @@ class RobotiqGripper
    */
   enum eUnit
   {
-    UNIT_DEVICE,      ///< device unit in the range 0 - 255
+    UNIT_DEVICE,      ///< device unit in the range 0 - 255 - 255 meansd fully closed and 0 means fully open
     UNIT_NORMALIZED,  ///< normalized value in the range 0.0 - 1.0, for position 0.0 means fully closed and 1.0 means
                       ///< fully open
     UNIT_PERCENT,  ///< percent in the range from 0 - 100 % for position 0% means fully closed and 100% means fully open
@@ -187,8 +187,12 @@ class RobotiqGripper
   /**
    * Attempts to calibrate the open and closed positions, by closing
    * and opening the gripper.
+   * The function returns if calibration has been finished.
+   * \param[in] Speed Optional speed parameter. If the speed parameter is
+   * less than 0, then is ignored and the calibration move is executed with
+   * default calibration speed (normally 1/4 of max speed).
    */
-  RTDE_EXPORT void autoCalibrate();
+  RTDE_EXPORT void autoCalibrate(float Speed = -1.0);
 
   /**
    * Returns whether the gripper is active.
@@ -200,12 +204,20 @@ class RobotiqGripper
 
   /**
    * Returns the fully open position in the configured position unit.
+   * If you work with UNIT_DEVICE, then the open position is the position
+   * value near 0. If you work with any other unit, then the open position
+   * is the bigger value (that means 1.0 for UNIT_NORMALIZED, 100 for UNIT_PERCENT
+   * or the opening in mm for UNIT_MM).
    */
   RTDE_EXPORT float getOpenPosition() const;
 
   /**
    * Returns what is considered the closed position for gripper in the
    * configured position unit.
+   * If you work with UNIT_DEVICE, then the closed position is the position
+   * value near 255. If you work with any other unit, then the closed position
+   * is always 0. That means the position value defines the opening of the
+   * gripper.
    */
   RTDE_EXPORT float getClosedPosition() const;
 
@@ -233,7 +245,7 @@ class RobotiqGripper
    * setForce() function are used. So this gives you the option to pass
    * in the speed parameter each time or to use preset speed and
    * force parameters.
-   * \param Position: Position to move to [min_position, max_position]
+   * \param Position: Position to move to [getClosedPosition() to getOpenPosition()]
    * \param Speed: Speed to move at [min_speed, max_speed]
    * \param Force: Force to use [min_force, max_force]
    * \param MoveMode: START_MOVE - starts the move and returns immediately
@@ -437,6 +449,10 @@ private:
   void check_deadline();
 
  private:
+  /**
+   * Private move implementation that is called from the public interface functions
+   */
+  int move_impl(int Position, int Speed, int Force, eMoveMode MoveMode = START_MOVE);
   std::string hostname_;
   int port_;
   bool verbose_;

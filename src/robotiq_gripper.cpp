@@ -147,17 +147,20 @@ void RobotiqGripper::activate(bool auto_calibrate)
   dumpVars();
 }
 
-void RobotiqGripper::autoCalibrate()
+void RobotiqGripper::autoCalibrate(float fSpeed)
 {
+  int Force = 1;
+  int Speed = (fSpeed < 0) ? 64 : convertValueUnit(fSpeed, SPEED, TO_DEVICE_UNIT);
+
   // first try to open in case we are holding an object
-  auto status = move(convertValueUnit(0, POSITION, FROM_DEVICE_UNIT), 64, 1, WAIT_FINISHED);
+  auto status = move_impl(0, Speed, Force, WAIT_FINISHED);
   if (status != AT_DEST)
   {
     throw std::runtime_error("Gripper calibration failed to start");
   }
 
   // try to close as far as possible, and record the number
-  status = move(convertValueUnit(255, POSITION, FROM_DEVICE_UNIT), 64, 1, WAIT_FINISHED);
+  status = move_impl(255, Speed, Force, WAIT_FINISHED);
   if (status != AT_DEST && status != STOPPED_INNER_OBJECT)
   {
     throw std::runtime_error("Gripper calibration failed");
@@ -170,7 +173,7 @@ void RobotiqGripper::autoCalibrate()
   max_position_ = std::min(max_position_, 255);
 
   // try to open as far as possible, and record the number
-  status = move(convertValueUnit(0, POSITION, FROM_DEVICE_UNIT), 64, 1, WAIT_FINISHED);
+  status = move_impl(0, Speed, Force, WAIT_FINISHED);
   if (status != AT_DEST && status != STOPPED_OUTER_OBJECT)
   {
     throw std::runtime_error("Gripper calibration failed");
@@ -381,6 +384,13 @@ int RobotiqGripper::move(float fPosition, float fSpeed, float fForce, eMoveMode 
   Position = boost::algorithm::clamp(Position, min_position_, max_position_);
   Speed = boost::algorithm::clamp(Speed, min_speed_, max_speed_);
   Force = boost::algorithm::clamp(Force, min_force_, max_force_);
+
+  return move_impl(Position, Speed, Force, MoveMode);
+}
+
+
+int RobotiqGripper::move_impl(int Position, int Speed, int Force, eMoveMode MoveMode)
+{
   VariableDict Vars{{"POS", Position}, {"SPE", Speed}, {"FOR", Force}, {"GTO", 1}};
   bool Result = setVars(Vars);
   if (!Result)
@@ -403,6 +413,7 @@ int RobotiqGripper::move(float fPosition, float fSpeed, float fForce, eMoveMode 
     return objectDetectionStatus();
   }
 }
+
 
 int RobotiqGripper::open(float NormSpeed, float NormForce, eMoveMode MoveMode)
 {
