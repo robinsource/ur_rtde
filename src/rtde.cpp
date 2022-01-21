@@ -513,8 +513,6 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
           }
         }
         robot_state->unlockUpdateStateMutex();
-
-        break;
       }
       else
       {
