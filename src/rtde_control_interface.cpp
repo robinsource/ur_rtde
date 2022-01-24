@@ -264,7 +264,7 @@ void RTDEControlInterface::waitForProgramRunning()
     std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
     ms_count += sleep_ms;
     ms_retry_count += sleep_ms;
-    if (ms_retry_count >= 400)
+    if (ms_retry_count >= 50)
     {
       ms_retry_count = 0;
       if (verbose_)
@@ -605,6 +605,7 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
 
 void RTDEControlInterface::receiveCallback()
 {
+  bool should_reconnect = false;
   while (!stop_thread_)
   {
     // Receive and update the robot state
@@ -620,21 +621,37 @@ void RTDEControlInterface::receiveCallback()
     {
       std::cerr << "RTDEControlInterface: Could not receive data from robot..." << std::endl;
       std::cerr << e.what() << std::endl;
-      if (rtde_ != nullptr)
+      should_reconnect = true;
+    }
+
+    if (should_reconnect)
+    {
+      try
       {
-        if (rtde_->isConnected())
-          rtde_->disconnect();
-
-        if (!rtde_->isConnected())
+        if (rtde_ != nullptr)
         {
-          std::cerr << "RTDEControlInterface: Robot is disconnected, reconnecting..." << std::endl;
-          reconnect();
-        }
+          std::cout << "Reconnecting..." << std::endl;
+          if (rtde_->isConnected())
+            rtde_->disconnect();
 
-        if (rtde_->isConnected())
-          std::cout << "RTDEControlInterface: Successfully reconnected!" << std::endl;
-        else
-          throw std::runtime_error("Could not recover from losing connection to robot!");
+          if (!rtde_->isConnected())
+          {
+            std::cerr << "RTDEControlInterface: Robot is disconnected, reconnecting..." << std::endl;
+            reconnect();
+          }
+
+          if (rtde_->isConnected())
+            std::cout << "RTDEControlInterface: Successfully reconnected!" << std::endl;
+          else
+            throw std::runtime_error("Could not recover from losing connection to robot!");
+        }
+      }
+      catch (std::exception &e)
+      {
+        std::cerr << "RTDEControlInterface: Could not reconnect to robot..." << std::endl;
+        std::cerr << e.what() << std::endl;
+        stop_thread_ = true;
+        return;
       }
     }
   }

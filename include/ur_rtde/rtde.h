@@ -6,6 +6,7 @@
 
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/deadline_timer.hpp>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -186,16 +187,32 @@ class RTDE
   RTDE_EXPORT bool sendOutputSetup(const std::vector<std::string> &output_names, double frequency);
   RTDE_EXPORT bool sendInputSetup(const std::vector<std::string> &input_names);
 
+private:
   std::string hostname_;
   int port_;
   bool verbose_;
   ConnectionState conn_state_;
   std::vector<std::string> output_types_;
   std::vector<std::string> output_names_;
-  std::shared_ptr<boost::asio::io_service> io_service_;
+  boost::asio::io_service io_service_;
   std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
   std::shared_ptr<boost::asio::ip::tcp::resolver> resolver_;
   std::vector<char> buffer_;
+  boost::asio::deadline_timer deadline_;
+
+  /**
+   * Async socket read function with timeout.
+   * If no timeout is given (value < 0) then an internal default timeout
+   * value is used
+   * \return Bytes received
+   */
+  template <typename AsyncReadStream, typename MutableBufferSequence>
+  std::size_t async_read_some(AsyncReadStream& s, const MutableBufferSequence& buffers, int timeout_ms = -1);
+
+  /**
+   * For socket timeouts
+   */
+  void check_deadline();
 };
 
 }  // namespace ur_rtde

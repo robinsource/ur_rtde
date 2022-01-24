@@ -3,6 +3,8 @@
 
 #include <boost/array.hpp>
 #include <boost/asio/connect.hpp>
+#include <boost/asio/read.hpp>
+#include <boost/asio/read_until.hpp>
 #include <boost/asio/socket_base.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/bind.hpp>
@@ -224,16 +226,50 @@ void DashboardClient::unlockProtectiveStop()
   }
 }
 
+template <typename AsyncReadStream>
+std::string DashboardClient::async_readline(AsyncReadStream &s, int timeout_ms)
+{
+  if (timeout_ms < 0)
+  {
+    timeout_ms = 2500;
+  }
+
+  // Set a deadline for the asynchronous operation. Since this function uses
+  // a composed operation (async_read_until), the deadline applies to the
+  // entire operation, rather than individual reads from the socket.
+  deadline_.expires_from_now(boost::posix_time::milliseconds(timeout_ms));
+
+  // Set up the variable that receives the result of the asynchronous
+  // operation. The error code is set to would_block to signal that the
+  // operation is incomplete. Asio guarantees that its asynchronous
+  // operations will never fail with would_block, so any other value in
+  // ec indicates completion.
+  boost::system::error_code ec = boost::asio::error::would_block;
+
+  // Start the asynchronous operation itself. The boost::lambda function
+  // object is used as a callback and will update the ec variable when the
+  // operation completes.
+  // boost::asio::async_read(s, buffers, boost::lambda::var(ec) = boost::lambda::_1);
+  boost::asio::async_read_until(s, input_buffer_, '\n', var(ec) = boost::lambda::_1);
+
+  // Block until the asynchronous operation has completed.
+  do
+    io_service_.run_one();
+  while (ec == boost::asio::error::would_block);
+  if (ec)
+  {
+    throw boost::system::system_error(ec);
+  }
+
+  std::string line;
+  std::istream is(&input_buffer_);
+  std::getline(is, line);
+  return line;
+}
+
 std::string DashboardClient::receive()
 {
-  boost::array<char, 1024> recv_buffer_;
-  boost::system::error_code error_;
-  size_t buflen = socket_->read_some(boost::asio::buffer(recv_buffer_), error_);
-  if (error_.value() != 0)
-  {
-    throw std::runtime_error("Dashboard client receive function failed with error: " + error_.message());
-  }
-  return std::string(recv_buffer_.elems, buflen - 1);  // -1 is removing newline
+  return async_readline(*socket_);
 }
 
 std::string DashboardClient::robotmode()
@@ -366,8 +402,9 @@ std::string DashboardClient::getSerialNumber()
   }
   else
   {
-    throw std::runtime_error("getSerialNumber() function is not supported on the dashboard server for PolyScope "
-                             "versions less than 5.6.0");
+    throw std::runtime_error(
+        "getSerialNumber() function is not supported on the dashboard server for PolyScope "
+        "versions less than 5.6.0");
   }
 }
 
@@ -378,11 +415,13 @@ void DashboardClient::check_deadline()
   // deadline before this actor had a chance to run.
   if (deadline_.expires_at() <= boost::asio::deadline_timer::traits_type::now())
   {
+    std::cout << "Dashboard client deadline expired" << std::endl;
     // The deadline has passed. The socket is closed so that any outstanding
     // asynchronous operations are cancelled. This allows the blocked
     // connect(), read_line() or write_line() functions to return.
     boost::system::error_code ignored_ec;
     socket_->close(ignored_ec);
+    conn_state_ = ConnectionState::DISCONNECTED;
 
     // There is no longer an active deadline. The expiry is set to positive
     // infinity so that the actor takes no action until a new deadline is set.
