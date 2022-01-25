@@ -11,6 +11,49 @@ Not done yet.
 
 .. _use-with-matlab:
 
+
+Use with Dockerized UR Simulator
+================================
+See (https://github.com/urrsk/ursim_docker/blob/main/README.md for details)
+
+first you need to clone the ursim_docker repository with:
+
+.. code-block:: shell
+
+    git clone https://github.com/urrsk/ursim_docker.git
+
+
+Install docker
+--------------
+Next we install docker:
+
+.. code-block:: shell
+
+    sudo apt update
+    sudo apt install docker.io
+    sudo systemctl start docker
+    sudo systemctl enable docker
+    sudo systemctl status docker
+    sudo usermod -aG docker $USER
+    su - $USER
+
+
+Build docker image
+------------------
+Then we build the docker image:
+
+.. code-block:: shell
+    docker build ursim/e-series -t myursim --build-arg VERSION=5.11.1.108318 --build-arg URSIM="https://s3-eu-west-1.amazonaws.com/ur-support-site/118926/URSim_Linux-5.11.1.108318.tar.gz"
+
+
+Run docker image
+----------------
+Finally we run the docker image with:
+
+.. code-block:: shell
+     docker run --rm -it -p 5900:5900 -p 29999:29999 -p 30001-30004:30001-30004 myursim
+
+
 Use with MATLAB
 ===============
 MATLAB supports calling python library functions, please see
