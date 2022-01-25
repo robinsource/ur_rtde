@@ -43,7 +43,7 @@ If you are on Ubuntu, you can install ur_rtde with:
 #### From PyPi: ####
 If you only want to the use the Python interface, you can install ur_rtde through pip:
 
-    pip install --user ur_rtde
+    pip3 install ur_rtde
 
 :warning: Notice! Make sure your pip version >=**19.3**, otherwise the install might fail.
 
