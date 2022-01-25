@@ -43,6 +43,7 @@ Build docker image
 Then we build the docker image:
 
 .. code-block:: shell
+
     docker build ursim/e-series -t myursim --build-arg VERSION=5.11.1.108318 --build-arg URSIM="https://s3-eu-west-1.amazonaws.com/ur-support-site/118926/URSim_Linux-5.11.1.108318.tar.gz"
 
 
@@ -51,6 +52,7 @@ Run docker image
 Finally we run the docker image with:
 
 .. code-block:: shell
+
      docker run --rm -it -p 5900:5900 -p 29999:29999 -p 30001-30004:30001-30004 myursim
 
 
