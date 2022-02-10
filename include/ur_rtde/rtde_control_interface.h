@@ -565,8 +565,47 @@ class RTDEControlInterface
 
   /**
    * @brief Returns true if a program is running on the controller, otherwise it returns false
+   * This is just a shortcut for getRobotStatus() & RobotStatus::ROBOT_STATUS_PROGRAM_RUNNING
    */
   RTDE_EXPORT bool isProgramRunning();
+
+  /**
+   * @returns Robot status
+   * Bits 0-3: Is power on | Is program running | Is teach button pressed | Is power button pressed
+   * There is a synchronization gap between the three interfaces RTDE Control
+   * RTDE Receive and Dashboard Client. RTDE Control and RTDE Receive open
+   * its own RTDE connection and so the internal state is not in sync. That
+   * means, if RTDE Control reports, that program is running, RTDE Receive may
+   * still return that program is not running. The update of the Dashboard
+   * Client even needs more time. That means, the dashboard client still
+   * returns program not running after some milliseconds have passed after
+   * RTDE Control already reports program running.
+   * \note If you work with RTDE control and receive interface and you need to
+   * read the robot status or program running state, then you should always
+   * use the getRobotStatus() function from RTDE Control if you need a status
+   * that is in sync with the program uploading or reuploading of this object.
+   */
+  RTDE_EXPORT uint32_t getRobotStatus();
+
+  /**
+   * Reads progress information for asynchronous operations that supports
+   * progress feedback (such as movePath).
+   * @retval <0 Indicates that no async operation is running or
+   * that an async operation has finished. The returned values of two
+   * consecutive async operations is never equal. Normally the
+   * returned values are toggled between -1 and -2. This allows the application
+   * to clearly detect the end of an operation even if it is too short to see its
+   * start. That means, if the value returned by this function is less than 0
+   * and is different from that last value returned by this function, then a
+   * new async operation has finished.
+   * @retval 0 Indicates that an async operation has started - progress 0
+   * @retval >= 0 Indicates the progress of an async operation. For example,
+   * if an operation has 3 steps, the progress ranges from 0 - 2. The progress
+   * value is updated, before a step is executed. When the last step has been
+   * executed, the value will change to -1 to indicate the end of the async
+   * operation.
+   */
+  RTDE_EXPORT int getAsyncOperationProgress();
 
   /**
    * @brief Enable a watchdog for the communication with a specified minimum frequency for which an input update is
@@ -743,6 +782,12 @@ class RTDEControlInterface
   bool isEmergencyStopped();
 
   int getToolContactValue();
+
+  /**
+   * Internal helper function that checks robot_state_ and throws an exception
+   * if robot_state_ is nullptr
+   */
+  void checkRobotStateMemberValid() const;
 
   double getStepTimeValue();
 
