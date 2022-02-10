@@ -37,8 +37,9 @@ static void verifyValueIsWithin(const double &value, const double &min, const do
   }
 }
 
-RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags, int ur_cap_port)
+RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequency, uint16_t flags, int ur_cap_port)
     : hostname_(std::move(hostname)),
+      frequency_(frequency),
       upload_script_(flags & FLAG_UPLOAD_SCRIPT),
       use_external_control_ur_cap_(flags & FLAG_USE_EXT_UR_CAP),
       verbose_(flags & FLAG_VERBOSE),
@@ -79,10 +80,13 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, uint16_t flags,
   rtde_->negotiateProtocolVersion();
   versions_ = rtde_->getControllerVersion();
 
-  frequency_ = 125;
-  // If e-Series Robot set frequency to 500Hz
-  if (versions_.major > CB3_MAJOR_VERSION)
-    frequency_ = 500;
+  if (frequency_ < 0) // frequency not specified, set it based on controller version.
+  {
+    frequency_ = 125;
+    // If e-Series Robot set frequency to 500Hz
+    if (versions_.major > CB3_MAJOR_VERSION)
+      frequency_ = 500;
+  }
 
   // Set delta time to be used by receiveCallback
   delta_time_ = 1 / frequency_;
