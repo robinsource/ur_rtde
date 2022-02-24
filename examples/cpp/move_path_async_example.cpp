@@ -43,17 +43,17 @@ int main(int argc, char* argv[])
   std::cout << "Move path asynchronously with progress feedback..." << std::endl;
   rtde_control.movePath(path, true);
   // Wait for start of asynchronous operation
-  while (rtde_receive.getAsyncOperationProgress() < 0)
+  while (rtde_control.getAsyncOperationProgress() < 0)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
   std::cout << "Async path started.. " << std::endl;
   // Wait for end of asynchronous operation
   int waypoint = -1;
-  while (rtde_receive.getAsyncOperationProgress() >= 0)
+  while (rtde_control.getAsyncOperationProgress() >= 0)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    int new_waypoint = rtde_receive.getAsyncOperationProgress();
+    int new_waypoint = rtde_control.getAsyncOperationProgress();
     if (new_waypoint != waypoint)
     {
       waypoint = new_waypoint;
