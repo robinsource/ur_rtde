@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 
   // We switch the position unit the mm and define the position range of our gripper
   gripper.setUnit(RobotiqGripper::POSITION, RobotiqGripper::UNIT_MM);
-  gripper.setPositionRange_mm(10, 50);
+  gripper.setPositionRange_mm(50);
   std::cout << "OpenPosition: " << gripper.getOpenPosition() << "  ClosedPosition: " << gripper.getClosedPosition()
             << std::endl;
   gripper.move(50);
