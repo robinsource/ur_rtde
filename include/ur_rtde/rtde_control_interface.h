@@ -828,6 +828,7 @@ class RTDEControlInterface
  private:
   std::string hostname_;
   int port_;
+  double frequency_;
   bool upload_script_;
   bool use_external_control_ur_cap_;
   bool verbose_;
@@ -836,7 +837,6 @@ class RTDEControlInterface
   bool custom_script_;
   bool custom_script_running_;
   int ur_cap_port_;
-  double frequency_;
   double delta_time_;
   int register_offset_;
   std::shared_ptr<RTDE> rtde_;
