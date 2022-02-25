@@ -147,17 +147,20 @@ void RobotiqGripper::activate(bool auto_calibrate)
   dumpVars();
 }
 
-void RobotiqGripper::autoCalibrate()
+void RobotiqGripper::autoCalibrate(float fSpeed)
 {
+  int Force = 1;
+  int Speed = (fSpeed < 0) ? 64 : convertValueUnit(fSpeed, SPEED, TO_DEVICE_UNIT);
+
   // first try to open in case we are holding an object
-  auto status = move(getOpenPosition(), 64, 1, WAIT_FINISHED);
+  auto status = move_impl(0, Speed, Force, WAIT_FINISHED);
   if (status != AT_DEST)
   {
     throw std::runtime_error("Gripper calibration failed to start");
   }
 
   // try to close as far as possible, and record the number
-  status = move(getClosedPosition(), 64, 1, WAIT_FINISHED);
+  status = move_impl(255, Speed, Force, WAIT_FINISHED);
   if (status != AT_DEST && status != STOPPED_INNER_OBJECT)
   {
     throw std::runtime_error("Gripper calibration failed");
@@ -170,7 +173,7 @@ void RobotiqGripper::autoCalibrate()
   max_position_ = std::min(max_position_, 255);
 
   // try to open as far as possible, and record the number
-  status = move(getOpenPosition(), 64, 1, WAIT_FINISHED);
+  status = move_impl(0, Speed, Force, WAIT_FINISHED);
   if (status != AT_DEST && status != STOPPED_OUTER_OBJECT)
   {
     throw std::runtime_error("Gripper calibration failed");
@@ -373,6 +376,7 @@ float RobotiqGripper::setForce(float Force)
 int RobotiqGripper::move(float fPosition, float fSpeed, float fForce, eMoveMode MoveMode)
 {
   int Position = (int)convertValueUnit(fPosition, POSITION, TO_DEVICE_UNIT);
+  std::cout << "RobotiqGripper::move: " << Position << std::endl;
   int Speed = (int)convertValueUnit(fSpeed, SPEED, TO_DEVICE_UNIT);
   int Force = (int)convertValueUnit(fForce, FORCE, TO_DEVICE_UNIT);
   Speed = (fSpeed < 0) ? speed_ : Speed;
@@ -380,6 +384,13 @@ int RobotiqGripper::move(float fPosition, float fSpeed, float fForce, eMoveMode 
   Position = boost::algorithm::clamp(Position, min_position_, max_position_);
   Speed = boost::algorithm::clamp(Speed, min_speed_, max_speed_);
   Force = boost::algorithm::clamp(Force, min_force_, max_force_);
+
+  return move_impl(Position, Speed, Force, MoveMode);
+}
+
+
+int RobotiqGripper::move_impl(int Position, int Speed, int Force, eMoveMode MoveMode)
+{
   VariableDict Vars{{"POS", Position}, {"SPE", Speed}, {"FOR", Force}, {"GTO", 1}};
   bool Result = setVars(Vars);
   if (!Result)
@@ -402,6 +413,7 @@ int RobotiqGripper::move(float fPosition, float fSpeed, float fForce, eMoveMode 
     return objectDetectionStatus();
   }
 }
+
 
 int RobotiqGripper::open(float NormSpeed, float NormForce, eMoveMode MoveMode)
 {
@@ -440,18 +452,16 @@ float RobotiqGripper::convertValueUnit(float Value, eMoveParameter Param, eUnitC
   }
 
   float factor = 1.0;
-  float offset = 0.0;
   switch (Unit)
   {
     case UNIT_NORMALIZED:
       factor = 255.0;
       break;
     case UNIT_PERCENT:
-      factor = float(1.0 / 100.0 * 255);
+      factor = float(255.0 / 100.0);
       break;
     case UNIT_MM:
-      factor = float(1.0 / (max_position_mm_ - min_position_mm_) * 255);
-      offset = float(min_position_mm_);
+      factor = float(255.0 / range_mm_);
       break;
     default:
       break;
@@ -459,14 +469,14 @@ float RobotiqGripper::convertValueUnit(float Value, eMoveParameter Param, eUnitC
 
   if (ConversionDirection == TO_DEVICE_UNIT)
   {
-    int Result = int(roundf((Value - offset) * factor));
-    Result = (POSITION == Param) ? (255 - Result) : Result;
+    int Result = int(roundf((Value) * factor));
+    Result = (POSITION == Param) ? (max_position_ - Result) : Result;
     return float(Result);
   }
   else
   {
-    Value = (POSITION == Param) ? (255 - Value) : Value;
-    return (Value / factor) + offset;
+    Value = (POSITION == Param) ? (max_position_ - Value) : Value;
+    return (Value / factor);
   }
 }
 
@@ -475,15 +485,23 @@ void RobotiqGripper::setUnit(eMoveParameter Param, eUnit Unit)
   units_[Param] = Unit;
 }
 
-void RobotiqGripper::setPositionRange_mm(int MinPosition, int MaxPosition)
+void RobotiqGripper::setPositionRange_mm(int Range)
 {
-  if (MinPosition > MaxPosition)
-  {
-    throw std::invalid_argument("MinPosition parameter is greater than MaxPosition parameter");
-  }
+  range_mm_ = Range;
+}
 
-  min_position_mm_ = MinPosition;
-  max_position_mm_ = MaxPosition;
+
+void RobotiqGripper::getNativePositionRange(int& MinPosition, int& MaxPosition)
+{
+	MinPosition = min_position_;
+	MaxPosition = max_position_;
+}
+
+
+void RobotiqGripper::setNativePositionRange(int MinPosition, int MaxPostion)
+{
+	min_position_ = MinPosition;
+	max_position_ = MaxPostion;
 }
 
 void RobotiqGripper::check_deadline()
@@ -507,5 +525,8 @@ void RobotiqGripper::check_deadline()
   // Put the actor back to sleep.
   deadline_.async_wait(boost::bind(&RobotiqGripper::check_deadline, this));
 }
+
+
+
 
 }  // namespace ur_rtde
