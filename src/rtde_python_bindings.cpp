@@ -191,6 +191,8 @@ PYBIND11_MODULE(rtde_control, m)
               py::arg("feature") = std::vector<double>{0, 0, 0, 0, 0, 0}, py::call_guard<py::gil_scoped_release>());
   control.def("endFreedriveMode", &RTDEControlInterface::endFreedriveMode, py::call_guard<py::gil_scoped_release>());
   control.def("getFreedriveStatus", &RTDEControlInterface::getFreedriveStatus, py::call_guard<py::gil_scoped_release>());
+  control.def("getAsyncOperationProgress", &RTDEControlInterface::getAsyncOperationProgress, DOC(ur_rtde, RTDEControlInterface, getAsyncOperationProgress), py::call_guard<py::gil_scoped_release>());
+  control.def("getRobotStatus", &RTDEControlInterface::getRobotStatus, DOC(ur_rtde, RTDEControlInterface, getRobotStatus), py::call_guard<py::gil_scoped_release>());
   control.def("__repr__", [](const RTDEControlInterface &a) { return "<rtde_control.RTDEControlInterface>"; });
 }
 };  // namespace rtde_control
@@ -298,8 +300,6 @@ PYBIND11_MODULE(rtde_receive, m)
            py::call_guard<py::gil_scoped_release>())
       .def("getOutputDoubleRegister", &RTDEReceiveInterface::getOutputDoubleRegister,
            DOC(ur_rtde, RTDEReceiveInterface, getOutputDoubleRegister),
-           py::call_guard<py::gil_scoped_release>())
-      .def("getAsyncOperationProgress", &RTDEReceiveInterface::getAsyncOperationProgress,
            py::call_guard<py::gil_scoped_release>())
       .def("getSpeedScalingCombined", &RTDEReceiveInterface::getSpeedScalingCombined,
            DOC(ur_rtde, RTDEReceiveInterface, getSpeedScalingCombined),

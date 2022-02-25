@@ -253,6 +253,18 @@ RTDEControlInterface::~RTDEControlInterface()
   disconnect();
 }
 
+
+int RTDEControlInterface::getAsyncOperationProgress()
+{
+  std::string output_int_register_key = "output_int_register_" + std::to_string(2+register_offset_);
+  int32_t output_int_register_val;
+  if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
+    return output_int_register_val;
+  else
+    throw std::runtime_error("unable to get state data for specified key: "+output_int_register_key);
+}
+
+
 void RTDEControlInterface::waitForProgramRunning()
 {
   int ms_count = 0;
@@ -500,7 +512,7 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
 {
   // Setup output
   state_names_ = {"robot_status_bits", "safety_status_bits", "runtime_state", outIntReg(0),
-                  outIntReg(1),        outDoubleReg(0),      outDoubleReg(1), outDoubleReg(2),
+                  outIntReg(1),  outIntReg(2),  outDoubleReg(0),  outDoubleReg(1), outDoubleReg(2),
                   outDoubleReg(3),     outDoubleReg(4),      outDoubleReg(5)};
   rtde_->sendOutputSetup(state_names_, frequency);
 
@@ -1299,23 +1311,30 @@ std::vector<double> RTDEControlInterface::getTargetWaypoint()
 
 bool RTDEControlInterface::isProgramRunning()
 {
-  if (robot_state_ != nullptr)
-  {
-    uint32_t robot_status;
-    if (robot_state_->getStateData("robot_status_bits", robot_status))
-    {
-      // Read Bits 0-3: Is power on(1) | Is program running(2) | Is teach button pressed(4) | Is power button pressed(8)
-      std::bitset<32> status_bits(robot_status);
-      return status_bits.test(RobotStatus::ROBOT_STATUS_PROGRAM_RUNNING);
-    }
-    else
-      throw std::runtime_error("unable to get state data for specified key: robot_status");
-  }
-  else
-  {
-    throw std::logic_error("Please initialize the RobotState, before using it!");
-  }
+  std::bitset<32> status_bits(getRobotStatus());
+  return status_bits.test(RobotStatus::ROBOT_STATUS_PROGRAM_RUNNING);
 }
+
+
+uint32_t RTDEControlInterface::getRobotStatus()
+{
+  checkRobotStateMemberValid();
+  uint32_t robot_status;
+  if (robot_state_->getStateData("robot_status_bits", robot_status))
+    return robot_status;
+  else
+    throw std::runtime_error("unable to get state data for specified key: robot_status");
+}
+
+
+void RTDEControlInterface::checkRobotStateMemberValid() const
+{
+	if (!robot_state_)
+	{
+		throw std::logic_error("Please initialize the RobotState, before using it!");
+	}
+}
+
 
 double RTDEControlInterface::getStepTimeValue()
 {

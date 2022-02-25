@@ -729,15 +729,6 @@ double RTDEReceiveInterface::getOutputDoubleRegister(int output_id)
     throw std::runtime_error("unable to get state data for specified key: "+output_double_register_key);
 }
 
-int RTDEReceiveInterface::getAsyncOperationProgress()
-{
-  std::string output_int_register_key = "output_int_register_" + std::to_string(2+register_offset_);
-  int32_t output_int_register_val;
-  if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
-    return output_int_register_val;
-  else
-    throw std::runtime_error("unable to get state data for specified key: "+output_int_register_key);
-}
 
 std::vector<double> RTDEReceiveInterface::getFtRawWrench()
 {
