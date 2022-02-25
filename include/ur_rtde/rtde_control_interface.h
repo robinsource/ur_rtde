@@ -99,7 +99,7 @@ class RTDEControlInterface
     FLAGS_DEFAULT = FLAG_UPLOAD_SCRIPT
   };
 
-  RTDE_EXPORT explicit RTDEControlInterface(std::string hostname, uint16_t flags = FLAGS_DEFAULT,
+  RTDE_EXPORT explicit RTDEControlInterface(std::string hostname, double frequency = -1.0, uint16_t flags = FLAGS_DEFAULT,
                                             int ur_cap_port = 50002);
 
   RTDE_EXPORT virtual ~RTDEControlInterface();
