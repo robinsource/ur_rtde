@@ -482,7 +482,7 @@
                     global servo_thrd = run servo_thread()
                 end
             end
-            
+
         elif cmd == 12:
             # servoC
             pose = pose_from_input_float_registers(0)
@@ -693,7 +693,7 @@ $3.6        pose_to_output_float_registers(0, tcp_offset)
               exit_critical
               textmsg("jog_feature: ", jog_feature)
               textmsg("jog_custom_feature: ", jog_custom_feature)
-              textmsg("start_jog done")    
+              textmsg("start_jog done")
         elif cmd == 42:
               textmsg("stop_jog")
               enter_critical
@@ -792,6 +792,26 @@ $5.10         end_freedrive_mode()
 $5.10         freedrive_status = get_freedrive_status()
 $5.10         write_output_integer_reg(1, freedrive_status)
               textmsg("get_freedrive_status done")
+        elif cmd == 56:
+              textmsg("ft_rtde_input_enable")
+              enable = False
+              enable_val = read_input_integer_reg(1)
+              if enable_val == 1:
+                  enable = True
+              elif enable_val == 0:
+                  enable = False
+              end
+              sensor_mass = read_input_float_reg(0)
+              sensor_measuring_offset = [0, 0, 0]
+              sensor_measuring_offset[0] = read_input_float_reg(1)
+              sensor_measuring_offset[1] = read_input_float_reg(2)
+              sensor_measuring_offset[2] = read_input_float_reg(3)
+              sensor_cog = [0, 0, 0]
+              sensor_cog[0] = read_input_float_reg(4)
+              sensor_cog[1] = read_input_float_reg(5)
+              sensor_cog[2] = read_input_float_reg(6)
+              ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
+              textmsg("ft_rtde_input_enable done")
         elif cmd == 255:
             textmsg("Received stop script!")
         end

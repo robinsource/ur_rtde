@@ -760,6 +760,42 @@ class RTDEControlInterface
    */
   RTDE_EXPORT int getFreedriveStatus();
 
+  /**
+   * @brief Input external wrench when using ft_rtde_input_enable builtin.
+   * @param external_force_torque A 6 dimensional vector that contains the external wrench.
+   */
+  RTDE_EXPORT bool setExternalForceTorque(const std::vector<double> &external_force_torque);
+
+  /**
+   * @brief This function is used for enabling and disabling the use of external F/T measurements in the controller.
+   *
+   * Be aware that the following function is impacted:
+   *  - force_mode
+   *  - screw_driving
+   *  - freedrive_mode
+   *
+   * The RTDE interface shall be used for feeding F/T measurements into the real-time control loop of
+   * the robot using input variable external_force_torque of type VECTOR6D. If no other RTDE
+   * watchdog has been configured (using script function rtde_set_watchdog), a default watchdog
+   * will be set to a 10Hz minimum update frequency when the external F/T sensor functionality is
+   * enabled. If the update frequency is not met the robot program will pause.
+   *
+   * @param enable enable or disable feature (bool)
+   * @param sensor_mass mass of the sensor in kilograms (float)
+   * @param sensor_measuring_offset [x, y, z] measuring offset of the sensor in meters relative to the
+   * tool flange frame
+   * @param sensor_cog [x, y, z] center of gravity of the sensor in meters relative to the tool flange frame
+   *
+   * Notes:
+   * This function replaces the deprecated enable_external_ft_sensor.
+   * The TCP Configuration in the installation must also include the weight and offset contribution of the sensor.
+   * Only the enable parameter is required; sensor mass, offset and center of gravity
+   * are optional (zero if not provided).
+   */
+  RTDE_EXPORT bool ftRtdeInputEnable(bool enable, double sensor_mass = 0.0,
+                                     const std::vector<double> &sensor_measuring_offset = {0.0, 0.0, 0.0},
+                                     const std::vector<double> &sensor_cog = {0.0, 0.0, 0.0});
+
   // Unlocks a protective stop via the dashboard client.
   void unlockProtectiveStop();
 

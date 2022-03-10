@@ -96,6 +96,8 @@ class RTDE
       FREEDRIVE_MODE = 52,
       END_FREEDRIVE_MODE = 53,
       GET_FREEDRIVE_STATUS = 54,
+      SET_EXTERNAL_FORCE_TORQUE = 55,
+      FT_RTDE_INPUT_ENABLE = 56,
       WATCHDOG = 99,
       STOP_SCRIPT = 255
     };
@@ -118,7 +120,9 @@ class RTDE
       RECIPE_14 = 14,
       RECIPE_15 = 15,
       RECIPE_16 = 16,
-      RECIPE_17 = 17
+      RECIPE_17 = 17,
+      RECIPE_18 = 18,
+      RECIPE_19 = 19
     };
 
     RobotCommand() : type_(NO_CMD), recipe_id_(1)
@@ -128,6 +132,7 @@ class RTDE
     Type type_ = NO_CMD;
     std::uint8_t recipe_id_;
     std::int32_t async_;
+    std::int32_t ft_rtde_input_enable_;
     std::int32_t reg_int_val_;
     double reg_double_val_;
     std::vector<double> val_;

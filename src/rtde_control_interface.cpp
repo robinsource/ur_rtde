@@ -273,24 +273,24 @@ void RTDEControlInterface::waitForProgramRunning()
 {
   int ms_count = 0;
   int ms_retry_count = 0;
+  static const int sleep_ms = 10;
   while (!isProgramRunning())
   {
     // Wait for program to be running
-    static const int sleep_ms = 10;
-    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
-    ms_count += sleep_ms;
-    ms_retry_count += sleep_ms;
-    if (ms_retry_count >= 50)
+    if (ms_retry_count >= 1000)
     {
-      ms_retry_count = 0;
       if (verbose_)
         std::cout << "ur_rtde: Program not running - resending script" << std::endl;
       script_client_->sendScript();
+      ms_retry_count = 0;
     }
     if (ms_count > 5000)
     {
       throw std::logic_error("ur_rtde: Failed to start control script, before timeout");
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
+    ms_count += sleep_ms;
+    ms_retry_count += sleep_ms;
   }
 }
 
@@ -615,6 +615,16 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
       inIntReg(0),    inIntReg(1),    inIntReg(2),    inIntReg(3),    inIntReg(4),    inIntReg(5),   inIntReg(6),
       inDoubleReg(0), inDoubleReg(1), inDoubleReg(2), inDoubleReg(3), inDoubleReg(4), inDoubleReg(5)};
   rtde_->sendInputSetup(freedrive_mode_input);
+
+  // Recipe 18
+  std::vector<std::string> external_ft_input = {inIntReg(0), "external_force_torque"};
+  rtde_->sendInputSetup(external_ft_input);
+
+  // Recipe 19
+  std::vector<std::string> ft_rtde_input_enable = {inIntReg(0), inIntReg(1), inDoubleReg(0), inDoubleReg(1),
+                                                   inDoubleReg(2), inDoubleReg(3),  inDoubleReg(4), inDoubleReg(5),
+                                                   inDoubleReg(6)};
+  rtde_->sendInputSetup(ft_rtde_input_enable);
 
   return true;
 }
@@ -1771,6 +1781,34 @@ int RTDEControlInterface::getFreedriveStatus()
   {
     throw std::runtime_error("getFreedriveStatus() function failed to return.");
   }
+}
+
+bool RTDEControlInterface::setExternalForceTorque(const std::vector<double> &external_force_torque)
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::SET_EXTERNAL_FORCE_TORQUE;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_18;
+  robot_cmd.val_ = external_force_torque;
+  return sendCommand(robot_cmd);
+}
+
+bool RTDEControlInterface::ftRtdeInputEnable(bool enable, double sensor_mass,
+                                             const std::vector<double> &sensor_measuring_offset,
+                                             const std::vector<double> &sensor_cog)
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::FT_RTDE_INPUT_ENABLE;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_19;
+  if(enable)
+    robot_cmd.ft_rtde_input_enable_ = 1;
+  else
+    robot_cmd.ft_rtde_input_enable_ = 0;
+  robot_cmd.val_.push_back(sensor_mass);
+  for (const auto &val : sensor_measuring_offset)
+    robot_cmd.val_.push_back(val);
+  for (const auto &val : sensor_cog)
+    robot_cmd.val_.push_back(val);
+  return sendCommand(robot_cmd);
 }
 
 void RTDEControlInterface::unlockProtectiveStop()
