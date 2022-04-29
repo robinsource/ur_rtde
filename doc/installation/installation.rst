@@ -23,10 +23,6 @@ If you only want to the use the Python interface, you can install ur_rtde throug
 
 Notice! Make sure your pip version >=19.3, otherwise the install might fail.
 
-If you are on Windows and use Visual Studio 2019, you can install ur_rtde from this installer:
-
-:download:`Download ur_rtde-install.exe <../_static/ur_rtde-install.exe>`
-
 
 Compatible Robots
 =================

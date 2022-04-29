@@ -45,22 +45,22 @@ build-ubuntu-2004:
 #  tags:
 #    - mac
 
-build-WINDOWS:
-  stage: build
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  script:
-    - mkdir build
-    - cd build
-    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 16 2019" -A x64 -DWINDOWS_INSTALLER=ON -DBUILD_STATIC=ON -DPYTHON_BINDINGS:BOOL=OFF -DUSE_WERROR:BOOL=OFF ..
-    - msbuild ur_rtde.sln /property:Configuration=RelWithDebInfo
-    - msbuild PACKAGE.vcxproj /property:Configuration=RelWithDebInfo
-  artifacts:
-    paths:
-      - build/ur_rtde-install.exe
-    expire_in: 2 days
-  tags:
-    - sdur-windows
+#build-WINDOWS:
+# stage: build
+#  variables:
+#    GIT_SUBMODULE_STRATEGY: recursive
+#  script:
+#    - mkdir build
+#    - cd build
+#    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 16 2019" -A x64 -DWINDOWS_INSTALLER=ON -DBUILD_STATIC=ON -DPYTHON_BINDINGS:BOOL=OFF #-DUSE_WERROR:BOOL=OFF ..
+#    - msbuild ur_rtde.sln /property:Configuration=RelWithDebInfo
+#    - msbuild PACKAGE.vcxproj /property:Configuration=RelWithDebInfo
+#  artifacts:
+#    paths:
+#      - build/ur_rtde-install.exe
+#    expire_in: 2 days
+#  tags:
+#    - sdur-windows
 
 ############################################
 #                  Test                    #
@@ -150,21 +150,21 @@ examples-ubuntu-2004:
 #    - build-MAC
 #  needs: ["build-MAC"]
 
-.examples-WINDOWS:
-  stage: test
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  script:
-    - cd examples/cpp
-    - mkdir build 
-    - cd build
-    - cmake .. -G "Visual Studio 16 2019" -A x64
-    - msbuild ur_rtde_examples.sln /property:Configuration=RelWithDebInfo 
-  tags:
-    - sdur-windows
-  dependencies:
-    - build-WINDOWS
-  needs: ["build-WINDOWS"]   
+#.examples-WINDOWS:
+#  stage: test
+#  variables:
+#    GIT_SUBMODULE_STRATEGY: recursive
+#  script:
+#    - cd examples/cpp
+#    - mkdir build 
+#    - cd build
+#    - cmake .. -G "Visual Studio 16 2019" -A x64
+#    - msbuild ur_rtde_examples.sln /property:Configuration=RelWithDebInfo 
+#  tags:
+#    - sdur-windows
+#  dependencies:
+#    - build-WINDOWS
+#  needs: ["build-WINDOWS"]   
 
 build_pypi:
   stage: build_pypi
@@ -185,15 +185,14 @@ sphinx_html:
   script:
     - "[ -d build ] || mkdir build"
     - cd build
-    - mv ./ur_rtde-install.exe ../doc/_static/ur_rtde-install.exe
+    #- mv ./ur_rtde-install.exe ../doc/_static/ur_rtde-install.exe
     - cmake -DCODE:BOOL=OFF -DDOC:STRING=html -DWERROR:BOOL=ON ..
     - make doc
   dependencies:
-    - build-WINDOWS
+    - build-ubuntu-1804
   artifacts:
     paths:
       - build/doc/html
-      - doc/_static/ur_rtde-install.exe
     expire_in: 2 days
   tags:
     - linux
