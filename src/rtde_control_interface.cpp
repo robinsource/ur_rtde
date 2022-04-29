@@ -273,24 +273,26 @@ void RTDEControlInterface::waitForProgramRunning()
 {
   int ms_count = 0;
   int ms_retry_count = 0;
-  static const int sleep_ms = 10;
   while (!isProgramRunning())
   {
     // Wait for program to be running
-    if (ms_retry_count >= 1000)
-    {
-      if (verbose_)
-        std::cout << "ur_rtde: Program not running - resending script" << std::endl;
-      script_client_->sendScript();
-      ms_retry_count = 0;
-    }
-    if (ms_count > 5000)
-    {
-      throw std::logic_error("ur_rtde: Failed to start control script, before timeout");
-    }
+    static const int sleep_ms = 1;
     std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
     ms_count += sleep_ms;
     ms_retry_count += sleep_ms;
+
+    if (ms_retry_count >= 500)
+    {
+      ms_retry_count = 0;
+      if (verbose_)
+        std::cout << "ur_rtde: Program not running - resending script" << std::endl;
+      script_client_->sendScript();
+
+    }
+    if (ms_count > 5000)
+    {
+      throw std::logic_error("ur_rtde: Failed to start control script, before timeout of 5 seconds");
+    }
   }
 }
 
@@ -1343,12 +1345,11 @@ uint32_t RTDEControlInterface::getRobotStatus()
 
 void RTDEControlInterface::checkRobotStateMemberValid() const
 {
-	if (!robot_state_)
-	{
-		throw std::logic_error("Please initialize the RobotState, before using it!");
-	}
+  if (!robot_state_)
+  {
+    throw std::logic_error("Please initialize the RobotState, before using it!");
+  }
 }
-
 
 double RTDEControlInterface::getStepTimeValue()
 {
