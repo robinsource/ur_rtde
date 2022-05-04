@@ -189,7 +189,12 @@ bool ScriptClient::sendScript()
 
   if (isConnected() && !ur_script.empty())
   {
-    boost::asio::write(*socket_, boost::asio::buffer(ur_script));
+    std::size_t bytes_transferred = 0;
+    bytes_transferred = boost::asio::write(*socket_, boost::asio::buffer(ur_script));
+    if (ur_script.size() == bytes_transferred)
+      return true;
+    else
+      return false;
   }
   else
   {

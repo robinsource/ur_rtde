@@ -151,8 +151,10 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
     if (!isProgramRunning())
     {
       // Send script to the UR Controller
-      script_client_->sendScript();
-      waitForProgramRunning();
+      if (script_client_->sendScript())
+        waitForProgramRunning();
+      else
+        std::cerr << "Failed to send rtde control script to the controller";
     }
     else
     {
@@ -166,13 +168,10 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Send script to the UR Controller
-      script_client_->sendScript();
-
-      while (!isProgramRunning())
-      {
-        // Wait for program to be running
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      }
+      if (script_client_->sendScript())
+        waitForProgramRunning();
+      else
+        std::cerr << "Failed to send rtde control script to the controller";
     }
   }
 
@@ -273,22 +272,14 @@ void RTDEControlInterface::waitForProgramRunning()
 {
   int ms_count = 0;
   int ms_retry_count = 0;
+  static const int sleep_ms = 10;
+
   while (!isProgramRunning())
   {
     // Wait for program to be running
-    static const int sleep_ms = 1;
     std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
     ms_count += sleep_ms;
-    ms_retry_count += sleep_ms;
 
-    if (ms_retry_count >= 500)
-    {
-      ms_retry_count = 0;
-      if (verbose_)
-        std::cout << "ur_rtde: Program not running - resending script" << std::endl;
-      script_client_->sendScript();
-
-    }
     if (ms_count > 5000)
     {
       throw std::logic_error("ur_rtde: Failed to start control script, before timeout of 5 seconds");
@@ -411,8 +402,10 @@ bool RTDEControlInterface::reconnect()
     if (!isProgramRunning())
     {
       // Send script to the UR Controller
-      script_client_->sendScript();
-      waitForProgramRunning();
+      if (script_client_->sendScript())
+        waitForProgramRunning();
+      else
+        std::cerr << "Failed to send rtde control script to the controller";
     }
     else
     {
@@ -426,13 +419,10 @@ bool RTDEControlInterface::reconnect()
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Send script to the UR Controller
-      script_client_->sendScript();
-
-      while (!isProgramRunning())
-      {
-        // Wait for program to be running
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      }
+      if (script_client_->sendScript())
+        waitForProgramRunning();
+      else
+        std::cerr << "Failed to send rtde control script to the controller";
     }
   }
 
@@ -1327,10 +1317,15 @@ std::vector<double> RTDEControlInterface::getTargetWaypoint()
 
 bool RTDEControlInterface::isProgramRunning()
 {
-  std::bitset<32> status_bits(getRobotStatus());
-  return status_bits.test(RobotStatus::ROBOT_STATUS_PROGRAM_RUNNING);
-}
+  uint32_t runtime_state;
+  if (!robot_state_->getStateData("runtime_state", runtime_state))
+    throw std::runtime_error("unable to get state data for specified key: runtime_state");
 
+  if (runtime_state == RuntimeState::PLAYING)
+    return true;
+  else
+    return false;
+}
 
 uint32_t RTDEControlInterface::getRobotStatus()
 {
@@ -1339,9 +1334,8 @@ uint32_t RTDEControlInterface::getRobotStatus()
   if (robot_state_->getStateData("robot_status_bits", robot_status))
     return robot_status;
   else
-    throw std::runtime_error("unable to get state data for specified key: robot_status");
+    throw std::runtime_error("unable to get state data for specified key: robot_status_bits");
 }
-
 
 void RTDEControlInterface::checkRobotStateMemberValid() const
 {
