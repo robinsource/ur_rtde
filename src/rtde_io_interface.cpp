@@ -37,6 +37,15 @@ RTDEIOInterface::~RTDEIOInterface()
   }
 }
 
+bool RTDEIOInterface::disconnect()
+{
+  if (rtde_ != nullptr)
+  {
+    if (rtde_->isConnected())
+      rtde_->disconnect();
+  }
+}
+
 bool RTDEIOInterface::reconnect()
 {
   rtde_->connect();
