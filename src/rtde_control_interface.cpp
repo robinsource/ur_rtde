@@ -271,7 +271,6 @@ int RTDEControlInterface::getAsyncOperationProgress()
 void RTDEControlInterface::waitForProgramRunning()
 {
   int ms_count = 0;
-  int ms_retry_count = 0;
   static const int sleep_ms = 10;
 
   while (!isProgramRunning())
