@@ -104,7 +104,7 @@ class get_pybind_include(object):
 
 setup(
     name="ur_rtde",
-    version="1.5.0",
+    version="1.5.1",
     author="Anders Prier Lindvig",
     author_email="anpl@mmmi.sdu.dk",
     description="A Python interface for controlling and receiving data from a UR robot using the Real-Time Data Exchange (RTDE) interface of the robot. ",
