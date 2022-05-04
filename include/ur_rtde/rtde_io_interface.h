@@ -29,12 +29,12 @@ class RTDEIOInterface
   };
 
   /**
-    * @returns Can be used to disconnect the RTDE IO client.
+    * @brief Can be used to disconnect the RTDE IO client.
    */
-  RTDE_EXPORT bool disconnect();
+  RTDE_EXPORT void disconnect();
 
   /**
-    * @returns Can be used to reconnect to the robot after a lost connection.
+    * @brief Can be used to reconnect to the robot after a lost connection.
     */
   RTDE_EXPORT bool reconnect();
 
