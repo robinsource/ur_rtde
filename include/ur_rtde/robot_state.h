@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <mutex>
+#include <iterator>
 
 namespace ur_rtde
 {
