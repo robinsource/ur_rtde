@@ -628,11 +628,11 @@ void RTDEControlInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
-      rtde_->receiveData(robot_state_);
-      // temporary hack to fix synchronization problems on windows.
-#ifndef _WIN32
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-#endif
+      boost::system::error_code ec = rtde_->receiveData(robot_state_);
+      if(ec)
+      {
+        throw boost::system::system_error(ec);
+      }
     }
     catch (std::exception &e)
     {
@@ -665,10 +665,9 @@ void RTDEControlInterface::receiveCallback()
       }
       catch (std::exception &e)
       {
-        std::cerr << "RTDEControlInterface: Could not reconnect to robot..." << std::endl;
-        std::cerr << e.what() << std::endl;
+        std::cerr << "Exception: " << e.what() << std::endl;
         stop_thread_ = true;
-        return;
+        throw std::runtime_error("RTDEControlInterface: Could not reconnect to robot...");
       }
     }
   }
@@ -775,11 +774,7 @@ bool RTDEControlInterface::sendCustomScript(const std::string &script)
   // Re-upload RTDE script to the UR Controller
   script_client_->sendScript();
 
-  while (!isProgramRunning())
-  {
-    // Wait for program to be running
-    std::this_thread::sleep_for(std::chrono::milliseconds(2));
-  }
+  waitForProgramRunning();
 
   custom_script_running_ = false;
   return true;
@@ -812,11 +807,7 @@ bool RTDEControlInterface::sendCustomScriptFile(const std::string &file_path)
   // Re-upload RTDE script to the UR Controller
   script_client_->sendScript();
 
-  while (!isProgramRunning())
-  {
-    // Wait for program to be running
-    std::this_thread::sleep_for(std::chrono::milliseconds(2));
-  }
+  waitForProgramRunning();
 
   custom_script_running_ = false;
   return true;
