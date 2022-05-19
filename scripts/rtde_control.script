@@ -812,6 +812,26 @@ $5.10         write_output_integer_reg(1, freedrive_status)
               sensor_cog[2] = read_input_float_reg(6)
 $3.14         ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
               textmsg("ft_rtde_input_enable done")
+       elif cmd == 57:
+             textmsg("enable_external_ft_sensor")
+             enable = False
+             enable_val = read_input_integer_reg(1)
+             if enable_val == 1:
+                 enable = True
+             elif enable_val == 0:
+                 enable = False
+             end
+             sensor_mass = read_input_float_reg(0)
+             sensor_measuring_offset = [0, 0, 0]
+             sensor_measuring_offset[0] = read_input_float_reg(1)
+             sensor_measuring_offset[1] = read_input_float_reg(2)
+             sensor_measuring_offset[2] = read_input_float_reg(3)
+             sensor_cog = [0, 0, 0]
+             sensor_cog[0] = read_input_float_reg(4)
+             sensor_cog[1] = read_input_float_reg(5)
+             sensor_cog[2] = read_input_float_reg(6)
+             enable_external_ft_sensor(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
+             textmsg("enable_external_ft_sensor done")
         elif cmd == 255:
             textmsg("Received stop script!")
         end

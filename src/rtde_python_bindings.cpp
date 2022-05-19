@@ -198,6 +198,11 @@ PYBIND11_MODULE(rtde_control, m)
               py::arg("sensor_measuring_offset") = std::vector<double>{0.0, 0.0, 0.0},
               py::arg("sensor_cog") = std::vector<double>{0.0, 0.0, 0.0},
               py::call_guard<py::gil_scoped_release>());
+  control.def("enableExternalFtSensor", &RTDEControlInterface::enableExternalFtSensor, py::arg("enable"),
+              py::arg("sensor_mass") = 0.0,
+              py::arg("sensor_measuring_offset") = std::vector<double>{0.0, 0.0, 0.0},
+              py::arg("sensor_cog") = std::vector<double>{0.0, 0.0, 0.0},
+              py::call_guard<py::gil_scoped_release>());
   control.def("setExternalForceTorque", &RTDEControlInterface::setExternalForceTorque, py::call_guard<py::gil_scoped_release>());
   control.def("getAsyncOperationProgress", &RTDEControlInterface::getAsyncOperationProgress, DOC(ur_rtde, RTDEControlInterface, getAsyncOperationProgress), py::call_guard<py::gil_scoped_release>());
   control.def("getRobotStatus", &RTDEControlInterface::getRobotStatus, DOC(ur_rtde, RTDEControlInterface, getRobotStatus), py::call_guard<py::gil_scoped_release>());

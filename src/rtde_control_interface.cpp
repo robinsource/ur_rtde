@@ -1796,6 +1796,25 @@ bool RTDEControlInterface::ftRtdeInputEnable(bool enable, double sensor_mass,
   return sendCommand(robot_cmd);
 }
 
+bool RTDEControlInterface::enableExternalFtSensor(bool enable, double sensor_mass,
+                                             const std::vector<double> &sensor_measuring_offset,
+                                             const std::vector<double> &sensor_cog)
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::ENABLE_EXTERNAL_FT_SENSOR;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_19;
+  if(enable)
+    robot_cmd.ft_rtde_input_enable_ = 1;
+  else
+    robot_cmd.ft_rtde_input_enable_ = 0;
+  robot_cmd.val_.push_back(sensor_mass);
+  for (const auto &val : sensor_measuring_offset)
+    robot_cmd.val_.push_back(val);
+  for (const auto &val : sensor_cog)
+    robot_cmd.val_.push_back(val);
+  return sendCommand(robot_cmd);
+}
+
 void RTDEControlInterface::unlockProtectiveStop()
 {
   db_client_->unlockProtectiveStop();

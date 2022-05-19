@@ -166,7 +166,7 @@ void RTDE::send(const RobotCommand &robot_cmd)
   std::vector<char> cmd_packed;
   cmd_packed = RTDEUtility::packInt32(robot_cmd.type_);
 
-  if (robot_cmd.type_ == RobotCommand::FT_RTDE_INPUT_ENABLE)
+  if (robot_cmd.type_ == RobotCommand::FT_RTDE_INPUT_ENABLE || robot_cmd.type_ == RobotCommand::ENABLE_EXTERNAL_FT_SENSOR)
   {
     std::vector<char> ft_rtde_input_enable_packed = RTDEUtility::packInt32(robot_cmd.ft_rtde_input_enable_);
     cmd_packed.insert(cmd_packed.end(), std::make_move_iterator(ft_rtde_input_enable_packed.begin()),

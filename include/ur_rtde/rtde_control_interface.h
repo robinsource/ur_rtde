@@ -796,6 +796,38 @@ class RTDEControlInterface
                                      const std::vector<double> &sensor_measuring_offset = {0.0, 0.0, 0.0},
                                      const std::vector<double> &sensor_cog = {0.0, 0.0, 0.0});
 
+  /**
+   * @brief this function is used for enabling and disabling the use of external F/T measurements in the controller.
+   * (Deprecated, but can be used when ftRtdeInputEnable() is not available)
+   *
+   * Be aware that the following function is impacted:
+   *  - force_mode
+   *  - screw_driving
+   *  - freedrive_mode
+   *
+   * The RTDE interface shall be used for feeding F/T measurements into the real-time control loop of
+   * the robot using input variable external_force_torque of type VECTOR6D. If no other RTDE
+   * watchdog has been configured (using script function rtde_set_watchdog), a default watchdog
+   * will be set to a 10Hz minimum update frequency when the external F/T sensor functionality is
+   * enabled. If the update frequency is not met the robot program will pause.
+   *
+   * @param enable enable or disable feature (bool)
+   * @param sensor_mass mass of the sensor in kilograms (float)
+   * @param sensor_measuring_offset [x, y, z] measuring offset of the sensor in meters relative to the
+   * tool flange frame
+   * @param sensor_cog [x, y, z] center of gravity of the sensor in meters relative to the tool flange frame
+   *
+   * Notes:
+   * When using this function, the sensor position is applied such that the resulting torques are
+   * computed with opposite sign. New programs should use ftRtdeInputEnable in place of this.
+   * The TCP Configuration in the installation must also include the weight and offset contribution of the sensor.
+   * Only the enable parameter is required; sensor mass, offset and center of gravity
+   * are optional (zero if not provided).
+   */
+  RTDE_EXPORT bool enableExternalFtSensor(bool enable, double sensor_mass = 0.0,
+                                     const std::vector<double> &sensor_measuring_offset = {0.0, 0.0, 0.0},
+                                     const std::vector<double> &sensor_cog = {0.0, 0.0, 0.0});
+
   // Unlocks a protective stop via the dashboard client.
   void unlockProtectiveStop();
 
