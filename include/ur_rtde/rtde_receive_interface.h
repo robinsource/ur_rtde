@@ -409,10 +409,27 @@ class RTDEReceiveInterface
 
   /**
    * @brief Get the raw force and torque measurement, not compensated for forces and torques caused by the payload
-   *
    * @returns the raw force and torque measurement
    */
   RTDE_EXPORT std::vector<double> getFtRawWrench();
+
+  /**
+   * @brief Get the payload of the robot in [kg]
+   * @returns the payload in [kg]
+   */
+  RTDE_EXPORT double getPayload();
+
+  /**
+   * @brief Get the payload Center of Gravity (CoGx, CoGy, CoGz)
+   * @returns the payload Center of Gravity (CoGx, CoGy, CoGz) in [m]
+   */
+  RTDE_EXPORT std::vector<double> getPayloadCog();
+
+  /**
+   * @brief Get the payload inertia matrix elements (Ixx,Iyy,Izz,Ixy,Ixz,Iyz) expressed in kg*m^2
+   * @returns the payload inertia matrix elements (Ixx,Iyy,Izz,Ixy,Ixz,Iyz) expressed in kg*m^2
+   */
+  RTDE_EXPORT std::vector<double> getPayloadInertia();
 
   RTDE_EXPORT void receiveCallback();
 

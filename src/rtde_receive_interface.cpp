@@ -128,6 +128,9 @@ bool RTDEReceiveInterface::setupRecipes(const double& frequency)
                   "robot_status_bits",
                   "safety_status_bits",
                   "ft_raw_wrench",
+                  "payload",
+                  "payload_cog",
+                  "payload_inertia",
                   outIntReg(2),
                   outIntReg(12),
                   outIntReg(13),
@@ -644,6 +647,33 @@ double RTDEReceiveInterface::getStandardAnalogOutput1()
     return standard_analog_output_1;
   else
     throw std::runtime_error("unable to get state data for specified key: standard_analog_output_1");
+}
+
+double RTDEReceiveInterface::getPayload()
+{
+  double payload;
+  if (robot_state_->getStateData("payload", payload))
+    return payload;
+  else
+    throw std::runtime_error("unable to get state data for specified key: payload");
+}
+
+std::vector<double> RTDEReceiveInterface::getPayloadCog()
+{
+  std::vector<double> payload_cog;
+  if (robot_state_->getStateData("payload_cog", payload_cog))
+    return payload_cog;
+  else
+    throw std::runtime_error("unable to get state data for specified key: payload_cog");
+}
+
+std::vector<double> RTDEReceiveInterface::getPayloadInertia()
+{
+  std::vector<double> payload_inertia;
+  if (robot_state_->getStateData("payload_inertia", payload_inertia))
+    return payload_inertia;
+  else
+    throw std::runtime_error("unable to get state data for specified key: payload_inertia");
 }
 
 bool RTDEReceiveInterface::isProtectiveStopped()
