@@ -32,12 +32,14 @@ build-ubuntu-1804:
   image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804
   tags:
     - linux
+    - sdur
 
 build-ubuntu-2004:
   extends: .bash_build
   image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-2004
   tags:
     - linux
+    - sdur
 
 #build-MAC:
 #  extends: .bash_build
@@ -113,6 +115,7 @@ polyscope-5.11.1.108318:
     paths:
       - ps-5-11-1-108318.svg
   tags:
+    - docker
     - linux
 
 .bash-examples:
@@ -126,7 +129,8 @@ polyscope-5.11.1.108318:
     - cmake ..
     - make
   tags:
-    - linux   
+    - linux
+    - sdur   
 
 examples-ubuntu-1804:
   extends: .bash-examples
@@ -178,6 +182,7 @@ build_pypi:
     - build-ubuntu-1804
   tags:
     - linux
+    - sdur
 
 sphinx_html:
   stage: doc
@@ -196,6 +201,7 @@ sphinx_html:
     expire_in: 2 days
   tags:
     - linux
+    - sdur
 
 pages:
   stage: deploy
@@ -216,6 +222,7 @@ pages:
       - public
   tags:
     - linux
+    - sdur
 
 
     
