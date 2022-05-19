@@ -810,7 +810,7 @@ $5.10         write_output_integer_reg(1, freedrive_status)
               sensor_cog[0] = read_input_float_reg(4)
               sensor_cog[1] = read_input_float_reg(5)
               sensor_cog[2] = read_input_float_reg(6)
-              ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
+$3.14         ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
               textmsg("ft_rtde_input_enable done")
         elif cmd == 255:
             textmsg("Received stop script!")
