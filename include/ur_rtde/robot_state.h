@@ -35,7 +35,7 @@ class RobotState
     std::lock_guard<std::mutex> lock(update_state_mutex_);
     if (state_data_.find(name) != state_data_.end())
     {
-      uint16_t entry_size = boost::apply_visitor(RobotState::SizeVisitor{}, state_data_[name]);
+      uint16_t entry_size = boost::apply_visitor(RobotState::SizeVisitor(), state_data_[name]);
       return entry_size;
     }
     else
@@ -49,7 +49,7 @@ class RobotState
     std::lock_guard<std::mutex> lock(update_state_mutex_);
     if (state_data_.find(name) != state_data_.end())
     {
-      std::string entry_str = boost::apply_visitor(RobotState::StringVisitor{}, state_data_[name]);
+      std::string entry_str = boost::apply_visitor(RobotState::StringVisitor(), state_data_[name]);
       return entry_str;
     }
     else
