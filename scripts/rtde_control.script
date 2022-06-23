@@ -66,11 +66,11 @@
     end
 
     def signal_async_progress(value):
-      write_output_integer_register(2, value)
+      write_output_integer_reg(2, value)
     end
 
     def signal_async_operation_started():
-      write_output_integer_register(2, 0) # 0 indicates operation started
+      write_output_integer_reg(2, 0) # 0 indicates operation started
     end
 
     def signal_async_operation_finished():
@@ -79,7 +79,7 @@
       else:
         async_finished = -1
       end
-      write_output_integer_register(2, async_finished) # negative values indicate operation finished
+      write_output_integer_reg(2, async_finished) # negative values indicate operation finished
     end
 
     def reset_async_progress():
