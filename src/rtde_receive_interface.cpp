@@ -615,36 +615,36 @@ uint32_t RTDEReceiveInterface::getRuntimeState()
 
 double RTDEReceiveInterface::getStandardAnalogInput0()
 {
-  double standard_analog_input_0;
-  if (robot_state_->getStateData("standard_analog_input_0", standard_analog_input_0))
-    return standard_analog_input_0;
+  double standard_analog_input0;
+  if (robot_state_->getStateData("standard_analog_input0", standard_analog_input0))
+    return standard_analog_input0;
   else
     throw std::runtime_error("unable to get state data for specified key: standard_analog_input_0");
 }
 
 double RTDEReceiveInterface::getStandardAnalogInput1()
 {
-  double standard_analog_input_1;
-  if (robot_state_->getStateData("standard_analog_input_1", standard_analog_input_1))
-    return standard_analog_input_1;
+  double standard_analog_input1;
+  if (robot_state_->getStateData("standard_analog_input1", standard_analog_input1))
+    return standard_analog_input1;
   else
     throw std::runtime_error("unable to get state data for specified key: standard_analog_input_1");
 }
 
 double RTDEReceiveInterface::getStandardAnalogOutput0()
 {
-  double standard_analog_output_0;
-  if (robot_state_->getStateData("standard_analog_output_0", standard_analog_output_0))
-    return standard_analog_output_0;
+  double standard_analog_output0;
+  if (robot_state_->getStateData("standard_analog_output0", standard_analog_output0))
+    return standard_analog_output0;
   else
     throw std::runtime_error("unable to get state data for specified key: standard_analog_output_0");
 }
 
 double RTDEReceiveInterface::getStandardAnalogOutput1()
 {
-  double standard_analog_output_1;
-  if (robot_state_->getStateData("standard_analog_output_1", standard_analog_output_1))
-    return standard_analog_output_1;
+  double standard_analog_output1;
+  if (robot_state_->getStateData("standard_analog_output1", standard_analog_output1))
+    return standard_analog_output1;
   else
     throw std::runtime_error("unable to get state data for specified key: standard_analog_output_1");
 }
