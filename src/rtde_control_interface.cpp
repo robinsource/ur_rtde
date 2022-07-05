@@ -80,7 +80,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
   rtde_->negotiateProtocolVersion();
   versions_ = rtde_->getControllerVersion();
 
-  if (frequency_ < 0) // frequency not specified, set it based on controller version.
+  if (frequency_ < 0)  // frequency not specified, set it based on controller version.
   {
     frequency_ = 125;
     // If e-Series Robot set frequency to 500Hz
@@ -256,17 +256,15 @@ RTDEControlInterface::~RTDEControlInterface()
   disconnect();
 }
 
-
 int RTDEControlInterface::getAsyncOperationProgress()
 {
-  std::string output_int_register_key = "output_int_register_" + std::to_string(2+register_offset_);
+  std::string output_int_register_key = "output_int_register_" + std::to_string(2 + register_offset_);
   int32_t output_int_register_val;
   if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
     return output_int_register_val;
   else
-    throw std::runtime_error("unable to get state data for specified key: "+output_int_register_key);
+    throw std::runtime_error("unable to get state data for specified key: " + output_int_register_key);
 }
-
 
 void RTDEControlInterface::waitForProgramRunning()
 {
@@ -507,8 +505,8 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
 {
   // Setup output
   state_names_ = {"robot_status_bits", "safety_status_bits", "runtime_state", outIntReg(0),
-                  outIntReg(1),  outIntReg(2),  outDoubleReg(0),  outDoubleReg(1), outDoubleReg(2),
-                  outDoubleReg(3),     outDoubleReg(4),      outDoubleReg(5)};
+                  outIntReg(1),        outIntReg(2),         outDoubleReg(0), outDoubleReg(1),
+                  outDoubleReg(2),     outDoubleReg(3),      outDoubleReg(4), outDoubleReg(5)};
   rtde_->sendOutputSetup(state_names_, frequency);
 
   // Setup input recipes
@@ -612,9 +610,9 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
   rtde_->sendInputSetup(external_ft_input);
 
   // Recipe 19
-  std::vector<std::string> ft_rtde_input_enable = {inIntReg(0), inIntReg(1), inDoubleReg(0), inDoubleReg(1),
-                                                   inDoubleReg(2), inDoubleReg(3),  inDoubleReg(4), inDoubleReg(5),
-                                                   inDoubleReg(6)};
+  std::vector<std::string> ft_rtde_input_enable = {inIntReg(0),    inIntReg(1),    inDoubleReg(0),
+                                                   inDoubleReg(1), inDoubleReg(2), inDoubleReg(3),
+                                                   inDoubleReg(4), inDoubleReg(5), inDoubleReg(6)};
   rtde_->sendInputSetup(ft_rtde_input_enable);
 
   return true;
@@ -629,7 +627,7 @@ void RTDEControlInterface::receiveCallback()
     try
     {
       boost::system::error_code ec = rtde_->receiveData(robot_state_);
-      if(ec)
+      if (ec)
       {
         throw boost::system::system_error(ec);
       }
@@ -1453,6 +1451,7 @@ std::vector<double> RTDEControlInterface::getInverseKinematics(const std::vector
   else
   {
     return std::vector<double>();
+    throw std::runtime_error("getInverseKinematics() function did not succeed!");
   }
 }
 
@@ -1470,7 +1469,7 @@ std::vector<double> RTDEControlInterface::poseTrans(const std::vector<double> &p
   }
   else
   {
-    return std::vector<double>();
+    throw std::runtime_error("poseTrans() function did not succeed!");
   }
 }
 
@@ -1618,7 +1617,7 @@ std::vector<double> RTDEControlInterface::getJointTorques()
   }
   else
   {
-    return std::vector<double>();
+    throw std::runtime_error("getJointTorques() function did not succeed!");
   }
 }
 
@@ -1643,7 +1642,7 @@ std::vector<double> RTDEControlInterface::getTCPOffset()
   }
   else
   {
-    return std::vector<double>();
+    throw std::runtime_error("getTCPOffset() function did not succeed!");
   }
 }
 
@@ -1685,7 +1684,7 @@ std::vector<double> RTDEControlInterface::getForwardKinematics(const std::vector
   }
   else
   {
-    return std::vector<double>();
+    throw std::runtime_error("getForwardKinematics() function did not succeed!");
   }
 }
 
@@ -1764,7 +1763,7 @@ int RTDEControlInterface::getFreedriveStatus()
   }
   else
   {
-    throw std::runtime_error("getFreedriveStatus() function failed to return.");
+    throw std::runtime_error("getFreedriveStatus() function did not succeed!");
   }
 }
 
@@ -1784,7 +1783,7 @@ bool RTDEControlInterface::ftRtdeInputEnable(bool enable, double sensor_mass,
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::FT_RTDE_INPUT_ENABLE;
   robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_19;
-  if(enable)
+  if (enable)
     robot_cmd.ft_rtde_input_enable_ = 1;
   else
     robot_cmd.ft_rtde_input_enable_ = 0;
@@ -1797,13 +1796,13 @@ bool RTDEControlInterface::ftRtdeInputEnable(bool enable, double sensor_mass,
 }
 
 bool RTDEControlInterface::enableExternalFtSensor(bool enable, double sensor_mass,
-                                             const std::vector<double> &sensor_measuring_offset,
-                                             const std::vector<double> &sensor_cog)
+                                                  const std::vector<double> &sensor_measuring_offset,
+                                                  const std::vector<double> &sensor_cog)
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::ENABLE_EXTERNAL_FT_SENSOR;
   robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_19;
-  if(enable)
+  if (enable)
     robot_cmd.ft_rtde_input_enable_ = 1;
   else
     robot_cmd.ft_rtde_input_enable_ = 0;
@@ -1813,6 +1812,32 @@ bool RTDEControlInterface::enableExternalFtSensor(bool enable, double sensor_mas
   for (const auto &val : sensor_cog)
     robot_cmd.val_.push_back(val);
   return sendCommand(robot_cmd);
+}
+
+std::vector<double> RTDEControlInterface::getActualToolFlangePose()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::GET_ACTUAL_TOOL_FLANGE_POSE;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+
+  if (sendCommand(robot_cmd))
+  {
+    if (robot_state_ != nullptr)
+    {
+      std::vector<double> actual_tool_flange_pose = {getOutputDoubleReg(0), getOutputDoubleReg(1),
+                                                     getOutputDoubleReg(2), getOutputDoubleReg(3),
+                                                     getOutputDoubleReg(4), getOutputDoubleReg(5)};
+      return actual_tool_flange_pose;
+    }
+    else
+    {
+      throw std::logic_error("Please initialize the RobotState, before using it!");
+    }
+  }
+  else
+  {
+    throw std::runtime_error("getActualToolFlangePose() function did not succeed!");
+  }
 }
 
 void RTDEControlInterface::unlockProtectiveStop()
