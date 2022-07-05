@@ -23,7 +23,6 @@
  */
 
 #include <arpa/inet.h>
-#include <endian.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <urcl/tcp_socket.h>
