@@ -1,6 +1,7 @@
 #include <ur_rtde/robot_state.h>
 #include <ur_rtde/rtde.h>
 #include <ur_rtde/rtde_receive_interface.h>
+#include <ur_rtde/rtde_utility.h>
 
 #include <bitset>
 #include <boost/thread/thread.hpp>
@@ -162,6 +163,7 @@ void RTDEReceiveInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
+      auto t_start = std::chrono::high_resolution_clock::now();
       boost::system::error_code ec = rtde_->receiveData(robot_state_);
       if(ec)
       {
@@ -170,6 +172,23 @@ void RTDEReceiveInterface::receiveCallback()
           std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
         }
         throw boost::system::system_error(ec);
+      }
+      auto t_stop = std::chrono::high_resolution_clock::now();
+      auto t_duration = std::chrono::duration<double>(t_stop - t_start);
+
+      if (t_duration.count() < delta_time_)
+      {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+        RTDEUtility::preciseSleep(delta_time_ - t_duration.count());
+#else
+        std::this_thread::sleep_for(std::chrono::duration<double>(delta_time_ - t_duration.count()));
+#endif
+      }
+
+      if (t_duration.count() > delta_time_)
+      {
+        if (verbose_)
+          std::cerr << "RTDEReceiveInterface: receiveCallback() used more than the specified cycle time" << std::endl;
       }
     }
     catch (std::exception& e)
