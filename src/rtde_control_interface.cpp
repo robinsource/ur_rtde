@@ -1499,6 +1499,7 @@ std::vector<double> RTDEControlInterface::getInverseKinematics(const std::vector
   else
   {
     return std::vector<double>();
+    throw std::runtime_error("getInverseKinematics() function did not succeed!");
   }
 }
 
@@ -1516,7 +1517,7 @@ std::vector<double> RTDEControlInterface::poseTrans(const std::vector<double> &p
   }
   else
   {
-    return std::vector<double>();
+    throw std::runtime_error("poseTrans() function did not succeed!");
   }
 }
 
@@ -1664,7 +1665,7 @@ std::vector<double> RTDEControlInterface::getJointTorques()
   }
   else
   {
-    return std::vector<double>();
+    throw std::runtime_error("getJointTorques() function did not succeed!");
   }
 }
 
@@ -1689,7 +1690,7 @@ std::vector<double> RTDEControlInterface::getTCPOffset()
   }
   else
   {
-    return std::vector<double>();
+    throw std::runtime_error("getTCPOffset() function did not succeed!");
   }
 }
 
@@ -1731,7 +1732,7 @@ std::vector<double> RTDEControlInterface::getForwardKinematics(const std::vector
   }
   else
   {
-    return std::vector<double>();
+    throw std::runtime_error("getForwardKinematics() function did not succeed!");
   }
 }
 
@@ -1810,7 +1811,7 @@ int RTDEControlInterface::getFreedriveStatus()
   }
   else
   {
-    throw std::runtime_error("getFreedriveStatus() function failed to return.");
+    throw std::runtime_error("getFreedriveStatus() function did not succeed!");
   }
 }
 
@@ -1859,6 +1860,32 @@ bool RTDEControlInterface::enableExternalFtSensor(bool enable, double sensor_mas
   for (const auto &val : sensor_cog)
     robot_cmd.val_.push_back(val);
   return sendCommand(robot_cmd);
+}
+
+std::vector<double> RTDEControlInterface::getActualToolFlangePose()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::GET_ACTUAL_TOOL_FLANGE_POSE;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+
+  if (sendCommand(robot_cmd))
+  {
+    if (robot_state_ != nullptr)
+    {
+      std::vector<double> actual_tool_flange_pose = {getOutputDoubleReg(0), getOutputDoubleReg(1),
+                                                     getOutputDoubleReg(2), getOutputDoubleReg(3),
+                                                     getOutputDoubleReg(4), getOutputDoubleReg(5)};
+      return actual_tool_flange_pose;
+    }
+    else
+    {
+      throw std::logic_error("Please initialize the RobotState, before using it!");
+    }
+  }
+  else
+  {
+    throw std::runtime_error("getActualToolFlangePose() function did not succeed!");
+  }
 }
 
 void RTDEControlInterface::unlockProtectiveStop()

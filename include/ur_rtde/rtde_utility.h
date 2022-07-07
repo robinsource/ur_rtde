@@ -3,16 +3,18 @@
 #define RTDE_RTDE_UTILITY_H
 
 #include <ur_rtde/rtde_export.h>
-
+#include <string>
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
-#include <string>
 #include <vector>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <cstring>
+#include <thread>
+#include <cmath>
+#include <chrono>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #include <Windows.h>
@@ -345,6 +347,39 @@ class RTDEUtility
   static bool isNumber(const std::string &s)
   {
     return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+  }
+
+  static void preciseSleep(double seconds)
+  {
+    using namespace std;
+    using namespace std::chrono;
+
+    static double estimate = 5e-3;
+    static double mean = 5e-3;
+    static double m2 = 0;
+    static int64_t count = 1;
+
+    while (seconds > estimate)
+    {
+      auto start = high_resolution_clock::now();
+      std::this_thread::sleep_for(milliseconds(1));
+      auto end = high_resolution_clock::now();
+
+      double observed = duration<double>(end - start).count() / 1e9;
+      seconds -= observed;
+
+      ++count;
+      double delta = observed - mean;
+      mean += delta / count;
+      m2 += delta * (observed - mean);
+      double stddev = sqrt(m2 / (count - 1));
+      estimate = mean + stddev;
+    }
+
+    // spin lock
+    auto start = high_resolution_clock::now();
+    while (duration<double>((high_resolution_clock::now() - start)).count() / 1e9 < seconds)
+      ;
   }
 
   static bool isRealtimeKernelAvailable()

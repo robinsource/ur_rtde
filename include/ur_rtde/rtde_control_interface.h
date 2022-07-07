@@ -830,6 +830,15 @@ class RTDEControlInterface
                                      const std::vector<double> &sensor_measuring_offset = {0.0, 0.0, 0.0},
                                      const std::vector<double> &sensor_cog = {0.0, 0.0, 0.0});
 
+  /**
+   * @brief Returns the current measured tool flange pose
+   *
+   * Returns the 6d pose representing the tool flange position and orientation specified in the base frame, without the
+   * Tool Center Point offset. The calculation of this pose is based on the actual robot encoder readings.
+   * @returns the current actual tool flange vector: [X, Y, Z, Rx, Ry, Rz]
+   */
+  RTDE_EXPORT std::vector<double> getActualToolFlangePose();
+
   // Unlocks a protective stop via the dashboard client.
   void unlockProtectiveStop();
 

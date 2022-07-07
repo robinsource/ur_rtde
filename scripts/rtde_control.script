@@ -667,7 +667,7 @@ $3.8        protective_stop()
         elif cmd == 38:
             # get_joint_torques
             torques = get_joint_torques()
-            #q_to_output_float_registers(0, torques)
+            q_to_output_float_registers(0, torques)
         elif cmd == 39:
             textmsg("pose_trans")
             p_from = pose_from_input_float_registers(0)
@@ -810,34 +810,39 @@ $5.10         write_output_integer_reg(1, freedrive_status)
               sensor_cog[0] = read_input_float_reg(4)
               sensor_cog[1] = read_input_float_reg(5)
               sensor_cog[2] = read_input_float_reg(6)
-$3.14         ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
+$5.9          ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
               textmsg("ft_rtde_input_enable done")
-       elif cmd == 57:
-             textmsg("enable_external_ft_sensor")
-             enable = False
-             enable_val = read_input_integer_reg(1)
-             if enable_val == 1:
-                 enable = True
-             elif enable_val == 0:
-                 enable = False
-             end
-             sensor_mass = read_input_float_reg(0)
-             sensor_measuring_offset = [0, 0, 0]
-             sensor_measuring_offset[0] = read_input_float_reg(1)
-             sensor_measuring_offset[1] = read_input_float_reg(2)
-             sensor_measuring_offset[2] = read_input_float_reg(3)
-             sensor_cog = [0, 0, 0]
-             sensor_cog[0] = read_input_float_reg(4)
-             sensor_cog[1] = read_input_float_reg(5)
-             sensor_cog[2] = read_input_float_reg(6)
-             enable_external_ft_sensor(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
-             textmsg("enable_external_ft_sensor done")
+        elif cmd == 57:
+              textmsg("enable_external_ft_sensor")
+              enable = False
+              enable_val = read_input_integer_reg(1)
+              if enable_val == 1:
+                  enable = True
+              elif enable_val == 0:
+                  enable = False
+              end
+              sensor_mass = read_input_float_reg(0)
+              sensor_measuring_offset = [0, 0, 0]
+              sensor_measuring_offset[0] = read_input_float_reg(1)
+              sensor_measuring_offset[1] = read_input_float_reg(2)
+              sensor_measuring_offset[2] = read_input_float_reg(3)
+              sensor_cog = [0, 0, 0]
+              sensor_cog[0] = read_input_float_reg(4)
+              sensor_cog[1] = read_input_float_reg(5)
+              sensor_cog[2] = read_input_float_reg(6)
+              enable_external_ft_sensor(enable, sensor_mass, sensor_measuring_offset, sensor_cog)
+              textmsg("enable_external_ft_sensor done")
+        elif cmd == 58:
+              textmsg("get_actual_tool_flange_pose")
+              flange_pose = get_actual_tool_flange_pose()
+              q_to_output_float_registers(0, flange_pose)
+              textmsg("get_actual_tool_flange_pose done")
         elif cmd == 255:
-            textmsg("Received stop script!")
+              textmsg("Received stop script!")
         end
 
         if cmd != 255:
-            signal_done_with_cmd()
+              signal_done_with_cmd()
         end
 
         return cmd != 255
@@ -864,7 +869,7 @@ $3.5    force_mode_set_damping(0.025)
 
         while keep_running:
             cmd = rtde_cmd()
-            if cmd == 24 or cmd == 11 or cmd == 9 or cmd == 10 or cmd == 6 or cmd == 25 or cmd == 26 or cmd == 27 or cmd == 38:
+            if cmd == 24 or cmd == 11 or cmd == 9 or cmd == 10 or cmd == 6 or cmd == 25 or cmd == 26 or cmd == 27 or cmd == 38 or cmd == 58:
                 # for realtime commands simply process and signal ready.
                 keep_running = process_cmd()
                 signal_ready()
