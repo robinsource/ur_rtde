@@ -166,9 +166,19 @@ bool RobotState::unlockUpdateStateMutex()
   return true;
 }
 
+void RobotState::setFirstStateReceived(bool val)
+{
+  first_state_received_ = val;
+}
+
+bool RobotState::getFirstStateReceived()
+{
+  return first_state_received_;
+}
+
 void RobotState::initRobotState(const std::vector<std::string> &variables)
 {
-  std::lock_guard<std::mutex> lock(update_state_mutex_);
+  std::lock_guard<PriorityInheritanceMutex> lock(update_state_mutex_);
   for (auto& item : variables)
   {
     if (state_types_.find(item) != state_types_.end())
@@ -177,6 +187,7 @@ void RobotState::initRobotState(const std::vector<std::string> &variables)
       state_data_[item] = entry;
     }
   }
+  first_state_received_ = false;
 }
 
 }  // namespace ur_rtde

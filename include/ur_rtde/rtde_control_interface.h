@@ -21,6 +21,7 @@
 #define UR_GET_READY_TIMEOUT 3
 #define RTDE_START_SYNCHRONIZATION_TIMEOUT 5
 #define WAIT_FOR_PROGRAM_RUNNING_TIMEOUT 60
+#define RT_PRIORITY_UNDEFINED 0
 
 #define UR_JOINT_VELOCITY_MAX 3.14      // rad/s
 #define UR_JOINT_VELOCITY_MIN 0         // rad/s
@@ -99,8 +100,9 @@ class RTDEControlInterface
     FLAGS_DEFAULT = FLAG_UPLOAD_SCRIPT
   };
 
-  RTDE_EXPORT explicit RTDEControlInterface(std::string hostname, double frequency = -1.0, uint16_t flags = FLAGS_DEFAULT,
-                                            int ur_cap_port = 50002);
+  RTDE_EXPORT explicit RTDEControlInterface(std::string hostname, double frequency = -1.0,
+                                            uint16_t flags = FLAGS_DEFAULT, int ur_cap_port = 50002,
+                                            int rt_priority = RT_PRIORITY_UNDEFINED);
 
   RTDE_EXPORT virtual ~RTDEControlInterface();
 
@@ -905,6 +907,7 @@ class RTDEControlInterface
   bool custom_script_;
   bool custom_script_running_;
   int ur_cap_port_;
+  int rt_priority_;
   double delta_time_;
   int register_offset_;
   std::shared_ptr<RTDE> rtde_;

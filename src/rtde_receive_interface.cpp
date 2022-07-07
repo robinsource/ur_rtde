@@ -1,6 +1,7 @@
 #include <ur_rtde/robot_state.h>
 #include <ur_rtde/rtde.h>
 #include <ur_rtde/rtde_receive_interface.h>
+#include <ur_rtde/rtde_utility.h>
 
 #include <bitset>
 #include <boost/thread/thread.hpp>
@@ -13,13 +14,40 @@
 namespace ur_rtde
 {
 RTDEReceiveInterface::RTDEReceiveInterface(std::string hostname, double frequency, std::vector<std::string> variables,
-                                           bool verbose, bool use_upper_range_registers)
+                                           bool verbose, bool use_upper_range_registers, int rt_priority)
     : hostname_(std::move(hostname)),
       frequency_(frequency),
       variables_(std::move(variables)),
       verbose_(verbose),
-      use_upper_range_registers_(use_upper_range_registers)
+      use_upper_range_registers_(use_upper_range_registers),
+      rt_priority_(rt_priority)
 {
+  // Check if realtime kernel is available and set realtime priority for the interface.
+  if (RTDEUtility::isRealtimeKernelAvailable())
+  {
+    if (!RTDEUtility::setRealtimePriority(rt_priority_))
+    {
+      std::cerr << "RTDEReceiveInterface: Warning! Failed to set realtime priority even though a realtime kernel is "
+                   "available." << std::endl;
+    }
+    else
+    {
+      if (verbose_)
+      {
+        std::cout << "RTDEReceiveInterface: realtime priority set successfully!" << std::endl;
+      }
+    }
+  }
+  else
+  {
+    if (verbose_)
+    {
+      std::cout << "RTDEReceiveInterface: realtime kernel not found, consider using a realtime kernel for better "
+                   "performance."
+                << std::endl;
+    }
+  }
+
   port_ = 30004;
   rtde_ = std::make_shared<RTDE>(hostname_, port_, verbose_);
   rtde_->connect();
@@ -60,7 +88,11 @@ RTDEReceiveInterface::RTDEReceiveInterface(std::string hostname, double frequenc
   th_ = std::make_shared<boost::thread>(boost::bind(&RTDEReceiveInterface::receiveCallback, this));
 
   // Wait until the first robot state has been received
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  while (!robot_state_->getFirstStateReceived())
+  {
+    // Wait for first state to be fully received
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
 }
 
 RTDEReceiveInterface::~RTDEReceiveInterface()
@@ -162,6 +194,7 @@ void RTDEReceiveInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
+      auto t_start = std::chrono::steady_clock::now();
       boost::system::error_code ec = rtde_->receiveData(robot_state_);
       if(ec)
       {
@@ -170,6 +203,14 @@ void RTDEReceiveInterface::receiveCallback()
           std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
         }
         throw boost::system::system_error(ec);
+      }
+      auto t_stop = std::chrono::steady_clock::now();
+      auto t_duration = std::chrono::duration<double>(t_stop - t_start);
+      if (t_duration.count() < delta_time_)
+      {
+#if defined(__linux__) || defined(__APPLE__)
+        std::this_thread::sleep_for(std::chrono::duration<double>(delta_time_ - t_duration.count()));
+#endif
       }
     }
     catch (std::exception& e)
@@ -216,7 +257,11 @@ bool RTDEReceiveInterface::reconnect()
     th_ = std::make_shared<boost::thread>(boost::bind(&RTDEReceiveInterface::receiveCallback, this));
 
     // Wait until the first robot state has been received
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    while (!robot_state_->getFirstStateReceived())
+    {
+      // Wait for first state to be fully received
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
   }
 
   return RTDEReceiveInterface::isConnected();

@@ -485,6 +485,7 @@ std::size_t RTDE::async_read_some(AsyncReadStream &s, const MutableBufferSequenc
 
 boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_state)
 {
+  auto t_start = steady_clock::now();
   boost::system::error_code error;
   uint32_t message_offset = 0;
   uint32_t packet_data_offset = 0;
@@ -579,6 +580,10 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
             DEBUG("Unknown variable name: " << output_name << " please verify the output setup!");
           }
         }
+
+        if (!robot_state->getFirstStateReceived())
+          robot_state->setFirstStateReceived(true);
+
         robot_state->unlockUpdateStateMutex();
       }
       else

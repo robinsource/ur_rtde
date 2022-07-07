@@ -1,5 +1,6 @@
 #include <ur_rtde/rtde.h>
 #include <ur_rtde/rtde_io_interface.h>
+#include <ur_rtde/rtde_utility.h>
 
 #include <bitset>
 #include <chrono>
@@ -8,9 +9,34 @@
 
 namespace ur_rtde
 {
-RTDEIOInterface::RTDEIOInterface(std::string hostname, bool verbose, bool use_upper_range_registers)
-    : hostname_(std::move(hostname)), verbose_(verbose), use_upper_range_registers_(use_upper_range_registers)
+RTDEIOInterface::RTDEIOInterface(std::string hostname, bool verbose, bool use_upper_range_registers, int rt_priority)
+    : hostname_(std::move(hostname)), verbose_(verbose), use_upper_range_registers_(use_upper_range_registers),
+      rt_priority_(rt_priority)
 {
+  // Check if realtime kernel is available and set realtime priority for the interface.
+  if (RTDEUtility::isRealtimeKernelAvailable())
+  {
+    if (!RTDEUtility::setRealtimePriority(rt_priority_))
+    {
+      std::cerr << "RTDEIOInterface: Warning! Failed to set realtime priority even though a realtime kernel is available." << std::endl;
+    }
+    else
+    {
+      if (verbose_)
+      {
+        std::cout << "RTDEIOInterface: realtime priority set successfully!" << std::endl;
+      }
+    }
+  }
+  else
+  {
+    if (verbose_)
+    {
+      std::cout << "RTDEIOInterface: realtime kernel not found, consider using a realtime kernel for better performance"
+                << std::endl;
+    }
+  }
+
   port_ = 30004;
   rtde_ = std::make_shared<RTDE>(hostname_, port_, verbose_);
   rtde_->connect();
@@ -62,12 +88,6 @@ bool RTDEIOInterface::reconnect()
 
 bool RTDEIOInterface::setupRecipes()
 {
-  std::string cmd_reg = "";
-  if(use_upper_range_registers_)
-    cmd_reg = "input_int_register_47";
-  else
-    cmd_reg = "input_int_register_23";
-
   // Recipe 1
   std::vector<std::string> no_cmd_input = {inIntReg(23)};
   rtde_->sendInputSetup(no_cmd_input);

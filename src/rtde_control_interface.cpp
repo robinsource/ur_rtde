@@ -1,12 +1,16 @@
 #include <ur_rtde/dashboard_client.h>
 #include <ur_rtde/robot_state.h>
 #include <ur_rtde/rtde_control_interface.h>
+#include <ur_rtde/rtde_utility.h>
 #include <ur_rtde/script_client.h>
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <urcl/script_sender.h>
 #endif
-
-#include <ur_rtde/rtde_utility.h>
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#include <Windows.h>
+#else
+#include <pthread.h>
+#endif
 
 #include <bitset>
 #include <boost/thread/thread.hpp>
@@ -37,7 +41,8 @@ static void verifyValueIsWithin(const double &value, const double &min, const do
   }
 }
 
-RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequency, uint16_t flags, int ur_cap_port)
+RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequency, uint16_t flags, int ur_cap_port,
+                                           int rt_priority)
     : hostname_(std::move(hostname)),
       frequency_(frequency),
       upload_script_(flags & FLAG_UPLOAD_SCRIPT),
@@ -46,8 +51,35 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
       use_upper_range_registers_(flags & FLAG_UPPER_RANGE_REGISTERS),
       no_wait_(flags & FLAG_NO_WAIT),
       custom_script_(flags & FLAG_CUSTOM_SCRIPT),
-      ur_cap_port_(ur_cap_port)
+      ur_cap_port_(ur_cap_port),
+      rt_priority_(rt_priority)
 {
+  // Check if realtime kernel is available and set realtime priority for the interface.
+  if (RTDEUtility::isRealtimeKernelAvailable())
+  {
+    if (!RTDEUtility::setRealtimePriority(rt_priority_))
+    {
+      std::cerr << "RTDEControlInterface: Warning! Failed to set realtime priority even though a realtime kernel is "
+                   "available." << std::endl;
+    }
+    else
+    {
+      if (verbose_)
+      {
+        std::cout << "RTDEControlInterface: realtime priority set successfully!" << std::endl;
+      }
+    }
+  }
+  else
+  {
+    if (verbose_)
+    {
+      std::cout << "RTDEControlInterface: realtime kernel not found, consider using a realtime kernel for better "
+                   "performance."
+                << std::endl;
+    }
+  }
+
   // Create a connection to the dashboard server
   db_client_ = std::make_shared<DashboardClient>(hostname_);
   db_client_->connect();
@@ -80,7 +112,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
   rtde_->negotiateProtocolVersion();
   versions_ = rtde_->getControllerVersion();
 
-  if (frequency_ < 0) // frequency not specified, set it based on controller version.
+  if (frequency_ < 0)  // frequency not specified, set it based on controller version.
   {
     frequency_ = 125;
     // If e-Series Robot set frequency to 500Hz
@@ -132,6 +164,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
     {
       break;
     }
+    std::this_thread::sleep_for(std::chrono::microseconds(500));
   }
 
   if (!rtde_->isStarted())
@@ -141,7 +174,10 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
   th_ = std::make_shared<boost::thread>(boost::bind(&RTDEControlInterface::receiveCallback, this));
 
   // Wait until the first robot state has been received
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  while (!robot_state_->getFirstStateReceived())
+  {
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
 
   // Clear command register
   sendClearCommand();
@@ -256,17 +292,15 @@ RTDEControlInterface::~RTDEControlInterface()
   disconnect();
 }
 
-
 int RTDEControlInterface::getAsyncOperationProgress()
 {
-  std::string output_int_register_key = "output_int_register_" + std::to_string(2+register_offset_);
+  std::string output_int_register_key = "output_int_register_" + std::to_string(2 + register_offset_);
   int32_t output_int_register_val;
   if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
     return output_int_register_val;
   else
-    throw std::runtime_error("unable to get state data for specified key: "+output_int_register_key);
+    throw std::runtime_error("unable to get state data for specified key: " + output_int_register_key);
 }
-
 
 void RTDEControlInterface::waitForProgramRunning()
 {
@@ -391,7 +425,10 @@ bool RTDEControlInterface::reconnect()
   th_ = std::make_shared<boost::thread>(boost::bind(&RTDEControlInterface::receiveCallback, this));
 
   // Wait until the first robot state has been received
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  while (!robot_state_->getFirstStateReceived())
+  {
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
 
   // Clear command register
   sendClearCommand();
@@ -507,8 +544,8 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
 {
   // Setup output
   state_names_ = {"robot_status_bits", "safety_status_bits", "runtime_state", outIntReg(0),
-                  outIntReg(1),  outIntReg(2),  outDoubleReg(0),  outDoubleReg(1), outDoubleReg(2),
-                  outDoubleReg(3),     outDoubleReg(4),      outDoubleReg(5)};
+                  outIntReg(1),        outIntReg(2),         outDoubleReg(0), outDoubleReg(1),
+                  outDoubleReg(2),     outDoubleReg(3),      outDoubleReg(4), outDoubleReg(5)};
   rtde_->sendOutputSetup(state_names_, frequency);
 
   // Setup input recipes
@@ -612,9 +649,9 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
   rtde_->sendInputSetup(external_ft_input);
 
   // Recipe 19
-  std::vector<std::string> ft_rtde_input_enable = {inIntReg(0), inIntReg(1), inDoubleReg(0), inDoubleReg(1),
-                                                   inDoubleReg(2), inDoubleReg(3),  inDoubleReg(4), inDoubleReg(5),
-                                                   inDoubleReg(6)};
+  std::vector<std::string> ft_rtde_input_enable = {inIntReg(0),    inIntReg(1),    inDoubleReg(0),
+                                                   inDoubleReg(1), inDoubleReg(2), inDoubleReg(3),
+                                                   inDoubleReg(4), inDoubleReg(5), inDoubleReg(6)};
   rtde_->sendInputSetup(ft_rtde_input_enable);
 
   return true;
@@ -628,10 +665,19 @@ void RTDEControlInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
+      auto t_start = std::chrono::steady_clock::now();
       boost::system::error_code ec = rtde_->receiveData(robot_state_);
-      if(ec)
+      if (ec)
       {
         throw boost::system::system_error(ec);
+      }
+      auto t_stop = std::chrono::steady_clock::now();
+      auto t_duration = std::chrono::duration<double>(t_stop - t_start);
+      if (t_duration.count() < delta_time_)
+      {
+#if defined(__linux__) || defined(__APPLE__)
+        std::this_thread::sleep_for(std::chrono::duration<double>(delta_time_ - t_duration.count()));
+#endif
       }
     }
     catch (std::exception &e)
@@ -1784,7 +1830,7 @@ bool RTDEControlInterface::ftRtdeInputEnable(bool enable, double sensor_mass,
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::FT_RTDE_INPUT_ENABLE;
   robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_19;
-  if(enable)
+  if (enable)
     robot_cmd.ft_rtde_input_enable_ = 1;
   else
     robot_cmd.ft_rtde_input_enable_ = 0;
@@ -1797,13 +1843,13 @@ bool RTDEControlInterface::ftRtdeInputEnable(bool enable, double sensor_mass,
 }
 
 bool RTDEControlInterface::enableExternalFtSensor(bool enable, double sensor_mass,
-                                             const std::vector<double> &sensor_measuring_offset,
-                                             const std::vector<double> &sensor_cog)
+                                                  const std::vector<double> &sensor_measuring_offset,
+                                                  const std::vector<double> &sensor_cog)
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::ENABLE_EXTERNAL_FT_SENSOR;
   robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_19;
-  if(enable)
+  if (enable)
     robot_cmd.ft_rtde_input_enable_ = 1;
   else
     robot_cmd.ft_rtde_input_enable_ = 0;

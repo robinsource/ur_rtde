@@ -3,6 +3,7 @@
 #define RTDE_ROBOT_STATE_H
 
 #include <ur_rtde/rtde_export.h>
+#include <ur_rtde/rtde_utility.h>
 #include <boost/variant.hpp>
 #include <vector>
 #include <unordered_map>
@@ -28,11 +29,15 @@ class RobotState
 
   RTDE_EXPORT bool unlockUpdateStateMutex();
 
+  RTDE_EXPORT void setFirstStateReceived(bool val);
+
+  RTDE_EXPORT bool getFirstStateReceived();
+
   RTDE_EXPORT void initRobotState(const std::vector<std::string> &variables);
 
   uint16_t getStateEntrySize(const std::string& name)
   {
-    std::lock_guard<std::mutex> lock(update_state_mutex_);
+    std::lock_guard<PriorityInheritanceMutex> lock(update_state_mutex_);
     if (state_data_.find(name) != state_data_.end())
     {
       uint16_t entry_size = boost::apply_visitor(RobotState::SizeVisitor(), state_data_[name]);
@@ -46,7 +51,7 @@ class RobotState
 
   std::string getStateEntryString(const std::string& name)
   {
-    std::lock_guard<std::mutex> lock(update_state_mutex_);
+    std::lock_guard<PriorityInheritanceMutex> lock(update_state_mutex_);
     if (state_data_.find(name) != state_data_.end())
     {
       std::string entry_str = boost::apply_visitor(RobotState::StringVisitor(), state_data_[name]);
@@ -61,7 +66,7 @@ class RobotState
   template <typename T> bool
   getStateData(const std::string& name, T& val)
   {
-    std::lock_guard<std::mutex> lock(update_state_mutex_);
+    std::lock_guard<PriorityInheritanceMutex> lock(update_state_mutex_);
     if (state_data_.find(name) != state_data_.end())
     {
       val = boost::strict_get<T>(state_data_[name]);
@@ -168,7 +173,8 @@ class RobotState
 
  private:
   std::unordered_map<std::string, rtde_type_variant_> state_data_;
-  mutable std::mutex update_state_mutex_;
+  PriorityInheritanceMutex update_state_mutex_;
+  bool first_state_received_;
 };
 
 }  // namespace ur_rtde

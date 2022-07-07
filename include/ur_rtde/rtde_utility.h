@@ -3,19 +3,76 @@
 #define RTDE_RTDE_UTILITY_H
 
 #include <ur_rtde/rtde_export.h>
-#include <string>
+
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
+#include <string>
 #include <vector>
+#include <iostream>
 #include <iomanip>
+#include <sstream>
+#include <cstring>
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#include <Windows.h>
+#else
+#include <pthread.h>
+#include <fstream>
+#endif
+
+#define NOT_USED 0.0
 
 namespace ur_rtde
 {
-  struct RTDEControlHeader {
-    uint16_t msg_size;
-    uint8_t msg_cmd;
-  };
+struct RTDEControlHeader
+{
+  uint16_t msg_size;
+  uint8_t msg_cmd;
+};
+
+#if defined(__linux__) || defined(__APPLE__)
+class PriorityInheritanceMutex
+{
+ public:
+  PriorityInheritanceMutex()
+  {
+    pthread_mutexattr_t mattr;
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
+    pthread_mutex_init(&mutex_, &mattr);
+  }
+
+  PriorityInheritanceMutex(const PriorityInheritanceMutex &other) = delete;
+  PriorityInheritanceMutex(PriorityInheritanceMutex &&other) = default;
+
+  PriorityInheritanceMutex &operator=(const PriorityInheritanceMutex &other) = delete;
+  PriorityInheritanceMutex &operator=(PriorityInheritanceMutex &&other) = default;
+
+  ~PriorityInheritanceMutex()
+  {
+    pthread_mutex_destroy(&mutex_);
+  }
+
+  void lock()
+  {
+    pthread_mutex_lock(&mutex_);
+  }
+
+  void unlock()
+  {
+    pthread_mutex_unlock(&mutex_);
+  }
+
+  bool try_lock()
+  {
+    return 0 == pthread_mutex_trylock(&mutex_);
+  }
+
+ private:
+  pthread_mutex_t mutex_;
+};
+#endif
 
 class RTDEUtility
 {
@@ -280,15 +337,93 @@ class RTDEUtility
   }
 
   template <typename T>
-  bool isWithinBounds(const T& value, const T& low, const T& high)
+  bool isWithinBounds(const T &value, const T &low, const T &high)
   {
     return (low <= value && value <= high);
   }
 
-  static bool isNumber(const std::string& s)
+  static bool isNumber(const std::string &s)
   {
     return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
   }
+
+  static bool isRealtimeKernelAvailable()
+  {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+        return true;
+#else
+        std::ifstream realtime("/sys/kernel/realtime", std::ios_base::in);
+        bool is_realtime;
+        realtime >> is_realtime;
+        return is_realtime;
+#endif
+  }
+
+  static bool setRealtimePriority(int priority)
+  {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    auto get_last_windows_error = []() -> std::string {
+      DWORD error_id = GetLastError();
+      LPSTR buffer = nullptr;
+        size_t size = FormatMessageA(
+          FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+          nullptr, error_id, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)(&buffer), 0, nullptr);
+      return std::string(buffer, size);
+    };
+
+    if (priority == 0)
+    {
+      // priority not set explicitly by user, assume that max. priority is desired.
+      priority = THREAD_PRIORITY_TIME_CRITICAL;
+    }
+
+    if (!SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS))
+    {
+      std::cerr << "ur_rtde: unable to set priority for the process: " << get_last_windows_error() << std::endl;
+      return false;
+    }
+
+    if (!SetThreadPriority(GetCurrentThread(), priority))
+    {
+      std::cerr << "ur_rtde: unable to set priority for the thread: " << get_last_windows_error() << std::endl;
+      return false;
+    }
+    return true;
+#else
+    if (priority > 0)
+    {
+      if (priority == 0)
+      {
+        // priority not set explicitly by user, assume that a fair max. priority is desired.
+        const int thread_priority = sched_get_priority_max(SCHED_RR);
+        if (thread_priority == -1)
+        {
+          std::cerr << "ur_rtde: unable to get maximum possible thread priority: " << strerror(errno) <<
+              std::endl;
+          return false;
+        }
+        // the priority is capped at 90, since any higher value would make the OS too unstable.
+        priority = std::min(90, std::max(0, thread_priority));
+      }
+
+      sched_param thread_param{};
+      thread_param.sched_priority = priority;
+      if (pthread_setschedparam(pthread_self(), SCHED_RR, &thread_param) != 0)
+      {
+        std::cerr << "ur_rtde: unable to set realtime scheduling: " << strerror(errno) << std::endl;
+        return false;
+      }
+      return true;
+    }
+    else
+    {
+      std::cout << "ur_rtde: realtime priority less than 0 specified, realtime priority will not be set on purpose!" <<
+          std::endl;
+      return false;
+    }
+#endif
+  }
+
 };
 
 }  // namespace ur_rtde

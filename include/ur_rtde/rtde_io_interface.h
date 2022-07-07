@@ -9,6 +9,7 @@
 
 #define MAJOR_VERSION 0
 #define CB3_MAJOR_VERSION 3
+#define RT_PRIORITY_UNDEFINED 0
 
 namespace ur_rtde
 {
@@ -16,7 +17,7 @@ class RTDEIOInterface
 {
  public:
   RTDE_EXPORT explicit RTDEIOInterface(std::string hostname, bool verbose = false,
-                                       bool use_upper_range_registers = false);
+                                       bool use_upper_range_registers = false, int rt_priority = RT_PRIORITY_UNDEFINED);
 
   RTDE_EXPORT virtual ~RTDEIOInterface();
 
@@ -119,6 +120,7 @@ class RTDEIOInterface
   int port_;
   bool verbose_;
   bool use_upper_range_registers_;
+  int rt_priority_;
   int register_offset_;
   std::shared_ptr<RTDE> rtde_;
 };

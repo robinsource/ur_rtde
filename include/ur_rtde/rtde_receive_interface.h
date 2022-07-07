@@ -15,6 +15,7 @@
 
 #define MAJOR_VERSION 0
 #define CB3_MAJOR_VERSION 3
+#define RT_PRIORITY_UNDEFINED 0
 
 // forward declarations
 namespace boost
@@ -41,7 +42,8 @@ class RTDEReceiveInterface
  public:
   RTDE_EXPORT explicit RTDEReceiveInterface(std::string hostname, double frequency = -1.0,
                                             std::vector<std::string> variables = {},
-                                            bool verbose = false, bool use_upper_range_registers = false);
+                                            bool verbose = false, bool use_upper_range_registers = false,
+                                            int rt_priority = RT_PRIORITY_UNDEFINED);
 
   RTDE_EXPORT virtual ~RTDEReceiveInterface();
 
@@ -465,6 +467,7 @@ class RTDEReceiveInterface
   int port_;
   bool verbose_;
   bool use_upper_range_registers_;
+  int rt_priority_;
   int register_offset_;
   double delta_time_;
   std::shared_ptr<RTDE> rtde_;

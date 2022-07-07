@@ -7,7 +7,7 @@
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/socket_base.hpp>
 #include <boost/asio/write.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/lambda/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <cstring>
@@ -16,8 +16,8 @@
 #include <regex>
 
 using boost::asio::ip::tcp;
-using boost::lambda::_1;
 using boost::lambda::var;
+using namespace boost::placeholders;
 
 namespace ur_rtde
 {
