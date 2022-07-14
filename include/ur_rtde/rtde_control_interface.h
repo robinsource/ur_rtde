@@ -161,6 +161,11 @@ class RTDEControlInterface
    */
   RTDE_EXPORT bool isConnected();
 
+
+  RTDE_EXPORT void waitPeriod(double dt);
+
+  RTDE_EXPORT void initPeriod();
+
   /**
    * @brief In the event of an error, this function can be used to resume operation by reuploading the RTDE control
    * script. This will only happen if a script is not already running on the controller.
@@ -932,6 +937,7 @@ class RTDEControlInterface
   // major, minor, bugfix, build numbers.
   Versions versions_;
   std::string serial_number_;
+  std::chrono::steady_clock::time_point cycle_start_time_;
 };
 
 /**

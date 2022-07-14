@@ -665,20 +665,13 @@ void RTDEControlInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
-      auto t_start = std::chrono::steady_clock::now();
+      initPeriod();
       boost::system::error_code ec = rtde_->receiveData(robot_state_);
       if (ec)
       {
         throw boost::system::system_error(ec);
       }
-      auto t_stop = std::chrono::steady_clock::now();
-      auto t_duration = std::chrono::duration<double>(t_stop - t_start);
-      if (t_duration.count() < delta_time_)
-      {
-#if defined(__linux__) || defined(__APPLE__)
-        std::this_thread::sleep_for(std::chrono::duration<double>(delta_time_ - t_duration.count()));
-#endif
-      }
+      waitPeriod(delta_time_);
     }
     catch (std::exception &e)
     {
@@ -743,6 +736,16 @@ void RTDEControlInterface::stopJ(double a)
   robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_8;
   robot_cmd.val_.push_back(a);
   sendCommand(robot_cmd);
+}
+
+void RTDEControlInterface::initPeriod()
+{
+  cycle_start_time_ = std::chrono::steady_clock::now();
+}
+
+void RTDEControlInterface::waitPeriod(double dt)
+{
+  RTDEUtility::waitPeriod(cycle_start_time_, dt);
 }
 
 bool RTDEControlInterface::reuploadScript()
@@ -1935,7 +1938,7 @@ int RTDEControlInterface::getOutputIntReg(int reg)
 
 bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
 {
-  std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
+  std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
   try
   {
@@ -1964,7 +1967,7 @@ bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
         }
 
         // Wait until the controller is ready for a command or timeout
-        std::chrono::high_resolution_clock::time_point current_time = std::chrono::high_resolution_clock::now();
+        std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
         if (duration > UR_GET_READY_TIMEOUT)
         {
@@ -1994,7 +1997,7 @@ bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
 
         if (cmd.type_ != RTDE::RobotCommand::Type::STOP_SCRIPT)
         {
-          start_time = std::chrono::high_resolution_clock::now();
+          start_time = std::chrono::steady_clock::now();
           while (getControlScriptState() != UR_CONTROLLER_DONE_WITH_CMD)
           {
             // if the script causes an error, for example because of inverse
@@ -2016,7 +2019,7 @@ bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
             }
 
             // Wait until the controller has finished executing or timeout
-            auto current_time = std::chrono::high_resolution_clock::now();
+            auto current_time = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
             if (duration > UR_EXECUTION_TIMEOUT)
             {
@@ -2048,7 +2051,7 @@ bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
               }
 
               // Wait for program to stop running or timeout
-              auto current_time = std::chrono::high_resolution_clock::now();
+              auto current_time = std::chrono::steady_clock::now();
               auto duration = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
               if (duration > UR_EXECUTION_TIMEOUT)
               {

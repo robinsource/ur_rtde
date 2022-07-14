@@ -15,6 +15,10 @@
 #include <thread>
 #include <cmath>
 #include <chrono>
+#include <ratio>
+#include <ctime>
+#include <cerrno>
+#include <cassert>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #include <Windows.h>
@@ -23,7 +27,8 @@
 #include <fstream>
 #endif
 
-#define NOT_USED 0.0
+#define SLACK_TIME_IN_MICROS 300UL
+#define OFFSET_TIME_IN_NANOS (8UL * 1000UL)
 
 namespace ur_rtde
 {
@@ -382,6 +387,42 @@ class RTDEUtility
       ;
   }
 
+  static timespec timepointToTimespec(std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds> tp)
+  {
+    auto secs = std::chrono::time_point_cast<std::chrono::seconds>(tp);
+    auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(tp) -
+              std::chrono::time_point_cast<std::chrono::nanoseconds>(secs);
+
+    return timespec{secs.time_since_epoch().count(), ns.count()};
+  }
+
+  static void waitPeriod(const std::chrono::steady_clock::time_point &t_cycle_start, double dt)
+  {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    return true;
+#else
+    using namespace std::chrono;
+    auto t_app_stop = steady_clock::now();
+    auto t_app_duration = duration<double>(t_app_stop - t_cycle_start);
+    if (t_app_duration.count() < dt)
+    {
+      auto cycle_time_in_ms = static_cast<int64_t>(dt * 1000);
+      auto t_cycle_ideal_end = t_cycle_start + milliseconds(cycle_time_in_ms);
+      auto t_cycle_end_with_slack = t_cycle_ideal_end - (microseconds(SLACK_TIME_IN_MICROS) +
+                                                         t_app_duration);
+
+      struct timespec tv_cycle_end_with_slack{}, tv_cycle_end{}, curr{};
+      tv_cycle_end = timepointToTimespec(time_point_cast<nanoseconds>(t_cycle_ideal_end));
+      tv_cycle_end_with_slack = timepointToTimespec(time_point_cast<nanoseconds>(t_cycle_end_with_slack));
+      clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tv_cycle_end_with_slack, NULL);
+
+      clock_gettime(CLOCK_MONOTONIC, &curr);
+      for (; curr.tv_nsec < tv_cycle_end.tv_nsec - OFFSET_TIME_IN_NANOS; clock_gettime(CLOCK_MONOTONIC, &curr))
+        ;
+    }
+#endif
+  }
+
   static bool isRealtimeKernelAvailable()
   {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
@@ -430,7 +471,7 @@ class RTDEUtility
       if (priority == 0)
       {
         // priority not set explicitly by user, assume that a fair max. priority is desired.
-        const int thread_priority = sched_get_priority_max(SCHED_RR);
+        const int thread_priority = sched_get_priority_max(SCHED_FIFO);
         if (thread_priority == -1)
         {
           std::cerr << "ur_rtde: unable to get maximum possible thread priority: " << strerror(errno) <<
@@ -443,7 +484,7 @@ class RTDEUtility
 
       sched_param thread_param{};
       thread_param.sched_priority = priority;
-      if (pthread_setschedparam(pthread_self(), SCHED_RR, &thread_param) != 0)
+      if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &thread_param) != 0)
       {
         std::cerr << "ur_rtde: unable to set realtime scheduling: " << strerror(errno) << std::endl;
         return false;

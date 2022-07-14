@@ -11,10 +11,10 @@ using namespace std::chrono;
 namespace po = boost::program_options;
 
 // Interrupt flag
-bool flag_loop = true;
+bool running = true;
 void raiseFlag(int param)
 {
-  flag_loop = false;
+  running = false;
 }
 
 int main(int argc, char* argv[])
@@ -43,12 +43,12 @@ int main(int argc, char* argv[])
     signal(SIGINT, raiseFlag);
     double frequency = vm["frequency"].as<double>();
     double dt = 1.0 / frequency;
-    RTDEReceiveInterface rtde_receive(vm["robot_ip"].as<std::string>(), frequency);
+    RTDEReceiveInterface rtde_receive(vm["robot_ip"].as<std::string>(), frequency, {}, true, false, 90);
 
     rtde_receive.startFileRecording(vm["output"].as<std::string>());
     std::cout << "Data recording started. press [Ctrl-C] to end recording." << std::endl;
     int i=0;
-    while (flag_loop)
+    while (running)
     {
       auto t_start = steady_clock::now();
       if (i % 10 == 0)
