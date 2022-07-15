@@ -4,6 +4,7 @@
 
 #include <ur_rtde/rtde_export.h>
 #include <ur_rtde/robot_state.h>
+#include <ur_rtde/rtde_utility.h>
 
 #include <atomic>
 #include <chrono>
@@ -144,6 +145,20 @@ class RTDEReceiveInterface
    * @returns Can be used to reconnect to the robot after a lost connection.
    */
   RTDE_EXPORT bool reconnect();
+
+  /**
+   * @brief Used for waiting the rest of the specified control period. A combination of sleeping and spinning are
+   * used to achieve the lowest possible jitter. The function is especially useful for a realtime control loop. NOTE:
+   * the function MUST be used in combination with the initPeriod()! See the realtime_control_example.cpp.
+   * @param dt the control period given in seconds. Typically given as dt = 1 / frequency.
+   */
+  RTDE_EXPORT void waitPeriod(double dt);
+
+  /**
+   * @brief This function is used in combination with waitPeriod() and is used to signal the start of a control period /
+   * cycle. See the realtime_control_example.cpp.
+   */
+  RTDE_EXPORT void initPeriod();
 
   /**
    * @returns Can be used to reconnect to the robot after a lost connection.
@@ -481,6 +496,7 @@ class RTDEReceiveInterface
   std::vector<std::string> record_variables_;
   double speed_scaling_combined_{};
   double pausing_ramp_up_increment_;
+  std::chrono::steady_clock::time_point cycle_start_time_;
 };
 
 }  // namespace ur_rtde

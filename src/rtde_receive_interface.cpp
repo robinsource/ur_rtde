@@ -194,7 +194,7 @@ void RTDEReceiveInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
-      auto t_start = std::chrono::steady_clock::now();
+      initPeriod();
       boost::system::error_code ec = rtde_->receiveData(robot_state_);
       if(ec)
       {
@@ -204,21 +204,11 @@ void RTDEReceiveInterface::receiveCallback()
         }
         throw boost::system::system_error(ec);
       }
-      auto t_stop = std::chrono::steady_clock::now();
-      auto t_duration = std::chrono::duration<double>(t_stop - t_start);
-
-      if (t_duration.count() < delta_time_)
-      {
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-        RTDEUtility::preciseSleep(delta_time_ - t_duration.count());
-#else
-        std::this_thread::sleep_for(std::chrono::duration<double>(delta_time_ - t_duration.count()));
-#endif
-      }
+      waitPeriod(delta_time_);
     }
     catch (std::exception& e)
     {
-      std::cerr << "Exception: " << e.what() << std::endl;
+      std::cerr << "RTDEReceiveInterface Exception: " << e.what() << std::endl;
       if (rtde_->isConnected())
         rtde_->disconnect();
       stop_receive_thread = true;
@@ -268,6 +258,16 @@ bool RTDEReceiveInterface::reconnect()
   }
 
   return RTDEReceiveInterface::isConnected();
+}
+
+void RTDEReceiveInterface::initPeriod()
+{
+  cycle_start_time_ = std::chrono::steady_clock::now();
+}
+
+void RTDEReceiveInterface::waitPeriod(double dt)
+{
+  RTDEUtility::waitPeriod(cycle_start_time_, dt);
 }
 
 bool RTDEReceiveInterface::startFileRecording(const std::string &filename, const std::vector<std::string> &variables)

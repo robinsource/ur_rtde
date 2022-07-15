@@ -36,8 +36,8 @@ int main(int argc, char* argv[])
   int rt_receive_priority = 90; // 90
   int rt_control_priority = 85; // 85
 
-  RTDEReceiveInterface rtde_receive(robot_ip, rtde_frequency, {}, true, false, rt_receive_priority);
   RTDEControlInterface rtde_control(robot_ip, rtde_frequency, flags, ur_cap_port, rt_control_priority);
+  RTDEReceiveInterface rtde_receive(robot_ip, rtde_frequency, {}, true, false, rt_receive_priority);
 
   // Set application realtime priority
   RTDEUtility::setRealtimePriority(80); // 80

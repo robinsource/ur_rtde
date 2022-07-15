@@ -4,6 +4,7 @@
 
 #include <ur_rtde/rtde.h>
 #include <ur_rtde/rtde_export.h>
+#include <ur_rtde/rtde_utility.h>
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <urcl/script_sender.h>
 #endif
@@ -161,9 +162,18 @@ class RTDEControlInterface
    */
   RTDE_EXPORT bool isConnected();
 
-
+  /**
+   * @brief Used for waiting the rest of the specified control period. A combination of sleeping and spinning are
+   * used to achieve the lowest possible jitter. The function is especially useful for a realtime control loop. NOTE:
+   * the function MUST be used in combination with the initPeriod()! See the realtime_control_example.cpp.
+   * @param dt the control period given in seconds. Typically given as dt = 1 / frequency.
+   */
   RTDE_EXPORT void waitPeriod(double dt);
 
+  /**
+   * @brief This function is used in combination with waitPeriod() and is used to signal the start of a control period /
+   * cycle. See the realtime_control_example.cpp.
+   */
   RTDE_EXPORT void initPeriod();
 
   /**

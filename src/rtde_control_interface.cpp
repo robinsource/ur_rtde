@@ -676,7 +676,7 @@ void RTDEControlInterface::receiveCallback()
     catch (std::exception &e)
     {
       std::cerr << "RTDEControlInterface: Could not receive data from robot..." << std::endl;
-      std::cerr << e.what() << std::endl;
+      std::cerr << "RTDEControlInterface Exception: " << e.what() << std::endl;
       should_reconnect = true;
     }
 
@@ -704,7 +704,7 @@ void RTDEControlInterface::receiveCallback()
       }
       catch (std::exception &e)
       {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        std::cerr << "RTDEControlInterface Exception: " << e.what() << std::endl;
         stop_thread_ = true;
         throw std::runtime_error("RTDEControlInterface: Could not reconnect to robot...");
       }
