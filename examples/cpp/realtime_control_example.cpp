@@ -14,12 +14,11 @@ void raiseFlag(int param)
   running = false;
 }
 
-std::vector<double> getCircleTarget(const std::vector<double> &pose, double timestep, double radius=5, double freq=5,
-                                    double offset_x=0.075, double offset_y=0.075)
+std::vector<double> getCircleTarget(const std::vector<double> &pose, double timestep, double radius=0.075, double freq=1.0)
 {
   std::vector<double> circ_target = pose;
-  circ_target[0] = pose[0] + offset_x * cos((2 * M_PI * freq * timestep) / radius);
-  circ_target[1] = pose[1] + offset_y * sin((2 * M_PI * freq * timestep) / radius);
+  circ_target[0] = pose[0] + radius * cos((2 * M_PI * freq * timestep));
+  circ_target[1] = pose[1] + radius * sin((2 * M_PI * freq * timestep));
   return circ_target;
 }
 

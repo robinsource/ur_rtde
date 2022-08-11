@@ -5,9 +5,27 @@ This section contains guides for how to use the ur_rtde interface.
 
 .. _realtime-setup-guide:
 
-Realtime Setup Guide
-====================
-Not done yet.
+Real-time Setup Guide
+=====================
+ur_rtde makes it possible to specify a desired real-time priority for the RTDEControlInterface and RTDEReceiveInterface.
+First you must make sure your OS supports a real-time kernel and install it, if not already available. In the following
+sections you can find how to set it up on various commonly used operating systems.
+
+Linux Setup
+-----------
+The linux kernel is not real-time capable by default, and therefore one has to be installed.
+
+Ubuntu 22.04
+~~~~~~~~~~~~
+TODO
+
+Ubuntu 20.04 / 18.04 + Other debian distros
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TODO
+
+Windows
+-------
+TODO
 
 .. _use-with-matlab:
 
