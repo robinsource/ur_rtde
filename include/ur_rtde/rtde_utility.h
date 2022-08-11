@@ -28,7 +28,6 @@
 #endif
 
 #define SLACK_TIME_IN_MICROS 300UL
-#define OFFSET_TIME_IN_NANOS (8UL * 1000UL)
 
 namespace ur_rtde
 {
@@ -399,7 +398,12 @@ class RTDEUtility
   static void waitPeriod(const std::chrono::steady_clock::time_point &t_cycle_start, double dt)
   {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-    return true;
+    auto t_app_stop = steady_clock::now();
+    auto t_app_duration = duration<double>(t_app_stop - t_cycle_start);
+    if (t_app_duration.count() < dt)
+    {
+      preciseSleep(dt - t_duration.count());
+    }
 #else
     using namespace std::chrono;
     auto t_app_stop = steady_clock::now();
@@ -417,7 +421,7 @@ class RTDEUtility
       clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tv_cycle_end_with_slack, NULL);
 
       clock_gettime(CLOCK_MONOTONIC, &curr);
-      for (; curr.tv_nsec < tv_cycle_end.tv_nsec - OFFSET_TIME_IN_NANOS; clock_gettime(CLOCK_MONOTONIC, &curr))
+      for (; curr.tv_nsec < tv_cycle_end.tv_nsec; clock_gettime(CLOCK_MONOTONIC, &curr))
         ;
     }
 #endif

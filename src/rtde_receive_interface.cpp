@@ -202,7 +202,7 @@ void RTDEReceiveInterface::receiveCallback()
         {
           std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
         }
-        throw boost::system::system_error(ec);
+        throw std::system_error(ec);
       }
       waitPeriod(delta_time_);
     }

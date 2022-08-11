@@ -83,7 +83,7 @@ if(${CODE})
 			FetchContent_Declare(
 					pybind11-src
 					GIT_REPOSITORY https://github.com/pybind/pybind11.git
-					GIT_TAG        v2.5.0
+					GIT_TAG        v2.9.0
 			)
 			if(${CMAKE_VERSION} VERSION_LESS 3.14)
 				macro(FetchContent_MakeAvailable NAME)

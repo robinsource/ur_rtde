@@ -214,7 +214,8 @@ private:
    * \return Bytes received
    */
   template <typename AsyncReadStream, typename MutableBufferSequence>
-  std::size_t async_read_some(AsyncReadStream& s, const MutableBufferSequence& buffers, int timeout_ms = -1);
+  std::size_t async_read_some(AsyncReadStream& s, const MutableBufferSequence& buffers,
+                              boost::system::error_code &error, int timeout_ms = -1);
 
   /**
    * For socket timeouts

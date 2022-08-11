@@ -81,7 +81,6 @@ int main(int argc, char* argv[])
       initial_run = false;
       time_counter += dt;
     }
-
     std::cout << "Control interrupted!" << std::endl;
     rtde_control.servoStop();
     rtde_control.stopScript();
