@@ -59,8 +59,7 @@ Now reboot the system and the realtime kernel should be loaded.
 Ubuntu 20.04 / 18.04 + Other debian distros
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This part of the guide is originally from the universal robots urcl client library git repository found
-`here <https://github.com/UniversalRobots/Universal_Robots_Client_Library/blob/master/doc/real_time.md
->`_.
+`here <https://github.com/UniversalRobots/Universal_Robots_Client_Library/blob/master/doc/real_time.md>`_.
 
 To get real-time support into an ubuntu system, the following steps have to be performed:
 
