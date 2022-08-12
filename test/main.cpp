@@ -420,26 +420,19 @@ SCENARIO("Test ProtectiveStop")
     // Move to initial pose, securing that former test dont leave robot in a strange state.
     rtde_control->moveL(init_pose, 3, 3);
 
-    // Controller real-time thread execution time
-    double RobotExecutionTime = rtde_receive->getActualExecutionTime();
-    REQUIRE(RobotExecutionTime > 0.4);
-
     // Check if robot is in protected stop.
     bool protected_stop = rtde_receive->isProtectiveStopped();
 
     std::this_thread::sleep_for(std::chrono::duration<double>(1));
 
-    // Check if robot is fully at rest.
-    bool fully_at_rest = rtde_control->isSteady();
-
     WHEN("ProtectiveStop is not enabled")
     {
       REQUIRE(protected_stop == false);
-      REQUIRE(fully_at_rest == true);
 
       THEN("Enable ProtectiveStop")
       {
         rtde_control->triggerProtectiveStop();
+        std::this_thread::sleep_for(std::chrono::duration<double>(1));
         // Check if robot is in protected stop.
         protected_stop = rtde_receive->isProtectiveStopped();
         REQUIRE(protected_stop == true);

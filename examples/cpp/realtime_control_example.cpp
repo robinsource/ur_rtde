@@ -3,6 +3,7 @@
 #include <ur_rtde/rtde_io_interface.h>
 #include <thread>
 #include <chrono>
+#include <csignal>
 
 using namespace ur_rtde;
 using namespace std::chrono;
