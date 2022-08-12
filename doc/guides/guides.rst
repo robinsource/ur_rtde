@@ -58,7 +58,11 @@ Now reboot the system and the realtime kernel should be loaded.
 
 Ubuntu 20.04 / 18.04 + Other debian distros
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To get real-time support into a ubuntu system, the following steps have to be performed:
+This part of the guide is originally from the universal robots urcl client library git repository found
+`here <https://github.com/UniversalRobots/Universal_Robots_Client_Library/blob/master/doc/real_time.md
+>`_.
+
+To get real-time support into an ubuntu system, the following steps have to be performed:
 
 1. Get the sources of a real-time kernel
 2. Compile the real-time kernel
@@ -96,7 +100,7 @@ To build a real-time kernel, we first need to get the kernel sources and the rea
 
 First, we must decide on the kernel version that we want to use. Above, we determined that our system has a 4.15 kernel
 installed. However, real-time patches exist only for selected kernel versions. Those can be found on the
-linuxfoundation wiki.
+`linuxfoundation wiki <https://wiki.linuxfoundation.org/realtime/start>`_.
 
 In this example, we will select a 4.14 kernel. Select a kernel version close to the one installed on your system.
 
@@ -128,7 +132,8 @@ For the kernel sources use (as suggested on kernel.org)
 
    gpg2 --locate-keys torvalds@kernel.org gregkh@kernel.org
 
-and for the patch search for a key of the author listed on linuxfoundation wiki.
+and for the patch search for a key of the author listed on
+`linuxfoundation wiki <https://wiki.linuxfoundation.org/realtime/start>`_.
 
 .. code-block:: shell
 
@@ -202,8 +207,6 @@ After building, install the linux-headers and linux-image packages in the parent
 
     sudo apt install ../linux-headers-4.14.139-rt66_*.deb ../linux-image-4.14.139-rt66_*.deb
 
-
-
 .. note::
    NVIDIA Drivers are not supported on PREEMPT_RT kernels!
 
@@ -241,7 +244,7 @@ On Windows the real-time priorities are set differently than on Linux and in ano
 Learn more about the real-time priorities on windows here: `Scheduling Priorities <https://docs.microsoft.com/en-us/windows/win32/procthread/scheduling-priorities>`_
 
 Setting a real-time priority
----------------------------
+----------------------------
 The real-time priority of the RTDEControl and RTDEReceiveInterface can be set with an integer specified
 in the constructor of the interfaces. Like so:
 
