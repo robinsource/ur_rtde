@@ -13,11 +13,12 @@
 
 A C++ interface for controlling and receiving data from a UR robot using the 
 [Real-Time Data Exchange (RTDE)](https://www.universal-robots.com/how-tos-and-faqs/how-to/ur-how-tos/real-time-data-exchange-rtde-guide-22229/)
- interface of the robot. The interface can also by used with python, through the provided python bindings.
+ interface of the robot. The interface can also be used with python, through the provided python bindings.
 
 ### Key Features ###
  * Fast and lightweight interface for programming UR robots.
  * Uses the [Real-Time Data Exchange (RTDE)](https://www.universal-robots.com/how-tos-and-faqs/how-to/ur-how-tos/real-time-data-exchange-rtde-guide-22229/) of the robot.
+ * Execute with real-time priority on operating systems with a real-time kernel, see the [Real-time Setup Guide](https://sdurobotics.gitlab.io/ur_rtde/guides/guides.html#realtime-setup-guide)
  * Available on multiple platforms (Linux, Windows, macOS)
  * Can be used from C++ and Python.
  * Relies only on STL datatypes and can be used with various robot frameworks.
@@ -71,6 +72,7 @@ Currently tested on:
 *  Ubuntu 16.04 (Xenial Xerus)
 *  Ubuntu 18.04 (Bionic Beaver)
 *  Ubuntu 20.04 (Focal Fossa)
+*  Ubuntu 22.04 (Jammy Jellyfish)
 *  macOS 10.14 (Mojave)
 *  Windows 10 Pro x64
 

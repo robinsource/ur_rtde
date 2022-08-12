@@ -1,5 +1,4 @@
 from rtde_control import RTDEControlInterface as RTDEControl
-import time
 
 rtde_c = RTDEControl("127.0.0.1")
 
@@ -16,14 +15,11 @@ rtde_c.moveJ(joint_q)
 
 # Execute 500Hz control loop for 2 seconds, each cycle is 2ms
 for i in range(1000):
-    start = time.time()
+    rtde_c.initPeriod()
     rtde_c.servoJ(joint_q, velocity, acceleration, dt, lookahead_time, gain)
     joint_q[0] += 0.001
     joint_q[1] += 0.001
-    end = time.time()
-    duration = end - start
-    if duration < dt:
-        time.sleep(dt - duration)
+    rtde_c.waitPeriod(dt)
 
 rtde_c.servoStop()
 rtde_c.stopScript()

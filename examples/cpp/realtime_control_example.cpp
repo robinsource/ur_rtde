@@ -25,21 +25,21 @@ std::vector<double> getCircleTarget(const std::vector<double> &pose, double time
 int main(int argc, char* argv[])
 {
   // Setup parameters
-  std::string robot_ip = "192.168.1.129";
+  std::string robot_ip = "localhost";
   double rtde_frequency = 500.0; // Hz
   double dt = 1.0 / rtde_frequency; // 2ms
   uint16_t flags = RTDEControlInterface::FLAG_VERBOSE | RTDEControlInterface::FLAG_UPLOAD_SCRIPT;
   int ur_cap_port = 50002;
 
   // ur_rtde realtime priorities
-  int rt_receive_priority = 90; // 90
-  int rt_control_priority = 85; // 85
+  int rt_receive_priority = 90;
+  int rt_control_priority = 85;
 
   RTDEControlInterface rtde_control(robot_ip, rtde_frequency, flags, ur_cap_port, rt_control_priority);
   RTDEReceiveInterface rtde_receive(robot_ip, rtde_frequency, {}, true, false, rt_receive_priority);
 
   // Set application realtime priority
-  RTDEUtility::setRealtimePriority(80); // 80
+  RTDEUtility::setRealtimePriority(80);
 
   // Move parameters
   double vel = 0.5;
@@ -52,9 +52,6 @@ int main(int argc, char* argv[])
   signal(SIGINT, raiseFlag);
 
   double time_counter = 0.0;
-  bool initial_run = true;
-  int missed_deadline_count = 0;
-  std::vector<double> cycle_times;
 
   // Move to init position using moveL
   std::vector<double> actual_tcp_pose = rtde_receive.getActualTCPPose();
@@ -65,34 +62,15 @@ int main(int argc, char* argv[])
   {
     while (running)
     {
-      auto t_cycle_start = steady_clock::now();
-
       rtde_control.initPeriod();
       std::vector<double> servo_target = getCircleTarget(actual_tcp_pose, time_counter);
       rtde_control.servoL(servo_target, vel, acc, dt, lookahead_time, gain);
       rtde_control.waitPeriod(dt);
-
-      auto t_cycle_stop = steady_clock::now();
-      auto t_cycle_duration = std::chrono::duration<double>(t_cycle_stop - t_cycle_start);
-      if (!initial_run)
-        cycle_times.push_back(t_cycle_duration.count());
-
-      initial_run = false;
       time_counter += dt;
     }
     std::cout << "Control interrupted!" << std::endl;
     rtde_control.servoStop();
     rtde_control.stopScript();
-    std::ofstream data_recording("rt_cycle_times.csv");
-    data_recording << std::fixed << std::setprecision(6);
-    data_recording << "time" << "," << "control_cycle_time" << '\n';
-    int sample = 0;
-    for (const auto &var : cycle_times)
-    {
-      data_recording << sample << "," << var << '\n';
-      sample++;
-    }
-    data_recording.close();
   }
   catch(std::exception& e)
   {

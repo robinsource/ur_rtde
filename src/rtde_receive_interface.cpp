@@ -343,12 +343,7 @@ void RTDEReceiveInterface::recordCallback()
         *file_recording_ << ",";
     }
     *file_recording_ << std::endl;  // End row
-    auto t_stop = std::chrono::steady_clock::now();
-    auto t_duration = std::chrono::duration<double>(t_stop - t_start);
-    if (t_duration.count() < delta_time_)
-    {
-      std::this_thread::sleep_for(std::chrono::duration<double>(delta_time_ - t_duration.count()));
-    }
+    RTDEUtility::waitPeriod(t_start, delta_time_);
   }
 }
 

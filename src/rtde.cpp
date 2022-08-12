@@ -495,12 +495,7 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
   size_t available_bytes = socket_->available();
   if (available_bytes > 0)
   {
-    auto t_start = steady_clock::now();
     data_len = async_read_some(*socket_, boost::asio::buffer(data), error);
-    auto t_stop = steady_clock::now();
-    auto t_dur = std::chrono::duration<double>(t_stop-t_start);
-    if (t_dur.count() > 0.002)
-      std::cout << "async_read_some took: " << t_dur.count() << std::endl;
     if (error)
       return error;
   }

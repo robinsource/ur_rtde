@@ -207,6 +207,8 @@ PYBIND11_MODULE(rtde_control, m)
   control.def("getAsyncOperationProgress", &RTDEControlInterface::getAsyncOperationProgress, DOC(ur_rtde, RTDEControlInterface, getAsyncOperationProgress), py::call_guard<py::gil_scoped_release>());
   control.def("getRobotStatus", &RTDEControlInterface::getRobotStatus, DOC(ur_rtde, RTDEControlInterface, getRobotStatus), py::call_guard<py::gil_scoped_release>());
   control.def("getActualToolFlangePose", &RTDEControlInterface::getActualToolFlangePose, py::call_guard<py::gil_scoped_release>());
+  control.def("initPeriod", &RTDEControlInterface::initPeriod, py::call_guard<py::gil_scoped_release>());
+  control.def("waitPeriod", &RTDEControlInterface::waitPeriod, py::call_guard<py::gil_scoped_release>());
   control.def("__repr__", [](const RTDEControlInterface &a) { return "<rtde_control.RTDEControlInterface>"; });
 }
 };  // namespace rtde_control
@@ -217,10 +219,11 @@ PYBIND11_MODULE(rtde_receive, m)
 {
   m.doc() = "RTDE Receive Interface";
   py::class_<RTDEReceiveInterface>(m, "RTDEReceiveInterface")
-      .def(py::init<std::string, double, std::vector<std::string>, bool, bool>(), py::arg("hostname"),
+      .def(py::init<std::string, double, std::vector<std::string>, bool, bool, int>(), py::arg("hostname"),
            py::arg("frequency") = -1.0,
            py::arg("variables") = std::vector<std::string>(), py::arg("verbose") = false,
-           py::arg("use_upper_range_registers") = false)
+           py::arg("use_upper_range_registers") = false,
+           py::arg("rt_priority") = 0)
       .def("disconnect", &RTDEReceiveInterface::disconnect, py::call_guard<py::gil_scoped_release>())
       .def("reconnect", &RTDEReceiveInterface::reconnect, DOC(ur_rtde, RTDEReceiveInterface, reconnect),
            py::call_guard<py::gil_scoped_release>())
@@ -340,6 +343,7 @@ PYBIND11_MODULE(rtde_io, m)
            py::arg("use_upper_range_registers") = false)
       .def("reconnect", &RTDEIOInterface::reconnect, DOC(ur_rtde, RTDEIOInterface, reconnect),
            py::call_guard<py::gil_scoped_release>())
+      .def("disconnect", &RTDEIOInterface::disconnect, py::call_guard<py::gil_scoped_release>())
       .def("setStandardDigitalOut", &RTDEIOInterface::setStandardDigitalOut,
            DOC(ur_rtde, RTDEIOInterface, setStandardDigitalOut), py::call_guard<py::gil_scoped_release>())
       .def("setToolDigitalOut", &RTDEIOInterface::setToolDigitalOut, DOC(ur_rtde, RTDEIOInterface, setToolDigitalOut),

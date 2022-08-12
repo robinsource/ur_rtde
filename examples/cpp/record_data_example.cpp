@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
     signal(SIGINT, raiseFlag);
     double frequency = vm["frequency"].as<double>();
     double dt = 1.0 / frequency;
-    RTDEReceiveInterface rtde_receive(vm["robot_ip"].as<std::string>(), frequency, {}, true, false, 90);
+    RTDEReceiveInterface rtde_receive(vm["robot_ip"].as<std::string>(), frequency, {}, true, false);
 
     rtde_receive.startFileRecording(vm["output"].as<std::string>());
     std::cout << "Data recording started. press [Ctrl-C] to end recording." << std::endl;

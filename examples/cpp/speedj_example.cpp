@@ -21,17 +21,11 @@ int main(int argc, char* argv[])
   // Execute 500Hz control loop for 2 seconds, each cycle is ~2ms
   for (unsigned int i=0; i<1000; i++)
   {
-    auto t_start = high_resolution_clock::now();
+    rtde_control.initPeriod();
     rtde_control.speedJ(joint_speed, acceleration, dt);
     joint_speed[0] += 0.0005;
     joint_speed[1] += 0.0005;
-    auto t_stop = high_resolution_clock::now();
-    auto t_duration = std::chrono::duration<double>(t_stop - t_start);
-
-    if (t_duration.count() < dt)
-    {
-      std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
-    }
+    rtde_control.waitPeriod(dt);
   }
 
   rtde_control.speedStop();
