@@ -385,7 +385,7 @@ SCENARIO("Controlling the IO of the robot")
 
     WHEN("Waiting for output to be actuated")
     {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
       THEN("Reading values from IO, must be true")
       {
@@ -423,7 +423,7 @@ SCENARIO("Test ProtectiveStop")
     // Check if robot is in protected stop.
     bool protected_stop = rtde_receive->isProtectiveStopped();
 
-    std::this_thread::sleep_for(std::chrono::duration<double>(1));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     WHEN("ProtectiveStop is not enabled")
     {
@@ -432,7 +432,7 @@ SCENARIO("Test ProtectiveStop")
       THEN("Enable ProtectiveStop")
       {
         rtde_control->triggerProtectiveStop();
-        std::this_thread::sleep_for(std::chrono::duration<double>(1));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
         // Check if robot is in protected stop.
         protected_stop = rtde_receive->isProtectiveStopped();
         REQUIRE(protected_stop == true);
@@ -459,7 +459,7 @@ SCENARIO("Reactivate Robot, remove ProtectiveStop")
         db_client->unlockProtectiveStop();
 
         // Check if robot is in protected stop.
-        std::this_thread::sleep_for(std::chrono::duration<double>(1));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
         protected_stop = rtde_receive->isProtectiveStopped();
         REQUIRE(protected_stop == false);
       }

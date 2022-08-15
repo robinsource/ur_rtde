@@ -116,7 +116,7 @@ to download the source files:
         curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/4.14/older/patch-4.14.12-rt10.patch.xz
         curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/4.14/older/patch-4.14.12-rt10.patch.sign
 
-.. admonition:: Ubuntu 16.04
+.. admonition:: Ubuntu 18.04
   :class: note
 
     Ubuntu 18.04 was tested with the kernel version 5.4.19:
