@@ -3,10 +3,8 @@ FAQ
 ***
 * **Is ur_rtde realtime capable?**
 
-The servo, speed and force commands should be realtime capable. I am currently working on
-a guide for how to set up a realtime kernel and a ur_rtde realtime communication test, that can be used for
-determining if the communication latency is low enough for realtime communication. Once done you can find the guide
-here :ref:`Realtime Setup Guide <realtime-setup-guide>`
+Yes! you can define real-time priorities when instantiating the RTDEControl and RTDEReceive interfaces see the
+:ref:`Real-time Setup Guide <realtime-setup-guide>`
 
 * **Can I use ur_rtde interface through MATLAB?**
 

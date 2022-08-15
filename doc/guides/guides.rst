@@ -5,11 +5,20 @@ This section contains guides for how to use the ur_rtde interface.
 
 .. _realtime-setup-guide:
 
+.. role:: bash(code)
+   :language: bash
+
+
 Real-time Setup Guide
 =====================
 ur_rtde makes it possible to specify a desired real-time priority for the RTDEControlInterface and RTDEReceiveInterface.
 First you must make sure your OS supports a real-time kernel and install it, if not already available. In the following
 sections you can find how to set it up on various commonly used operating systems.
+
+.. tip::
+
+    It is highly recommended that you use ur_rtde in combination with a real-time kernel, this makes sure that if the system
+    experience a high load, ur_rtde would still be able to control the robot in a precise and safe manner.
 
 Linux
 -----
@@ -56,16 +65,16 @@ Now reboot the system and the realtime kernel should be loaded.
 
     For more information: ua help realtime-kernel
 
-Ubuntu 20.04 / 18.04 + Other debian distros
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This part of the guide is originally from the universal robots urcl client library git repository found
-`here <https://github.com/UniversalRobots/Universal_Robots_Client_Library/blob/master/doc/real_time.md>`_.
-
+Ubuntu 20.04 / 18.04 / 16.04
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To get real-time support into an ubuntu system, the following steps have to be performed:
 
 1. Get the sources of a real-time kernel
 2. Compile the real-time kernel
 3. Install real-time kernel
+
+.. note::
+   NVIDIA Drivers are not supported on PREEMPT_RT kernels!
 
 Install dependencies
 """"""""""""""""""""
@@ -73,14 +82,7 @@ To build the kernel, you will need a couple of tools available on your system. Y
 
 .. code-block:: shell
 
-   sudo apt-get install build-essential bc ca-certificates gnupg2 libssl-dev wget gawk flex bison
-
-Before you download the sources of a real-time-enabled kernel, check the kernel version that is currently installed:
-
-.. code-block:: shell
-
-   uname -r
-   4.15.0-62-generic
+   sudo apt-get install build-essential bc curl ca-certificates gnupg2 libssl-dev lsb-release libelf-dev zstd libncurses-dev dwarves gawk flex bison
 
 To continue with this tutorial, please create a temporary folder and navigate into it.
 You should have sufficient space (around 25GB) there, as the extracted kernel sources take much space.
@@ -95,90 +97,136 @@ In this example we will use a temporary folder inside our home folder:
 
 Getting the sources for a real-time kernel
 """"""""""""""""""""""""""""""""""""""""""
-To build a real-time kernel, we first need to get the kernel sources and the real-time patch.
+Then, you have to decide which kernel version to use. To find the one you are using currently, use :bash:`uname -r`.
+Real-time patches are only available for select kernel versions,
+see https://www.kernel.org/pub/linux/kernel/projects/rt/. We recommend choosing the version closest to the one you
+currently use. If you choose a different version, simply substitute the numbers. Having decided on a version, use curl
+to download the source files:
 
-First, we must decide on the kernel version that we want to use. Above, we determined that our system has a 4.15 kernel
-installed. However, real-time patches exist only for selected kernel versions. Those can be found on the
-`linuxfoundation wiki <https://wiki.linuxfoundation.org/realtime/start>`_.
 
-In this example, we will select a 4.14 kernel. Select a kernel version close to the one installed on your system.
+.. admonition:: Ubuntu 16.04
+  :class: note
 
-Go ahead and download the kernel sources, patch sources and their signature files:
+    Ubuntu 16.04 was tested with the kernel version 4.14.12:
 
-.. code-block:: shell
+    .. code-block:: shell
 
-   wget https://cdn.kernel.org/pub/linux/kernel/projects/rt/4.14/patch-4.14.139-rt66.patch.xz
-   wget https://cdn.kernel.org/pub/linux/kernel/projects/rt/4.14/patch-4.14.139-rt66.patch.sign
-   wget https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.14.139.tar.xz
-   wget https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.14.139.tar.sign
+        curl -SLO https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.14.12.tar.xz
+        curl -SLO https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.14.12.tar.sign
+        curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/4.14/older/patch-4.14.12-rt10.patch.xz
+        curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/4.14/older/patch-4.14.12-rt10.patch.sign
+
+.. admonition:: Ubuntu 16.04
+  :class: note
+
+    Ubuntu 18.04 was tested with the kernel version 5.4.19:
+
+    .. code-block:: shell
+
+        curl -SLO https://www.kernel.org/pub/linux/kernel/v5.x/linux-5.4.19.tar.xz
+        curl -SLO https://www.kernel.org/pub/linux/kernel/v5.x/linux-5.4.19.tar.sign
+        curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/5.4/older/patch-5.4.19-rt10.patch.xz
+        curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/5.4/older/patch-5.4.19-rt10.patch.sign
+
+.. admonition:: Ubuntu 20.04
+  :class: note
+
+    Ubuntu 20.04 was tested with the kernel version 5.9.1:
+
+    .. code-block:: shell
+
+        curl -SLO https://www.kernel.org/pub/linux/kernel/v5.x/linux-5.9.1.tar.xz
+        curl -SLO https://www.kernel.org/pub/linux/kernel/v5.x/linux-5.9.1.tar.sign
+        curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/5.9/patch-5.9.1-rt20.patch.xz
+        curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/5.9/patch-5.9.1-rt20.patch.sign
 
 To unzip the downloaded files do
 
 .. code-block:: shell
 
-   xz -dk patch-4.14.139-rt66.patch.xz
-   xz -d linux-4.14.139.tar.xz
+   xz -d *.xz
 
 Verification
 """"""""""""
-Technically, you can skip this section, it is however highly recommended to verify the file integrity of such a core
-component of your system!
+.. note::
+    This step is optional but recommended!
 
-To verify file integrity, you must first import public keys by the kernel developers and the patch author.
-For the kernel sources use (as suggested on kernel.org)
+The .sign files can be used to verify that the downloaded files were not corrupted or tampered with. The steps shown
+here are adapted from the `Linux Kernel Archive <https://www.kernel.org/signature.html>`_, see the linked page for more
+details about the process.
 
-.. code-block:: shell
-
-   gpg2 --locate-keys torvalds@kernel.org gregkh@kernel.org
-
-and for the patch search for a key of the author listed on
-`linuxfoundation wiki <https://wiki.linuxfoundation.org/realtime/start>`_.
+You can use gpg2 to verify the .tar archives:
 
 .. code-block:: shell
 
-    gpg2 --keyserver hkp://keys.gnupg.net --search-keys zanussi
-    gpg: data source: http://51.38.91.189:11371
-    (1)     German Daniel Zanussi <german.zanussi@globant.com>
-              4096 bit RSA key 0x537F98A9D92CEAC8, created: 2019-07-24, expires: 2023-07-24
-    (2)     Michael Zanussi <mzanussi@gmail.com>
-              4096 bit RSA key 0x7C7F76A2C1E3D9EB, created: 2019-05-08
-    (3)     Tom Zanussi <tzanussi@gmail.com>
-            Tom Zanussi <zanussi@kernel.org>
-            Tom Zanussi <tom.zanussi@linux.intel.com>
-              4096 bit RSA key 0xDE09826778A38521, created: 2017-12-15
-    (4)     Riccardo Zanussi <riccardo.zanussi@gmail.com>
-              2048 bit RSA key 0xD299A06261D919C3, created: 2014-08-27, expires: 2018-08-27 (expired)
-    (5)     Zanussi Gianni <g.zanussi@virgilio.it>
-              1024 bit DSA key 0x78B89CB020D1836C, created: 2004-04-06
-    (6)     Michael Zanussi <zanussi@unm.edu>
-            Michael Zanussi <mzanussi@gmail.com>
-            Michael Zanussi <michael_zanussi@yahoo.com>
-            Michael Zanussi <michael@michaelzanussi.com>
-              1024 bit DSA key 0xB3E952DCAC653064, created: 2000-09-05
-    (7)     Michael Zanussi <surfpnk@yahoo.com>
-              1024 bit DSA key 0xEB10BBD9BA749318, created: 1999-05-31
-    (8)     Michael B. Zanussi <surfpnk@yahoo.com>
-              1024 bit DSA key 0x39EE4EAD7BBB1E43, created: 1998-07-16
-    Keys 1-8 of 8 for "zanussi".  Enter number(s), N)ext, or Q)uit > 3
+    gpg2 --verify linux-*.tar.sign
+    gpg2 --verify patch-*.patch.sign
+
+If your output is similar to the following:
+
+.. code-block:: none
+
+    $ gpg2 --verify linux-*.tar.sign
+    gpg: assuming signed data in 'linux-4.14.12.tar'
+    gpg: Signature made Fr 05 Jan 2018 06:49:11 PST using RSA key ID 6092693E
+    gpg: Can't check signature: No public key
+
+You have to first download the public key of the person who signed the above file. As you can see from the above output,
+it has the ID 6092693E. You can obtain it from the key server:
+
+.. code-block:: shell
+
+    gpg2  --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 6092693E
+
+Similarly for the patch:
+
+.. code-block:: shell
+
+    gpg2 --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 2872E4CC
+
+Note that keys for other kernel version might have different IDs, you will have to adapt accordingly.
+
+Having downloaded the keys, you can now verify the sources. Here is an example of a correct output:
+
+.. code-block:: shell
+
+    $ gpg2 --verify linux-*.tar.sign
+    gpg: assuming signed data in 'linux-4.14.12.tar'
+    gpg: Signature made Fr 05 Jan 2018 06:49:11 PST using RSA key ID 6092693E
+    gpg: Good signature from "Greg Kroah-Hartman <gregkh@linuxfoundation.org>" [unknown]
+    gpg:                 aka "Greg Kroah-Hartman <gregkh@kernel.org>" [unknown]
+    gpg:                 aka "Greg Kroah-Hartman (Linux kernel stable release signing key) <greg@kroah.com>" [unknown]
+    gpg: WARNING: This key is not certified with a trusted signature!
+    gpg:          There is no indication that the signature belongs to the owner.
+    Primary key fingerprint: 647F 2865 4894 E3BD 4571  99BE 38DB BDC8 6092 693E
+
+See `Linux Kernel Archive <https://www.kernel.org/signature.html>`_ for more information about the warning.
 
 Compilation
 """""""""""
-Before we can compile the sources, we have to extract the tar archive and apply the patch
+Once you are sure the files were downloaded properly, you can extract the source code and apply the patch:
 
 .. code-block:: shell
 
-    tar xf linux-4.14.139.tar
-    cd linux-4.14.139
-    xzcat ../patch-4.14.139-rt66.patch.xz | patch -p1
+    tar xf linux-*.tar
+    cd linux-*/
+    patch -p1 < ../patch-*.patch
 
-Now to configure your kernel, just type
+Next copy your currently booted kernel configuration as the default config for the new real time kernel:
 
 .. code-block:: shell
 
-    make oldconfig
+    cp -v /boot/config-$(uname -r) .config
 
-This will ask for kernel options. For everything else then the Preemption Model use the default value (just press Enter)
-or adapt to your preferences. For the preemption model select Fully Preemptible Kernel:
+Now you can use this config as the default to configure the build:
+
+.. code-block:: shell
+
+    make olddefconfig
+    make menuconfig
+
+The second command brings up a terminal interface in which you can configure the preemption model.
+For the preemption model select Fully Preemptible Kernel:
 
 .. code-block:: shell
 
@@ -190,24 +238,34 @@ or adapt to your preferences. For the preemption model select Fully Preemptible 
       5. Fully Preemptible Kernel (RT) (PREEMPT_RT_FULL) (NEW)
     choice[1-5]: 5
 
-Now you can build the kernel. This will take some time...
+After that navigate to Cryptographic API > Certificates for signature checking (at the very bottom of the list) >
+Provide system-wide ring of trusted keys > Additional X.509 keys for default system keyring
+
+Remove the “debian/canonical-certs.pem” from the prompt and press Ok. Save this configuration to :bash:`.config` and
+exit the TUI.
+
+Now you are ready to compile the kernel. As this is a lengthy process, set the multithreading option -j to the number
+of your CPU cores:
 
 .. code-block:: shell
 
-    make -j `getconf _NPROCESSORS_ONLN` deb-pkg
+    make -j$(nproc) deb-pkg
+
 
 Installation
 """"""""""""
-
 After building, install the linux-headers and linux-image packages in the parent folder
-(only the ones without the -dbg in the name)
+(only the ones without the -dbg in the name).
 
 .. code-block:: shell
 
-    sudo apt install ../linux-headers-4.14.139-rt66_*.deb ../linux-image-4.14.139-rt66_*.deb
+    sudo dpkg -i ../linux-headers-*.deb ../linux-image-*.deb
 
-.. note::
-   NVIDIA Drivers are not supported on PREEMPT_RT kernels!
+Verifying the new kernel
+""""""""""""""""""""""""
+Restart your system. The Grub boot menu should now allow you to choose your newly installed kernel. To see which one is
+currently being used, see the output of the :bash:`uname -a` command. It should contain the string PREEMPT RT and the version
+number you chose. Additionally, :file:`/sys/kernel/realtime` should exist and contain the the number :bash:`1`.
 
 Setup user privileges to use real-time scheduling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -233,6 +291,11 @@ Afterwards, add the following limits to the *realtime* group in :file:`/etc/secu
     @realtime hard memlock 102400
 
 You need to log out and in again or simply reboot in order for the new limits to take effect.
+
+This part of the guide was inspired by the guide from the universal robots urcl client library git repository found
+`here <https://github.com/UniversalRobots/Universal_Robots_Client_Library/blob/master/doc/real_time.md>`_. as well as
+the guide from the Franka Control Interface documentation found here:
+`Setting up the real-time kernel <https://frankaemika.github.io/docs/installation_linux.html#setting-up-the-real-time-kernel>`_.
 
 Windows
 -------
