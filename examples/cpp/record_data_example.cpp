@@ -42,7 +42,6 @@ int main(int argc, char* argv[])
 
     signal(SIGINT, raiseFlag);
     double frequency = vm["frequency"].as<double>();
-    double dt = 1.0 / frequency;
     RTDEReceiveInterface rtde_receive(vm["robot_ip"].as<std::string>(), frequency, {}, true, false);
 
     rtde_receive.startFileRecording(vm["output"].as<std::string>());
@@ -50,19 +49,14 @@ int main(int argc, char* argv[])
     int i=0;
     while (running)
     {
-      auto t_start = steady_clock::now();
+      steady_clock::time_point t_start = rtde_receive.initPeriod();
       if (i % 10 == 0)
       {
         std::cout << '\r';
         printf("%.3d samples.", i);
         std::cout << std::flush;
       }
-      auto t_stop = steady_clock::now();
-      auto t_duration = std::chrono::duration<double>(t_stop - t_start);
-      if (t_duration.count() < dt)
-      {
-        std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
-      }
+      rtde_receive.waitPeriod(t_start);
       i++;
     }
 

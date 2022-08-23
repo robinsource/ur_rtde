@@ -13,11 +13,11 @@ rtde_c.moveJ(joint_q)
 
 # Execute 500Hz control loop for 2 seconds, each cycle is 2ms
 for i in range(1000):
-    rtde_c.initPeriod()
+    t_start = rtde_c.initPeriod()
     rtde_c.speedJ(joint_speed, acceleration, dt)
     joint_speed[0] += 0.0005
     joint_speed[1] += 0.0005
-    rtde_c.waitPeriod(dt)
+    rtde_c.waitPeriod(t_start)
 
 rtde_c.speedStop()
 rtde_c.stopScript()

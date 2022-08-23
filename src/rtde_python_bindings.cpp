@@ -329,6 +329,10 @@ PYBIND11_MODULE(rtde_receive, m)
            py::call_guard<py::gil_scoped_release>())
       .def("getPayloadInertia", &RTDEReceiveInterface::getPayloadInertia,
            py::call_guard<py::gil_scoped_release>())
+      .def("initPeriod", &RTDEReceiveInterface::initPeriod,
+           py::call_guard<py::gil_scoped_release>())
+      .def("waitPeriod", &RTDEReceiveInterface::waitPeriod,
+           py::call_guard<py::gil_scoped_release>())
       .def("__repr__", [](const RTDEReceiveInterface &a) { return "<rtde_receive.RTDEReceiveInterface>"; });
 }
 };  // namespace rtde_receive

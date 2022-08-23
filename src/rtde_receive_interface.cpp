@@ -194,7 +194,7 @@ void RTDEReceiveInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
-      initPeriod();
+      std::chrono::steady_clock::time_point t_start = initPeriod();
       boost::system::error_code ec = rtde_->receiveData(robot_state_);
       if(ec)
       {
@@ -204,7 +204,7 @@ void RTDEReceiveInterface::receiveCallback()
         }
         throw std::system_error(ec);
       }
-      waitPeriod(delta_time_);
+      waitPeriod(t_start);
     }
     catch (std::exception& e)
     {
@@ -260,14 +260,14 @@ bool RTDEReceiveInterface::reconnect()
   return RTDEReceiveInterface::isConnected();
 }
 
-void RTDEReceiveInterface::initPeriod()
+std::chrono::steady_clock::time_point RTDEReceiveInterface::initPeriod()
 {
-  cycle_start_time_ = std::chrono::steady_clock::now();
+  return std::chrono::steady_clock::now();
 }
 
-void RTDEReceiveInterface::waitPeriod(double dt)
+void RTDEReceiveInterface::waitPeriod(const std::chrono::steady_clock::time_point &t_cycle_start)
 {
-  RTDEUtility::waitPeriod(cycle_start_time_, dt);
+  RTDEUtility::waitPeriod(t_cycle_start, delta_time_);
 }
 
 bool RTDEReceiveInterface::startFileRecording(const std::string &filename, const std::vector<std::string> &variables)
@@ -343,7 +343,7 @@ void RTDEReceiveInterface::recordCallback()
         *file_recording_ << ",";
     }
     *file_recording_ << std::endl;  // End row
-    RTDEUtility::waitPeriod(t_start, delta_time_);
+    waitPeriod(t_start);
   }
 }
 

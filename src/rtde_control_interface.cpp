@@ -665,13 +665,13 @@ void RTDEControlInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
-      initPeriod();
+      std::chrono::steady_clock::time_point start_time = initPeriod();
       boost::system::error_code ec = rtde_->receiveData(robot_state_);
       if (ec)
       {
         throw boost::system::system_error(ec);
       }
-      waitPeriod(delta_time_);
+      waitPeriod(start_time);
     }
     catch (std::exception &e)
     {
@@ -738,14 +738,14 @@ void RTDEControlInterface::stopJ(double a)
   sendCommand(robot_cmd);
 }
 
-void RTDEControlInterface::initPeriod()
+std::chrono::steady_clock::time_point RTDEControlInterface::initPeriod()
 {
-  cycle_start_time_ = std::chrono::steady_clock::now();
+  return std::chrono::steady_clock::now();
 }
 
-void RTDEControlInterface::waitPeriod(double dt)
+void RTDEControlInterface::waitPeriod(const std::chrono::steady_clock::time_point &t_cycle_start)
 {
-  RTDEUtility::waitPeriod(cycle_start_time_, dt);
+  RTDEUtility::waitPeriod(t_cycle_start, delta_time_);
 }
 
 bool RTDEControlInterface::reuploadScript()

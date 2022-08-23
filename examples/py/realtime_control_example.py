@@ -1,7 +1,10 @@
 from rtde_control import RTDEControlInterface as RTDEControl
 from rtde_receive import RTDEReceiveInterface as RTDEReceive
+import datetime
 import math
 import os
+import psutil
+import sys
 
 
 def getCircleTarget(pose, timestep, radius=0.075, freq=1.0):
@@ -22,7 +25,6 @@ robot_ip = "localhost"
 
 lookahead_time = 0.1
 gain = 600
-joint_q = [-1.54, -1.83, -2.28, -0.59, 1.60, 0.023]
 
 # ur_rtde realtime priorities
 rt_receive_priority = 90
@@ -32,14 +34,19 @@ rtde_r = RTDEReceive(robot_ip, rtde_frequency, [], True, False, rt_receive_prior
 rtde_c = RTDEControl(robot_ip, rtde_frequency, flags, ur_cap_port, rt_control_priority)
 
 # Set application real-time priority
-rt_app_priority = 80
-param = os.sched_param(rt_app_priority)
-try:
-    os.sched_setscheduler(0, os.SCHED_FIFO, param)
-except OSError:
-    print("Failed to set real-time process scheduler to %u, priority %u" % (os.SCHED_FIFO, rt_app_priority))
-else:
-    print("Process real-time priority set to: %u" % rt_app_priority)
+os_used = sys.platform
+process = psutil.Process(os.getpid())
+if os_used == "win32":  # Windows (either 32-bit or 64-bit)
+    process.nice(psutil.REALTIME_PRIORITY_CLASS)
+elif os_used == "linux":  # linux
+    rt_app_priority = 80
+    param = os.sched_param(rt_app_priority)
+    try:
+        os.sched_setscheduler(0, os.SCHED_FIFO, param)
+    except OSError:
+        print("Failed to set real-time process scheduler to %u, priority %u" % (os.SCHED_FIFO, rt_app_priority))
+    else:
+        print("Process real-time priority set to: %u" % rt_app_priority)
 
 time_counter = 0.0
 
@@ -50,10 +57,10 @@ rtde_c.moveL(init_pose, vel, acc)
 
 try:
     while True:
-        rtde_c.initPeriod()
+        t_start = rtde_c.initPeriod()
         servo_target = getCircleTarget(actual_tcp_pose, time_counter)
         rtde_c.servoL(servo_target, vel, acc, dt, lookahead_time, gain)
-        rtde_c.waitPeriod(dt)
+        rtde_c.waitPeriod(t_start)
         time_counter += dt
 
 except KeyboardInterrupt:

@@ -57,16 +57,13 @@ def main(args):
     i = 0
     try:
         while True:
+            t_start = rtde_r.initPeriod()
             start = time.time()
             if i % 10 == 0:
                 sys.stdout.write("\r")
                 sys.stdout.write("{:3d} samples.".format(i))
                 sys.stdout.flush()
-            end = time.time()
-            duration = end - start
-
-            if duration < dt:
-                time.sleep(dt - duration)
+            rtde_r.waitPeriod(t_start)
             i += 1
 
     except KeyboardInterrupt:

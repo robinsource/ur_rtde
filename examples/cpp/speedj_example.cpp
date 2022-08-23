@@ -21,11 +21,11 @@ int main(int argc, char* argv[])
   // Execute 500Hz control loop for 2 seconds, each cycle is ~2ms
   for (unsigned int i=0; i<1000; i++)
   {
-    rtde_control.initPeriod();
+    steady_clock::time_point t_start = rtde_control.initPeriod();
     rtde_control.speedJ(joint_speed, acceleration, dt);
     joint_speed[0] += 0.0005;
     joint_speed[1] += 0.0005;
-    rtde_control.waitPeriod(dt);
+    rtde_control.waitPeriod(t_start);
   }
 
   rtde_control.speedStop();

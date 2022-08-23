@@ -163,18 +163,19 @@ class RTDEControlInterface
   RTDE_EXPORT bool isConnected();
 
   /**
-   * @brief Used for waiting the rest of the specified control period. A combination of sleeping and spinning are
-   * used to achieve the lowest possible jitter. The function is especially useful for a realtime control loop. NOTE:
-   * the function MUST be used in combination with the initPeriod()! See the realtime_control_example.cpp.
-   * @param dt the control period given in seconds. Typically given as dt = 1 / frequency.
+   * @brief Used for waiting the rest of the control period, set implicitly as dt = 1 / frequency. A combination of
+   * sleeping and spinning are used to achieve the lowest possible jitter. The function is especially useful for a
+   * realtime control loop. NOTE: the function is to be used in combination with the initPeriod().
+   * See the realtime_control_example.cpp.
+   * @param t_cycle_start the start of the control period. Typically given as dt = 1 / frequency.
    */
-  RTDE_EXPORT void waitPeriod(double dt);
+  RTDE_EXPORT void waitPeriod(const std::chrono::steady_clock::time_point &t_cycle_start);
 
   /**
-   * @brief This function is used in combination with waitPeriod() and is used to signal the start of a control period /
+   * @brief This function is used in combination with waitPeriod() and is used to get the start of a control period /
    * cycle. See the realtime_control_example.cpp.
    */
-  RTDE_EXPORT void initPeriod();
+  RTDE_EXPORT std::chrono::steady_clock::time_point initPeriod();
 
   /**
    * @brief In the event of an error, this function can be used to resume operation by reuploading the RTDE control
@@ -947,7 +948,6 @@ class RTDEControlInterface
   // major, minor, bugfix, build numbers.
   Versions versions_;
   std::string serial_number_;
-  std::chrono::steady_clock::time_point cycle_start_time_;
 };
 
 /**

@@ -63,10 +63,10 @@ int main(int argc, char* argv[])
   {
     while (running)
     {
-      rtde_control.initPeriod();
+      steady_clock::time_point t_start = rtde_control.initPeriod();
       std::vector<double> servo_target = getCircleTarget(actual_tcp_pose, time_counter);
       rtde_control.servoL(servo_target, vel, acc, dt, lookahead_time, gain);
-      rtde_control.waitPeriod(dt);
+      rtde_control.waitPeriod(t_start);
       time_counter += dt;
     }
     std::cout << "Control interrupted!" << std::endl;
