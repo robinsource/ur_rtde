@@ -191,19 +191,13 @@ SCENARIO("Move robot in Forcemode (forceMode)")
       // Execute 500Hz control loop for a total of 4 seconds, each cycle is ~2ms
       for (unsigned int i = 0; i < 2000; i++)
       {
-        auto t_start = high_resolution_clock::now();
+        auto t_start = rtde_control->initPeriod();
         // First we move the robot down for 2 seconds, then up for 2 seconds
         if (i > 1000)
           rtde_control->forceMode(task_frame, selection_vector, wrench_up, force_type, limits);
         else
           rtde_control->forceMode(task_frame, selection_vector, wrench_down, force_type, limits);
-        auto t_stop = high_resolution_clock::now();
-        auto t_duration = std::chrono::duration<double>(t_stop - t_start);
-
-        if (t_duration.count() < dt)
-        {
-          std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
-        }
+        rtde_control->waitPeriod(t_start);
       }
       rtde_control->forceModeStop();
 
@@ -213,108 +207,6 @@ SCENARIO("Move robot in Forcemode (forceMode)")
         for (unsigned int i = 0; i < actual_tcp_pose.size(); i++)
         {
           CHECK(actual_tcp_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.05));
-        }
-      }
-    }
-  }
-}
-
-SCENARIO("Move robot using servo command (servoJ)")
-{
-  GIVEN("Servo to position in joint-space")
-  {
-    // Move to initial pose, securing that former test don't leave robot in a strange state.
-    rtde_control->moveL(init_pose, 3, 3);
-
-    // Parameters
-    double velocity = 0.5;
-    double acceleration = 0.5;
-    double dt = 1.0 / 500;  // 2ms
-    double lookahead_time = 0.1;
-    double gain = 300;
-    std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
-
-    // This target is defined specifically for the test
-    std::vector<double> target_pose{0.142942, -0.247098, 0.512341, -1.14747, 2.12287, -1.10575};
-
-    WHEN("Robot is still moving")
-    {
-      // Move to initial joint position with a regular moveJ
-      REQUIRE(rtde_control->moveJ(joint_q));
-
-      // Execute 500Hz control loop for 2 seconds, each cycle is ~2ms
-      for (unsigned int i = 0; i < 1000; i++)
-      {
-        auto t_start = high_resolution_clock::now();
-        rtde_control->servoJ(joint_q, velocity, acceleration, dt, lookahead_time, gain);
-        joint_q[0] += 0.001;
-        joint_q[1] += 0.001;
-        auto t_stop = high_resolution_clock::now();
-        auto t_duration = std::chrono::duration<double>(t_stop - t_start);
-
-        if (t_duration.count() < dt)
-        {
-          std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
-        }
-      }
-      rtde_control->servoStop();
-
-      THEN("Robot must be at target")
-      {
-        std::vector<double> actual_joint_pose = rtde_receive->getActualTCPPose();
-        for (unsigned int i = 0; i < actual_joint_pose.size(); i++)
-        {
-          CHECK(actual_joint_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.05));
-        }
-      }
-    }
-  }
-}
-
-SCENARIO("Move robot using SpeedJ command (SpeedJ)")
-{
-  GIVEN("Servo to position in joint-space")
-  {
-    // Move to initial pose, securing that former test don't leave robot in a strange state.
-    rtde_control->moveL(init_pose, 3, 3);
-
-    // Parameters
-    double acceleration = 0.5;
-    double dt = 1.0 / 500;  // 2ms
-    std::vector<double> joint_q = {-1.54, -1.83, -2.28, -0.59, 1.60, 0.023};
-    std::vector<double> joint_speed = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-    // This target is defined specifically for the test
-    std::vector<double> target_pose{0.0759238, -0.402462, 0.352427, -0.71123, 2.81592, -0.692356};
-
-    WHEN("Robot is still moving")
-    {
-      // Move to initial joint position with a regular moveJ
-      REQUIRE(rtde_control->moveJ(joint_q));
-
-      // Execute 500Hz control loop for 2 seconds, each cycle is ~2ms
-      for (unsigned int i = 0; i < 1000; i++)
-      {
-        auto t_start = high_resolution_clock::now();
-        rtde_control->speedJ(joint_speed, acceleration, dt);
-        joint_speed[0] += 0.0005;
-        joint_speed[1] += 0.0005;
-        auto t_stop = high_resolution_clock::now();
-        auto t_duration = std::chrono::duration<double>(t_stop - t_start);
-
-        if (t_duration.count() < dt)
-        {
-          std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_duration.count()));
-        }
-      }
-      rtde_control->speedStop();
-
-      THEN("Robot must be at target")
-      {
-        std::vector<double> actual_joint_pose = rtde_receive->getActualTCPPose();
-        for (unsigned int i = 0; i < actual_joint_pose.size(); i++)
-        {
-          CHECK(actual_joint_pose[i] == doctest::Approx(target_pose[i]).epsilon(0.05));
         }
       }
     }
