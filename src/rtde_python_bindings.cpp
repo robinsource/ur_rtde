@@ -1,6 +1,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/chrono.h>
 #include <ur_rtde/dashboard_client.h>
 #include <ur_rtde/rtde_control_interface.h>
 #include <ur_rtde/rtde_control_interface_doc.h>
