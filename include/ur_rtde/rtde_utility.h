@@ -470,37 +470,35 @@ class RTDEUtility
     }
     return true;
 #else
-    if (priority > 0)
-    {
-      if (priority == 0)
-      {
-        // priority not set explicitly by user, assume that a fair max. priority is desired.
-        const int thread_priority = sched_get_priority_max(SCHED_FIFO);
-        if (thread_priority == -1)
-        {
-          std::cerr << "ur_rtde: unable to get maximum possible thread priority: " << strerror(errno) <<
-              std::endl;
-          return false;
-        }
-        // the priority is capped at 90, since any higher value would make the OS too unstable.
-        priority = std::min(90, std::max(0, thread_priority));
-      }
-
-      sched_param thread_param{};
-      thread_param.sched_priority = priority;
-      if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &thread_param) != 0)
-      {
-        std::cerr << "ur_rtde: unable to set realtime scheduling: " << strerror(errno) << std::endl;
-        return false;
-      }
-      return true;
-    }
-    else
+    if (priority < 0)
     {
       std::cout << "ur_rtde: realtime priority less than 0 specified, realtime priority will not be set on purpose!" <<
           std::endl;
       return false;
     }
+
+    if (priority == 0)
+    {
+      // priority not set explicitly by user, assume that a fair max. priority is desired.
+      const int thread_priority = sched_get_priority_max(SCHED_FIFO);
+      if (thread_priority == -1)
+      {
+        std::cerr << "ur_rtde: unable to get maximum possible thread priority: " << strerror(errno) <<
+            std::endl;
+        return false;
+      }
+      // the priority is capped at 90, since any higher value would make the OS too unstable.
+      priority = std::min(90, std::max(0, thread_priority));
+    }
+
+    sched_param thread_param{};
+    thread_param.sched_priority = priority;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &thread_param) != 0)
+    {
+      std::cerr << "ur_rtde: unable to set realtime scheduling: " << strerror(errno) << std::endl;
+      return false;
+    }
+    return true;
 #endif
   }
 
