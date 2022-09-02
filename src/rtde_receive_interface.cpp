@@ -49,6 +49,7 @@ RTDEReceiveInterface::RTDEReceiveInterface(std::string hostname, double frequenc
   }
 
   port_ = 30004;
+  no_bytes_avail_cnt_ = 0;
   rtde_ = std::make_shared<RTDE>(hostname_, port_, verbose_);
   rtde_->connect();
   rtde_->negotiateProtocolVersion();
@@ -194,17 +195,44 @@ void RTDEReceiveInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
-      std::chrono::steady_clock::time_point t_start = initPeriod();
-      boost::system::error_code ec = rtde_->receiveData(robot_state_);
-      if(ec)
+      if (rtde_->isDataAvailable())
       {
-        if(ec == boost::asio::error::eof)
+        no_bytes_avail_cnt_ = 0;
+        boost::system::error_code ec = rtde_->receiveData(robot_state_);
+        if(ec)
         {
-          std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+          if(ec == boost::asio::error::eof)
+          {
+            std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+          }
+          throw std::system_error(ec);
         }
-        throw std::system_error(ec);
       }
-      waitPeriod(t_start);
+      else
+      {
+        // Register that data was not available in this cycle
+        no_bytes_avail_cnt_++;
+        // If at least 2ms has passed without data available, try to read data again to detect de-synchronization.
+        if (no_bytes_avail_cnt_ > 20)
+        {
+          boost::system::error_code ec = rtde_->receiveData(robot_state_);
+          if(ec)
+          {
+            if(ec == boost::asio::error::eof)
+            {
+              std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+            }
+            throw std::system_error(ec);
+          }
+          no_bytes_avail_cnt_ = 0;
+        }
+
+#if defined(__linux__) || defined(__APPLE__)
+        // Data not available on socket yet, yield to other threads and sleep before trying to receive data again.
+        std::this_thread::yield();
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+#endif
+      }
     }
     catch (std::exception& e)
     {
@@ -221,6 +249,7 @@ bool RTDEReceiveInterface::reconnect()
 {
   if (rtde_ != nullptr)
   {
+    no_bytes_avail_cnt_ = 0;
     rtde_->connect();
     rtde_->negotiateProtocolVersion();
     auto controller_version = rtde_->getControllerVersion();

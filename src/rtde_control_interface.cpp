@@ -105,6 +105,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
       }
     }
   }
+  no_bytes_avail_cnt_ = 0;
   port_ = 30004;
   custom_script_running_ = false;
   rtde_ = std::make_shared<RTDE>(hostname_, port_, verbose_);
@@ -366,6 +367,7 @@ bool RTDEControlInterface::reconnect()
     serial_number_ = db_client_->getSerialNumber();
   }
   script_client_->connect();
+  no_bytes_avail_cnt_ = 0;
   rtde_->connect();
   rtde_->negotiateProtocolVersion();
   versions_ = rtde_->getControllerVersion();
@@ -665,13 +667,44 @@ void RTDEControlInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
-      std::chrono::steady_clock::time_point start_time = initPeriod();
-      boost::system::error_code ec = rtde_->receiveData(robot_state_);
-      if (ec)
+      if (rtde_->isDataAvailable())
       {
-        throw boost::system::system_error(ec);
+        no_bytes_avail_cnt_ = 0;
+        boost::system::error_code ec = rtde_->receiveData(robot_state_);
+        if(ec)
+        {
+          if(ec == boost::asio::error::eof)
+          {
+            std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+          }
+          throw std::system_error(ec);
+        }
       }
-      waitPeriod(start_time);
+      else
+      {
+        // Register that data was not available in this cycle
+        no_bytes_avail_cnt_++;
+        // If at least 2ms has passed without data available, try to read data again to detect de-synchronization.
+        if (no_bytes_avail_cnt_ > 20)
+        {
+          boost::system::error_code ec = rtde_->receiveData(robot_state_);
+          if (ec)
+          {
+            if (ec == boost::asio::error::eof)
+            {
+              std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+            }
+            throw std::system_error(ec);
+          }
+          no_bytes_avail_cnt_ = 0;
+        }
+
+#if defined(__linux__) || defined(__APPLE__)
+        // Data not available on socket yet, yield to other threads and sleep before trying to receive data again.
+        std::this_thread::yield();
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+#endif
+      }
     }
     catch (std::exception &e)
     {

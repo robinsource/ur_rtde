@@ -497,6 +497,7 @@ class RTDEReceiveInterface
   std::vector<std::string> record_variables_;
   double speed_scaling_combined_{};
   double pausing_ramp_up_increment_;
+  size_t no_bytes_avail_cnt_;
 };
 
 }  // namespace ur_rtde
