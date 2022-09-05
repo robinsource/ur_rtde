@@ -13,6 +13,8 @@
 #include <mutex>
 #include <iterator>
 
+
+
 namespace ur_rtde
 {
 using rtde_type_variant_ = boost::variant<uint32_t, uint64_t, int32_t, double, std::vector<double>,
@@ -37,7 +39,11 @@ class RobotState
 
   uint16_t getStateEntrySize(const std::string& name)
   {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    std::lock_guard<std::mutex> lock(update_state_mutex_);
+#else
     std::lock_guard<PriorityInheritanceMutex> lock(update_state_mutex_);
+#endif
     if (state_data_.find(name) != state_data_.end())
     {
       uint16_t entry_size = boost::apply_visitor(RobotState::SizeVisitor(), state_data_[name]);
@@ -51,7 +57,11 @@ class RobotState
 
   std::string getStateEntryString(const std::string& name)
   {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    std::lock_guard<std::mutex> lock(update_state_mutex_);
+#else
     std::lock_guard<PriorityInheritanceMutex> lock(update_state_mutex_);
+#endif
     if (state_data_.find(name) != state_data_.end())
     {
       std::string entry_str = boost::apply_visitor(RobotState::StringVisitor(), state_data_[name]);
@@ -66,7 +76,11 @@ class RobotState
   template <typename T> bool
   getStateData(const std::string& name, T& val)
   {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    std::lock_guard<std::mutex> lock(update_state_mutex_);
+#else
     std::lock_guard<PriorityInheritanceMutex> lock(update_state_mutex_);
+#endif
     if (state_data_.find(name) != state_data_.end())
     {
       val = boost::strict_get<T>(state_data_[name]);
@@ -173,7 +187,11 @@ class RobotState
 
  private:
   std::unordered_map<std::string, rtde_type_variant_> state_data_;
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+  std::mutex update_state_mutex_;
+#else
   PriorityInheritanceMutex update_state_mutex_;
+#endif
   bool first_state_received_;
 };
 

@@ -374,9 +374,9 @@ class RTDEUtility
 
       ++count;
       double delta = observed - mean;
-      mean += delta / count;
+      mean += delta / static_cast<double>(count);
       m2 += delta * (observed - mean);
-      double stddev = sqrt(m2 / (count - 1));
+      double stddev = sqrt(m2 / (static_cast<double>(count - 1)));
       estimate = mean + stddev;
     }
 
@@ -398,6 +398,7 @@ class RTDEUtility
   static void waitPeriod(const std::chrono::steady_clock::time_point &t_cycle_start, double dt)
   {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    using namespace std::chrono;
     auto t_app_stop = steady_clock::now();
     auto t_app_duration = duration<double>(t_app_stop - t_cycle_start);
     if (t_app_duration.count() < dt)
