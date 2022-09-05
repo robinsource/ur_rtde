@@ -21,10 +21,8 @@
 #include <cassert>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-#include <SDKDDKVer.h>
-#include <processthreadsapi.h>
-#include <errhandlingapi.h>
-#include <winbase.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #else
 #include <pthread.h>
 #include <fstream>
