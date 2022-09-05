@@ -4,6 +4,8 @@
 #include <thread>
 #include <chrono>
 #include <csignal>
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 using namespace ur_rtde;
 using namespace std::chrono;
