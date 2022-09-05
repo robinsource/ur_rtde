@@ -28,6 +28,9 @@
 #endif
 
 #define SLACK_TIME_IN_MICROS 300UL
+#if defined(__APPLE__)
+#define TIMER_ABSTIME 1
+#endif
 
 namespace ur_rtde
 {
@@ -386,6 +389,7 @@ class RTDEUtility
       ;
   }
 
+#if defined(__linux__) || defined(__APPLE__)
   static timespec timepointToTimespec(std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds> tp)
   {
     auto secs = std::chrono::time_point_cast<std::chrono::seconds>(tp);
@@ -394,6 +398,7 @@ class RTDEUtility
 
     return timespec{secs.time_since_epoch().count(), ns.count()};
   }
+#endif
 
   static void waitPeriod(const std::chrono::steady_clock::time_point &t_cycle_start, double dt)
   {
@@ -403,7 +408,7 @@ class RTDEUtility
     auto t_app_duration = duration<double>(t_app_stop - t_cycle_start);
     if (t_app_duration.count() < dt)
     {
-      preciseSleep(dt - t_duration.count());
+      preciseSleep(dt - t_app_duration.count());
     }
 #else
     using namespace std::chrono;
