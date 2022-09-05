@@ -13,8 +13,9 @@
 #include <iostream>
 #include <thread>
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <processthreadsapi.h>
+#include <errhandlingapi.h>
+#include <winbase.h>
 #else
 #include <pthread.h>
 #endif
@@ -249,6 +250,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
     }
   }
 #else
+  ur_cap_port_ = 50002;
   if (!upload_script_ && use_external_control_ur_cap_)
   {
     throw std::logic_error(
@@ -501,6 +503,7 @@ bool RTDEControlInterface::reconnect()
     }
   }
 #else
+  ur_cap_port_ = 50002;
   if (!upload_script_ && use_external_control_ur_cap_)
   {
     throw std::logic_error(
