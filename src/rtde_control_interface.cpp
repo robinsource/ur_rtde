@@ -6,18 +6,19 @@
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <urcl/script_sender.h>
 #endif
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-#include <Windows.h>
-#else
-#include <pthread.h>
-#endif
-
 #include <bitset>
 #include <boost/thread/thread.hpp>
 #include <chrono>
 #include <functional>
 #include <iostream>
 #include <thread>
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#else
+#include <pthread.h>
+#endif
+
 
 namespace ur_rtde
 {

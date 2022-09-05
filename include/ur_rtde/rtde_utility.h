@@ -28,9 +28,6 @@
 #endif
 
 #define SLACK_TIME_IN_MICROS 300UL
-#if defined(__APPLE__)
-#define TIMER_ABSTIME 1
-#endif
 
 namespace ur_rtde
 {
@@ -409,6 +406,14 @@ class RTDEUtility
     if (t_app_duration.count() < dt)
     {
       preciseSleep(dt - t_app_duration.count());
+    }
+#elif defined(__APPLE__)
+    using namespace std::chrono;
+    auto t_app_stop = steady_clock::now();
+    auto t_app_duration = duration<double>(t_app_stop - t_cycle_start);
+    if (t_app_duration.count() < dt)
+    {
+      std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_app_duration.count()));
     }
 #else
     using namespace std::chrono;

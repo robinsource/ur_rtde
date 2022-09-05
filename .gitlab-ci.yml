@@ -54,7 +54,7 @@ build-WINDOWS:
   script:
     - mkdir build
     - cd build
-    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 16 2019" -A x64 -DBUILD_STATIC=ON -DPYTHON_BINDINGS:BOOL=OFF -DUSE_WERROR:BOOL=OFF ..
+    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 16 2019" -A x64 -DBUILD_STATIC=ON -DWIN32_LEAN_AND_MEAN -DPYTHON_BINDINGS:BOOL=OFF -DUSE_WERROR:BOOL=OFF ..
     - msbuild ur_rtde.sln /property:Configuration=RelWithDebInfo
     - msbuild PACKAGE.vcxproj /property:Configuration=RelWithDebInfo
   artifacts:
