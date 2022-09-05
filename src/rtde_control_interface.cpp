@@ -13,6 +13,7 @@
 #include <iostream>
 #include <thread>
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#include <SDKDDKVer.h>
 #include <processthreadsapi.h>
 #include <errhandlingapi.h>
 #include <winbase.h>
