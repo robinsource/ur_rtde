@@ -402,14 +402,14 @@ void RTDE::receive()
       std::vector<int> not_found_indexes;
       if (datatypes.find(not_found_str) != std::string::npos)
       {
-        for (int i = 0; i < output_types_.size(); i++)
+        for (unsigned int i = 0; i < output_types_.size(); i++)
         {
           if (output_types_[i] == "NOT_FOUND")
             not_found_indexes.push_back(i);
         }
 
         std::string vars_not_found;
-        for (int i = 0; i < not_found_indexes.size(); i++)
+        for (unsigned int i = 0; i < not_found_indexes.size(); i++)
         {
           vars_not_found += output_names_[not_found_indexes[i]];
           if (i != not_found_indexes.size() - 1)
