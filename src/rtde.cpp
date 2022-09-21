@@ -8,7 +8,6 @@
 #include <boost/asio/socket_base.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/bind/bind.hpp>
-
 #include <chrono>
 #include <cstdint>
 #include <iostream>
@@ -166,7 +165,8 @@ void RTDE::send(const RobotCommand &robot_cmd)
   std::vector<char> cmd_packed;
   cmd_packed = RTDEUtility::packInt32(robot_cmd.type_);
 
-  if (robot_cmd.type_ == RobotCommand::FT_RTDE_INPUT_ENABLE || robot_cmd.type_ == RobotCommand::ENABLE_EXTERNAL_FT_SENSOR)
+  if (robot_cmd.type_ == RobotCommand::FT_RTDE_INPUT_ENABLE ||
+      robot_cmd.type_ == RobotCommand::ENABLE_EXTERNAL_FT_SENSOR)
   {
     std::vector<char> ft_rtde_input_enable_packed = RTDEUtility::packInt32(robot_cmd.ft_rtde_input_enable_);
     cmd_packed.insert(cmd_packed.end(), std::make_move_iterator(ft_rtde_input_enable_packed.begin()),
@@ -396,6 +396,31 @@ void RTDE::receive()
       std::string datatypes(std::begin(data) + 1, std::end(data));
       DEBUG("Datatype:" << datatypes);
       output_types_ = RTDEUtility::split(datatypes, ',');
+
+      std::string not_found_str("NOT_FOUND");
+      std::vector<int> not_found_indexes;
+      if (datatypes.find(not_found_str) != std::string::npos)
+      {
+        for (int i = 0; i < output_types_.size(); i++)
+        {
+          if (output_types_[i] == "NOT_FOUND")
+            not_found_indexes.push_back(i);
+        }
+
+        std::string vars_not_found;
+        for (int i = 0; i < not_found_indexes.size(); i++)
+        {
+          vars_not_found += output_names_[not_found_indexes[i]];
+          if (i != not_found_indexes.size() - 1)
+            vars_not_found += ", ";
+        }
+
+        std::string error_str(
+            "The following variables was not found by the controller: [" + vars_not_found +
+            "],\n see which variables are supported by your PolyScope version here: \n"
+            "https://www.universal-robots.com/articles/ur/interface-communication/real-time-data-exchange-rtde-guide/");
+        throw std::runtime_error(error_str);
+      }
       break;
     }
 
