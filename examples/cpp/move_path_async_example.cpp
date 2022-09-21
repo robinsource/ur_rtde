@@ -1,5 +1,4 @@
 #include <ur_rtde/rtde_control_interface.h>
-#include <ur_rtde/rtde_receive_interface.h>
 
 #include <chrono>
 #include <iostream>
@@ -12,7 +11,6 @@ int main(int argc, char* argv[])
 {
   std::string hostname = "127.0.0.1";
   RTDEControlInterface rtde_control(hostname);
-  RTDEReceiveInterface rtde_receive(hostname);
 
   ur_rtde::Path path;
   double velocity = 0.5;
