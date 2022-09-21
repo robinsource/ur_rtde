@@ -21,7 +21,9 @@
 #include <cassert>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-#include <Windows.h>
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
 #else
 #include <pthread.h>
 #include <fstream>
@@ -374,9 +376,9 @@ class RTDEUtility
 
       ++count;
       double delta = observed - mean;
-      mean += delta / count;
+      mean += delta / static_cast<double>(count);
       m2 += delta * (observed - mean);
-      double stddev = sqrt(m2 / (count - 1));
+      double stddev = sqrt(m2 / (static_cast<double>(count - 1)));
       estimate = mean + stddev;
     }
 
@@ -386,6 +388,7 @@ class RTDEUtility
       ;
   }
 
+#if defined(__linux__) || defined(__APPLE__)
   static timespec timepointToTimespec(std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds> tp)
   {
     auto secs = std::chrono::time_point_cast<std::chrono::seconds>(tp);
@@ -394,15 +397,25 @@ class RTDEUtility
 
     return timespec{secs.time_since_epoch().count(), ns.count()};
   }
+#endif
 
   static void waitPeriod(const std::chrono::steady_clock::time_point &t_cycle_start, double dt)
   {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    using namespace std::chrono;
     auto t_app_stop = steady_clock::now();
     auto t_app_duration = duration<double>(t_app_stop - t_cycle_start);
     if (t_app_duration.count() < dt)
     {
-      preciseSleep(dt - t_duration.count());
+      preciseSleep(dt - t_app_duration.count());
+    }
+#elif defined(__APPLE__)
+    using namespace std::chrono;
+    auto t_app_stop = steady_clock::now();
+    auto t_app_duration = duration<double>(t_app_stop - t_cycle_start);
+    if (t_app_duration.count() < dt)
+    {
+      std::this_thread::sleep_for(std::chrono::duration<double>(dt - t_app_duration.count()));
     }
 #else
     using namespace std::chrono;
@@ -470,37 +483,35 @@ class RTDEUtility
     }
     return true;
 #else
-    if (priority > 0)
-    {
-      if (priority == 0)
-      {
-        // priority not set explicitly by user, assume that a fair max. priority is desired.
-        const int thread_priority = sched_get_priority_max(SCHED_FIFO);
-        if (thread_priority == -1)
-        {
-          std::cerr << "ur_rtde: unable to get maximum possible thread priority: " << strerror(errno) <<
-              std::endl;
-          return false;
-        }
-        // the priority is capped at 90, since any higher value would make the OS too unstable.
-        priority = std::min(90, std::max(0, thread_priority));
-      }
-
-      sched_param thread_param{};
-      thread_param.sched_priority = priority;
-      if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &thread_param) != 0)
-      {
-        std::cerr << "ur_rtde: unable to set realtime scheduling: " << strerror(errno) << std::endl;
-        return false;
-      }
-      return true;
-    }
-    else
+    if (priority < 0)
     {
       std::cout << "ur_rtde: realtime priority less than 0 specified, realtime priority will not be set on purpose!" <<
           std::endl;
       return false;
     }
+
+    if (priority == 0)
+    {
+      // priority not set explicitly by user, assume that a fair max. priority is desired.
+      const int thread_priority = sched_get_priority_max(SCHED_FIFO);
+      if (thread_priority == -1)
+      {
+        std::cerr << "ur_rtde: unable to get maximum possible thread priority: " << strerror(errno) <<
+            std::endl;
+        return false;
+      }
+      // the priority is capped at 90, since any higher value would make the OS too unstable.
+      priority = std::min(90, std::max(0, thread_priority));
+    }
+
+    sched_param thread_param{};
+    thread_param.sched_priority = priority;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &thread_param) != 0)
+    {
+      std::cerr << "ur_rtde: unable to set realtime scheduling: " << strerror(errno) << std::endl;
+      return false;
+    }
+    return true;
 #endif
   }
 

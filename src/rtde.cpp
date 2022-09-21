@@ -92,6 +92,7 @@ void RTDE::disconnect()
   /* We use reset() to safely close the socket,
    * see: https://stackoverflow.com/questions/3062803/how-do-i-cleanly-reconnect-a-boostsocket-following-a-disconnect
    */
+  sendPause();
   socket_.reset();
   conn_state_ = ConnectionState::DISCONNECTED;
   if (verbose_)
@@ -507,6 +508,14 @@ std::size_t RTDE::async_read_some(AsyncReadStream &s, const MutableBufferSequenc
   return bytes_received;
 }
 
+bool RTDE::isDataAvailable()
+{
+  if (socket_->available() > 0)
+    return true;
+  else
+    return false;
+}
+
 boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_state)
 {
   boost::system::error_code error;
@@ -515,17 +524,13 @@ boost::system::error_code RTDE::receiveData(std::shared_ptr<RobotState> &robot_s
 
   // Prepare buffer of 4096 bytes
   std::vector<char> data(4096);
-
   size_t data_len = 0;
-  size_t available_bytes = socket_->available();
-  if (available_bytes > 0)
-  {
-    data_len = async_read_some(*socket_, boost::asio::buffer(data), error);
-    if (error)
-      return error;
-  }
 
-  // Add it to the buffer
+  data_len = async_read_some(*socket_, boost::asio::buffer(data), error);
+  if (error)
+    return error;
+
+  // Add data to the buffer
   buffer_.insert(buffer_.end(), data.begin(), data.begin() + data_len);
 
   while (buffer_.size() >= HEADER_SIZE)

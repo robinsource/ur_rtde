@@ -6,10 +6,10 @@
 #include <bitset>
 #include <boost/thread/thread.hpp>
 #include <chrono>
-#include <fstream>
-#include <iomanip>
 #include <iostream>
+#include <iomanip>
 #include <thread>
+#include <fstream>
 
 namespace ur_rtde
 {
@@ -28,8 +28,7 @@ RTDEReceiveInterface::RTDEReceiveInterface(std::string hostname, double frequenc
     if (!RTDEUtility::setRealtimePriority(rt_priority_))
     {
       std::cerr << "RTDEReceiveInterface: Warning! Failed to set realtime priority even though a realtime kernel is "
-                   "available."
-                << std::endl;
+                   "available." << std::endl;
     }
     else
     {
@@ -56,7 +55,7 @@ RTDEReceiveInterface::RTDEReceiveInterface(std::string hostname, double frequenc
   auto controller_version = rtde_->getControllerVersion();
   uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
 
-  if (frequency_ < 0)  // frequency not specified, set it based on controller version.
+  if (frequency_ < 0) // frequency not specified, set it based on controller version.
   {
     frequency_ = 125;
     // If e-Series Robot set frequency to 500Hz
@@ -118,7 +117,7 @@ void RTDEReceiveInterface::disconnect()
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
 
-bool RTDEReceiveInterface::setupRecipes(const double &frequency)
+bool RTDEReceiveInterface::setupRecipes(const double& frequency)
 {
   if (variables_.empty())
   {
@@ -159,62 +158,28 @@ bool RTDEReceiveInterface::setupRecipes(const double &frequency)
                   "standard_analog_output0",
                   "standard_analog_output1",
                   "robot_status_bits",
-                  "safety_status_bits"};
-
-    auto controller_version = rtde_->getControllerVersion();
-    uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
-    uint32_t minor_version = std::get<MINOR_VERSION>(controller_version);
-    uint32_t bugfix_version = std::get<BUGFIX_VERSION>(controller_version);
-    uint32_t build_version = std::get<BUILD_VERSION>(controller_version);
-
-    // Some RTDE variables depends on a minimum PolyScope version, check is performed here
-    if (major_version == 5 && minor_version >= 9)
-      variables_.emplace_back("ft_raw_wrench");
-
-    if ((major_version == 3 && minor_version >= 11) ||
-        (major_version == 5 && minor_version >= 5 && bugfix_version >= 1))
-    {
-      variables_.emplace_back("payload");
-      variables_.emplace_back("payload_cog");
-    }
-
-    if ((major_version == 3 && minor_version >= 15) || (major_version == 5 && minor_version >= 11))
-      variables_.emplace_back("payload_inertia");
-
-    if (use_upper_range_registers_)
-    {
-      if ((major_version == 3 && minor_version >= 9) || (major_version == 5 && minor_version >= 3))
-      {
-        variables_.emplace_back(outIntReg(2));
-        for (int i = 12; i <= 19; i++)
-          variables_.emplace_back(outIntReg(i));
-        for (int i = 12; i <= 19; i++)
-          variables_.emplace_back(outDoubleReg(i));
-      }
-      else
-      {
-        std::cerr << "Warning! The upper range of the double output registers are only available on PolyScope versions "
-                     ">3.9 or >5.3"
-                  << std::endl;
-      }
-    }
-    else
-    {
-      if (major_version >= 3 && minor_version >= 4)
-      {
-        variables_.emplace_back(outIntReg(2));
-        for (int i = 12; i <= 19; i++)
-          variables_.emplace_back(outIntReg(i));
-        for (int i = 12; i <= 19; i++)
-          variables_.emplace_back(outDoubleReg(i));
-      }
-      else
-      {
-        std::cerr
-            << "Warning! The lower range of the double output registers are only available on PolyScope versions >3.4"
-            << std::endl;
-      }
-    }
+                  "safety_status_bits",
+                  "ft_raw_wrench",
+                  "payload",
+                  "payload_cog",
+                  "payload_inertia",
+                  outIntReg(2),
+                  outIntReg(12),
+                  outIntReg(13),
+                  outIntReg(14),
+                  outIntReg(15),
+                  outIntReg(16),
+                  outIntReg(17),
+                  outIntReg(18),
+                  outIntReg(19),
+                  outDoubleReg(12),
+                  outDoubleReg(13),
+                  outDoubleReg(14),
+                  outDoubleReg(15),
+                  outDoubleReg(16),
+                  outDoubleReg(17),
+                  outDoubleReg(18),
+                  outDoubleReg(19)};
   }
 
   // Setup output
@@ -229,19 +194,46 @@ void RTDEReceiveInterface::receiveCallback()
     // Receive and update the robot state
     try
     {
-      std::chrono::steady_clock::time_point t_start = initPeriod();
-      boost::system::error_code ec = rtde_->receiveData(robot_state_);
-      if (ec)
+      if (rtde_->isDataAvailable())
       {
-        if (ec == boost::asio::error::eof)
+        no_bytes_avail_cnt_ = 0;
+        boost::system::error_code ec = rtde_->receiveData(robot_state_);
+        if(ec)
         {
-          std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+          if(ec == boost::asio::error::eof)
+          {
+            std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+          }
+          throw std::system_error(ec);
         }
-        throw std::system_error(ec);
       }
-      waitPeriod(t_start);
+      else
+      {
+        // Register that data was not available in this cycle
+        no_bytes_avail_cnt_++;
+        // If at least 2ms has passed without data available, try to read data again to detect de-synchronization.
+        if (no_bytes_avail_cnt_ > 20)
+        {
+          boost::system::error_code ec = rtde_->receiveData(robot_state_);
+          if(ec)
+          {
+            if(ec == boost::asio::error::eof)
+            {
+              std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+            }
+            throw std::system_error(ec);
+          }
+          no_bytes_avail_cnt_ = 0;
+        }
+
+#if defined(__linux__) || defined(__APPLE__)
+        // Data not available on socket yet, yield to other threads and sleep before trying to receive data again.
+        std::this_thread::yield();
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+#endif
+      }
     }
-    catch (std::exception &e)
+    catch (std::exception& e)
     {
       std::cerr << "RTDEReceiveInterface Exception: " << e.what() << std::endl;
       if (rtde_->isConnected())
@@ -256,6 +248,7 @@ bool RTDEReceiveInterface::reconnect()
 {
   if (rtde_ != nullptr)
   {
+    no_bytes_avail_cnt_ = 0;
     rtde_->connect();
     rtde_->negotiateProtocolVersion();
     auto controller_version = rtde_->getControllerVersion();
@@ -321,29 +314,29 @@ bool RTDEReceiveInterface::startFileRecording(const std::string &filename, const
     record_variables_ = variables_;
   }
 
-  for (size_t i = 0; i < record_variables_.size(); i++)
+  for (size_t i=0; i < record_variables_.size() ; i++)
   {
-    uint16_t entry_size = robot_state_->getStateEntrySize(record_variables_[i]);
-    if (entry_size > 1)
-    {
-      for (int j = 0; j < entry_size; j++)
+      uint16_t entry_size = robot_state_->getStateEntrySize(record_variables_[i]);
+      if (entry_size > 1)
       {
-        *file_recording_ << record_variables_[i] + '_' + std::to_string(j);
-        if (i != record_variables_.size() - 1)  // No comma at the end of line
-          *file_recording_ << ",";
-        else
+        for (int j = 0; j < entry_size; j++)
         {
-          if (j != entry_size - 1)
+          *file_recording_ << record_variables_[i] + '_' + std::to_string(j);
+          if (i != record_variables_.size() - 1)  // No comma at the end of line
             *file_recording_ << ",";
+          else
+          {
+            if (j != entry_size - 1)
+              *file_recording_ << ",";
+          }
         }
       }
-    }
-    else
-    {
-      *file_recording_ << record_variables_[i];
-      if (i != record_variables_.size() - 1)  // No comma at the end of line
-        *file_recording_ << ",";
-    }
+      else
+      {
+        *file_recording_ << record_variables_[i];
+        if (i != record_variables_.size() - 1)  // No comma at the end of line
+          *file_recording_ << ",";
+      }
   }
   // End the header line
   *file_recording_ << std::endl;
@@ -370,7 +363,7 @@ void RTDEReceiveInterface::recordCallback()
   while (!stop_record_thread)
   {
     auto t_start = std::chrono::steady_clock::now();
-    for (size_t i = 0; i < record_variables_.size(); i++)
+    for (size_t i=0; i < record_variables_.size() ; i++)
     {
       std::string entry_str = robot_state_->getStateEntryString(record_variables_[i]);
       *file_recording_ << entry_str;
@@ -805,7 +798,7 @@ int RTDEReceiveInterface::getOutputIntRegister(int output_id)
   if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
     return output_int_register_val;
   else
-    throw std::runtime_error("unable to get state data for specified key: " + output_int_register_key);
+    throw std::runtime_error("unable to get state data for specified key: "+output_int_register_key);
 }
 
 double RTDEReceiveInterface::getOutputDoubleRegister(int output_id)

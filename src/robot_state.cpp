@@ -178,7 +178,11 @@ bool RobotState::getFirstStateReceived()
 
 void RobotState::initRobotState(const std::vector<std::string> &variables)
 {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+  std::lock_guard<std::mutex> lock(update_state_mutex_);
+#else
   std::lock_guard<PriorityInheritanceMutex> lock(update_state_mutex_);
+#endif
   for (auto& item : variables)
   {
     if (state_types_.find(item) != state_types_.end())

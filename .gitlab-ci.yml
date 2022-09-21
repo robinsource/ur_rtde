@@ -41,28 +41,25 @@ build-ubuntu-2004:
     - linux
     - sdur
 
-#build-MAC:
-#  extends: .bash_build
-#  allow_failure: true
-#  tags:
-#    - mac
+build-MAC:
+  extends: .bash_build
+  allow_failure: true
+  tags:
+    - mac
 
-#build-WINDOWS:
-# stage: build
-#  variables:
-#    GIT_SUBMODULE_STRATEGY: recursive
-#  script:
-#    - mkdir build
-#    - cd build
-#    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 16 2019" -A x64 -DWINDOWS_INSTALLER=ON -DBUILD_STATIC=ON -DPYTHON_BINDINGS:BOOL=OFF #-DUSE_WERROR:BOOL=OFF ..
-#    - msbuild ur_rtde.sln /property:Configuration=RelWithDebInfo
-#    - msbuild PACKAGE.vcxproj /property:Configuration=RelWithDebInfo
-#  artifacts:
-#    paths:
-#      - build/ur_rtde-install.exe
-#    expire_in: 2 days
-#  tags:
-#    - sdur-windows
+build-WINDOWS:
+  stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 16 2019" -A x64 -DBUILD_STATIC=ON -DPYTHON_BINDINGS:BOOL=OFF -DUSE_WERROR:BOOL=OFF ..
+    - msbuild ur_rtde.sln /property:Configuration=RelWithDebInfo
+  artifacts:
+    expire_in: 2 days
+  tags:
+    - sdur-windows
 
 ############################################
 #                  Test                    #

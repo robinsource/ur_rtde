@@ -948,6 +948,7 @@ class RTDEControlInterface
   // major, minor, bugfix, build numbers.
   Versions versions_;
   std::string serial_number_;
+  size_t no_bytes_avail_cnt_;
 };
 
 /**

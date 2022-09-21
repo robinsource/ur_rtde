@@ -4,7 +4,7 @@
 #include <boost/array.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/write.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/lambda/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <iostream>
@@ -12,7 +12,7 @@
 
 using boost::asio::ip::tcp;
 using boost::lambda::var;
-using boost::lambda::_1;
+using namespace boost::placeholders;
 
 namespace ur_rtde
 {
