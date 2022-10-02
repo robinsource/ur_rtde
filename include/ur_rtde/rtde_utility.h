@@ -443,12 +443,19 @@ class RTDEUtility
   static bool isRealtimeKernelAvailable()
   {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-        return true;
+    return true;
 #else
-        std::ifstream realtime("/sys/kernel/realtime", std::ios_base::in);
-        bool is_realtime;
-        realtime >> is_realtime;
-        return is_realtime;
+    std::ifstream realtime("/sys/kernel/realtime", std::ios_base::in);
+    if (realtime.good())
+    {
+      bool is_realtime;
+      realtime >> is_realtime;
+      return is_realtime;
+    }
+    else
+    {
+      return false;
+    }
 #endif
   }
 

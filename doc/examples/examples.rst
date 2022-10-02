@@ -122,19 +122,26 @@ or
 In order to setup ur_rtde for using the ExternalControl UR Cap, all you have to do is to specify
 this in the RTDEControlInterface constructor with the flag FLAG_USE_EXT_UR_CAP.
 
+.. tip::
+    Remember you can combine flags in the constructor using the bitwise OR operator both in Python
+    (eg. RTDEControl.FLAG_VERBOSE | RTDEControl.FLAG_USE_EXT_UR_CAP) and in C++
+    (eg. RTDEControlInterface::FLAG_NO_WAIT | RTDEControlInterface::FLAG_USE_EXT_UR_CAP)
+
+
 for Python:
 
 .. code-block:: python
 
    from rtde_control import RTDEControlInterface as RTDEControl
-   rtde_c = RTDEControl("127.0.0.1", RTDEControl.FLAG_USE_EXT_UR_CAP)
+   rtde_frequency = 500.0
+   rtde_c = RTDEControl("127.0.0.1", rtde_frequency, RTDEControl.FLAG_USE_EXT_UR_CAP)
    rtde_c.moveL([-0.143, -0.435, 0.20, -0.001, 3.12, 0.04], 0.5, 0.3)
 
 for C++:
 
 .. code-block:: c++
 
-   RTDEControlInterface rtde_control("127.0.0.1", RTDEControlInterface::FLAG_USE_EXT_UR_CAP);
+   RTDEControlInterface rtde_control("127.0.0.1", 500.0, RTDEControlInterface::FLAG_USE_EXT_UR_CAP);
    rtde_control.moveL({-0.143, -0.435, 0.20, -0.001, 3.12, 0.04}, 0.5, 0.2);
 
 When you execute your ur_rtde application it will simply wait for you to press play on the controller in order
