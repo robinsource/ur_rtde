@@ -164,7 +164,6 @@ bool RTDEReceiveInterface::setupRecipes(const double& frequency)
     uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
     uint32_t minor_version = std::get<MINOR_VERSION>(controller_version);
     uint32_t bugfix_version = std::get<BUGFIX_VERSION>(controller_version);
-    uint32_t build_version = std::get<BUILD_VERSION>(controller_version);
 
     // Some RTDE variables depends on a minimum PolyScope version, check is performed here
     if (major_version == 5 && minor_version >= 9)
