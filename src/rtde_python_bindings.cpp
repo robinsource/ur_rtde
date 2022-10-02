@@ -208,6 +208,7 @@ PYBIND11_MODULE(rtde_control, m)
   control.def("getAsyncOperationProgress", &RTDEControlInterface::getAsyncOperationProgress, DOC(ur_rtde, RTDEControlInterface, getAsyncOperationProgress), py::call_guard<py::gil_scoped_release>());
   control.def("getRobotStatus", &RTDEControlInterface::getRobotStatus, DOC(ur_rtde, RTDEControlInterface, getRobotStatus), py::call_guard<py::gil_scoped_release>());
   control.def("getActualToolFlangePose", &RTDEControlInterface::getActualToolFlangePose, py::call_guard<py::gil_scoped_release>());
+  control.def("setGravity", &RTDEControlInterface::setGravity, py::call_guard<py::gil_scoped_release>());
   control.def("initPeriod", &RTDEControlInterface::initPeriod, py::call_guard<py::gil_scoped_release>());
   control.def("waitPeriod", &RTDEControlInterface::waitPeriod, py::call_guard<py::gil_scoped_release>());
   control.def("__repr__", [](const RTDEControlInterface &a) { return "<rtde_control.RTDEControlInterface>"; });

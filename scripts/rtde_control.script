@@ -837,6 +837,14 @@ $5.9          ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset,
               flange_pose = get_actual_tool_flange_pose()
               q_to_output_float_registers(0, flange_pose)
               textmsg("get_actual_tool_flange_pose done")
+        elif cmd == 59:
+              textmsg("set_gravity")
+              gravity_direction = [0, 0, 0]
+              gravity_direction[0] = read_input_float_reg(0)
+              gravity_direction[1] = read_input_float_reg(1)
+              gravity_direction[2] = read_input_float_reg(2)
+              set_gravity(gravity_direction)
+              textmsg("set_gravity done")
         elif cmd == 255:
               textmsg("Received stop script!")
         end

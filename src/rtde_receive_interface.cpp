@@ -158,28 +158,62 @@ bool RTDEReceiveInterface::setupRecipes(const double& frequency)
                   "standard_analog_output0",
                   "standard_analog_output1",
                   "robot_status_bits",
-                  "safety_status_bits",
-                  "ft_raw_wrench",
-                  "payload",
-                  "payload_cog",
-                  "payload_inertia",
-                  outIntReg(2),
-                  outIntReg(12),
-                  outIntReg(13),
-                  outIntReg(14),
-                  outIntReg(15),
-                  outIntReg(16),
-                  outIntReg(17),
-                  outIntReg(18),
-                  outIntReg(19),
-                  outDoubleReg(12),
-                  outDoubleReg(13),
-                  outDoubleReg(14),
-                  outDoubleReg(15),
-                  outDoubleReg(16),
-                  outDoubleReg(17),
-                  outDoubleReg(18),
-                  outDoubleReg(19)};
+                  "safety_status_bits"};
+
+    auto controller_version = rtde_->getControllerVersion();
+    uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
+    uint32_t minor_version = std::get<MINOR_VERSION>(controller_version);
+    uint32_t bugfix_version = std::get<BUGFIX_VERSION>(controller_version);
+    uint32_t build_version = std::get<BUILD_VERSION>(controller_version);
+
+    // Some RTDE variables depends on a minimum PolyScope version, check is performed here
+    if (major_version == 5 && minor_version >= 9)
+      variables_.emplace_back("ft_raw_wrench");
+
+    if ((major_version == 3 && minor_version >= 11) ||
+        (major_version == 5 && minor_version >= 5 && bugfix_version >= 1))
+    {
+      variables_.emplace_back("payload");
+      variables_.emplace_back("payload_cog");
+    }
+
+    if ((major_version == 3 && minor_version >= 15) || (major_version == 5 && minor_version >= 11))
+      variables_.emplace_back("payload_inertia");
+
+    if (use_upper_range_registers_)
+    {
+      if ((major_version == 3 && minor_version >= 9) || (major_version == 5 && minor_version >= 3))
+      {
+        variables_.emplace_back(outIntReg(2));
+        for (int i = 12; i <= 19; i++)
+          variables_.emplace_back(outIntReg(i));
+        for (int i = 12; i <= 19; i++)
+          variables_.emplace_back(outDoubleReg(i));
+      }
+      else
+      {
+        std::cerr << "Warning! The upper range of the double output registers are only available on PolyScope versions "
+                     ">3.9 or >5.3"
+                  << std::endl;
+      }
+    }
+    else
+    {
+      if (major_version >= 3 && minor_version >= 4)
+      {
+        variables_.emplace_back(outIntReg(2));
+        for (int i = 12; i <= 19; i++)
+          variables_.emplace_back(outIntReg(i));
+        for (int i = 12; i <= 19; i++)
+          variables_.emplace_back(outDoubleReg(i));
+      }
+      else
+      {
+        std::cerr
+            << "Warning! The lower range of the double output registers are only available on PolyScope versions >3.4"
+            << std::endl;
+      }
+    }
   }
 
   // Setup output

@@ -542,9 +542,44 @@ bool RTDEControlInterface::reconnect()
 bool RTDEControlInterface::setupRecipes(const double &frequency)
 {
   // Setup output
-  state_names_ = {"robot_status_bits", "safety_status_bits", "runtime_state", outIntReg(0),
-                  outIntReg(1),        outIntReg(2),         outDoubleReg(0), outDoubleReg(1),
-                  outDoubleReg(2),     outDoubleReg(3),      outDoubleReg(4), outDoubleReg(5)};
+  state_names_ = {"robot_status_bits", "safety_status_bits", "runtime_state"};
+  auto controller_version = rtde_->getControllerVersion();
+  uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
+  uint32_t minor_version = std::get<MINOR_VERSION>(controller_version);
+
+  if (use_upper_range_registers_)
+  {
+    if ((major_version == 3 && minor_version >= 9) || (major_version == 5 && minor_version >= 3))
+    {
+      for (int i = 0; i <= 2; i++)
+        state_names_.emplace_back(outIntReg(i));
+      for (int i = 0; i <= 5; i++)
+        state_names_.emplace_back(outDoubleReg(i));
+    }
+    else
+    {
+      std::cerr << "Warning! The upper range of the integer output registers are only available on PolyScope versions "
+                   ">3.9 or >5.3"
+                << std::endl;
+    }
+  }
+  else
+  {
+    if (major_version >= 3 && minor_version >= 4)
+    {
+      for (int i = 0; i <= 2; i++)
+        state_names_.emplace_back(outIntReg(i));
+      for (int i = 0; i <= 5; i++)
+        state_names_.emplace_back(outDoubleReg(i));
+    }
+    else
+    {
+      std::cerr
+          << "Warning! The lower range of the double output registers are only available on PolyScope versions >3.4"
+          << std::endl;
+    }
+  }
+
   rtde_->sendOutputSetup(state_names_, frequency);
 
   // Setup input recipes
@@ -1919,6 +1954,16 @@ std::vector<double> RTDEControlInterface::getActualToolFlangePose()
   {
     throw std::runtime_error("getActualToolFlangePose() function did not succeed!");
   }
+}
+
+bool RTDEControlInterface::setGravity(const std::vector<double> &direction)
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::SET_GRAVITY;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_7;
+  robot_cmd.val_ = direction;
+  robot_cmd.val_.push_back(0.0);  // Dummy value since with are re-using RECIPE_7
+  return sendCommand(robot_cmd);
 }
 
 void RTDEControlInterface::unlockProtectiveStop()

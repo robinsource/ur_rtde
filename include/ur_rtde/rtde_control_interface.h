@@ -855,6 +855,22 @@ class RTDEControlInterface
    */
   RTDE_EXPORT std::vector<double> getActualToolFlangePose();
 
+  /**
+   * @brief Set the direction of the acceleration experienced by the robot. When the robot mounting is fixed, this
+   * corresponds to an acceleration of g away from the earth’s centre.
+   *
+   * setGravity({0, 9.82*sin(theta), 9.82*cos(theta)})
+   * will set the acceleration for a robot that is rotated "theta" radians around the x-axis of the robot base
+   * coordinate system.
+   *
+   * Example command: setGravity({0, 9.82, 0})
+   * Example Parameters:
+   * - d is vector with a direction of y (direction of the robot cable) and a magnitude of 9.82 m/s^2 (1g).
+   *
+   * @param d a 3D vector, describing the direction of the gravity, relative to the base of the robot.
+   */
+  RTDE_EXPORT bool setGravity(const std::vector<double> &direction);
+
   // Unlocks a protective stop via the dashboard client.
   void unlockProtectiveStop();
 
