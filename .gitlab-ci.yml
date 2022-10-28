@@ -29,14 +29,14 @@ stages:
 
 build-ubuntu-1804:
   extends: .bash_build
-  image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804
+  image: gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804
   tags:
     - linux
     - sdur
 
 build-ubuntu-2004:
   extends: .bash_build
-  image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-2004
+  image: gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:ubuntu-2004
   tags:
     - linux
     - sdur
@@ -86,7 +86,7 @@ polyscope-5.11.1.108318:
     - echo "Using " $DIR
     - docker network create --subnet=192.168.56.0/24 static_test_net
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker run --rm -d --net static_test_net --ip 192.168.56.101 -p 5900:5900 -p 29999:29999 -p 30001-30004:30001-30004 -v "${DIR}/ci/.vol":/ursim/programs --privileged registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ursim-5.11.1.108318
+    - docker run --rm -d --net static_test_net --ip 192.168.56.101 -p 5900:5900 -p 29999:29999 -p 30001-30004:30001-30004 -v "${DIR}/ci/.vol":/ursim/programs --privileged gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:ursim-5.11.1.108318
   script:
     - echo "Preparing tests"
     - cd test
@@ -131,14 +131,14 @@ polyscope-5.11.1.108318:
 
 examples-ubuntu-1804:
   extends: .bash-examples
-  image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804
+  image: gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804
   dependencies:
     - build-ubuntu-1804
   needs: ["build-ubuntu-1804"]
 
 examples-ubuntu-2004:
   extends: .bash-examples
-  image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-2004
+  image: gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:ubuntu-2004
   dependencies:
     - build-ubuntu-2004
   needs: ["build-ubuntu-2004"]
@@ -169,7 +169,7 @@ examples-ubuntu-2004:
 
 build_pypi:
   stage: build_pypi
-  image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:manylinux
+  image: gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:manylinux
   when: manual
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -183,7 +183,7 @@ build_pypi:
 
 sphinx_html:
   stage: doc
-  image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804-doc
+  image: gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804-doc
   script:
     - "[ -d build ] || mkdir build"
     - cd build
@@ -209,7 +209,7 @@ pages:
       - master
   dependencies:
     - sphinx_html
-  image: registry.gitlab.com/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804-doc
+  image: gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:ubuntu-1804-doc
   script:
     - mv build/doc/html/_static/googled5bfdc1684e49924.html build/doc/html/googled5bfdc1684e49924.html
     - mv build/doc/html public
