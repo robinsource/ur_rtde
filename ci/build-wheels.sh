@@ -19,8 +19,8 @@ cd ${WORKDIR}
 # Collect the pythons
 pys=(/opt/python/cp*/bin)
 
-# Filter out Python 3.4 (No numpy support)
-#pys=(${pys[@]//*34*/})
+# Filter out Python 3.11, temporary until cibuildwheel CI update is committed
+pys=(${pys[@]//*311*/})
 
 # Compile wheels
 for PYBIN in "${pys[@]}"; do
