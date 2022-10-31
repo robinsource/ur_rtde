@@ -66,11 +66,11 @@ build-WINDOWS:
 ############################################
 
 polyscope-5.11.1.108318:
-  image: docker:19.03.12 # cruizba/ubuntu-dind:19.03.11
+  image: docker:20.10.21-dind # cruizba/ubuntu-dind:19.03.11
   stage: test
   allow_failure: true
   services:
-    - docker:19.03.12-dind
+    - docker:20.10.21-dind
   before_script:
     - export DEBIAN_FRONTEND=noninteractive
     - echo 'tzdata tzdata/Areas select Europe' | debconf-set-selections;
