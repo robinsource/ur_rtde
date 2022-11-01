@@ -116,7 +116,7 @@ polyscope-5.11.1.108318:
     #- sdur #docker
     #- linux
     #- sysbox-ce
-    - sysbox-sdur
+    - sdur-sysbox
 .bash-examples:
   stage: test
   variables:
