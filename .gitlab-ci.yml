@@ -69,8 +69,6 @@ polyscope-5.11.1.108318:
   image: cruizba/ubuntu-dind:20.10.20 # cruizba/ubuntu-dind:19.03.11 
   stage: test
   allow_failure: true
-  variables:
-    DOCKER_TLS_CERTDIR: ""
   services:
     - docker:dind
   before_script:
