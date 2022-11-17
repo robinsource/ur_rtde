@@ -49,13 +49,19 @@ If you only want to the use the Python interface, you can install ur_rtde throug
 :warning: Notice! Make sure your pip version >=**19.3**, otherwise the install might fail.
 
 #### Prebuilt python wheels support matrix: ####
-|   | Python 3.6 | Python 3.7 | Python 3.8 | Python 3.9 |
----------------|:----:|:----:|:-----:|:-----:|
-| **Linux x86_64**        | ✅ | ✅ | ✅ | ✅ |
-| **macOS Intel**         | ✅ | ✅ | ✅ | ✅ |
-| **macOS Apple Silicon** | ✅ | ✅ | ✅ | ✅ | 
-| **Windows 64bit**       | ✅ | ✅ | ✅ | ✅ |
-| **Windows 32bit**       | :x: | :x: | :x: | :x: |
+|   | macOS Intel | macOS Apple Silicon | Windows 64bit | Windows 32bit | Windows Arm64 | manylinux x86_64 | manylinux i686 | manylinux aarch64 | manylinux ppc64le | manylinux s390x |
+|---------------|----|-----|-----|---|-----|---|---|---|-----|-----|
+| CPython 3.6   | ✅ | :x: | ✅  | :x: | :x: | ✅ | ✅ | ✅ | ✅  | ✅  |
+| CPython 3.7   | ✅ | :x: | ✅  | :x: | :x:| ✅ | ✅ | ✅ | ✅  | ✅  |
+| CPython 3.8   | ✅ | ✅  | ✅  | :x: | :x: | ✅ | ✅ | ✅ | ✅  | ✅  |
+| CPython 3.9   | ✅ | ✅  | ✅  | :x: | ✅¹ | ✅ | ✅ | ✅ | ✅  | ✅  |
+| CPython 3.10  | ✅ | ✅  | ✅  | :x: | ✅¹ | ✅ | ✅ | ✅ | ✅  | ✅  |
+| CPython 3.11  | ✅ | ✅  | :x:  | :x: | ✅¹ | ✅ | ✅ | ✅ | ✅  | ✅  |
+| PyPy 3.7 v7.3 | ✅ | :x: | ✅  | :x: | :x: | ✅ | ✅ | ✅ | :x: | :x: |
+| PyPy 3.8 v7.3 | ✅ | :x: | ✅  | :x: | :x: | ✅ | ✅ | ✅ | :x: | :x: |
+| PyPy 3.9 v7.3 | ✅ | :x: | ✅  | :x: | :x: | ✅ | ✅ | ✅ | :x: | :x: |
+
+<sup>¹ Windows arm64 support is experimental.</sup><br>
 
 ### Dependencies ###
 *  [Boost](https://www.boost.org/)

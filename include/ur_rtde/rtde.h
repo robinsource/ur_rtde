@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <tuple>
 
 // forward declarations
 namespace ur_rtde
