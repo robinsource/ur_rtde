@@ -30,6 +30,7 @@ if(${CODE})
 	set(CMAKE_CXX_STANDARD 11)
 	set(CMAKE_CXX_STANDARD_REQUIRED ON)
 	set(CMAKE_CXX_EXTENSIONS OFF)
+
 	if(${USE_WERROR} AND NOT DEFINED MSVC)
 		set(WALL "-Wall -Wno-strict-aliasing -Wno-unused-function -Wno-pragmas")
 		set(WERROR "-Werror")
@@ -83,7 +84,7 @@ if(${CODE})
 			FetchContent_Declare(
 					pybind11-src
 					GIT_REPOSITORY https://github.com/pybind/pybind11.git
-					GIT_TAG        v2.9.0
+					GIT_TAG        v2.10.1
 			)
 			if(${CMAKE_VERSION} VERSION_LESS 3.14)
 				macro(FetchContent_MakeAvailable NAME)
@@ -416,7 +417,7 @@ if(${CODE})
 		COPYONLY
 	)
 	configure_file(cmake/ur_rtdeBuildConfig.cmake.in
-		"${CMAKE_CURRENT_BINARY_DIR}/ur_rtde/ur_rtdeBuildConfig.cmake"
+		"${CMAKE_CURRENT_BINARY_DIR}/ur_rtde/ur_rtdeBuildConfig.cmake" @ONLY
 	)
 	install(EXPORT RTDETargets
 		FILE ur_rtdeTargets.cmake

@@ -87,7 +87,7 @@ class RTDEUtility
  public:
   static inline RTDEControlHeader readRTDEHeader(const std::vector<char> &data, uint32_t &message_offset)
   {
-    RTDEControlHeader rtde_control_header{};
+    RTDEControlHeader rtde_control_header;
     rtde_control_header.msg_size = RTDEUtility::getUInt16(data, message_offset);
     rtde_control_header.msg_cmd = RTDEUtility::getUInt8(data, message_offset);
     return rtde_control_header;
@@ -137,7 +137,7 @@ class RTDEUtility
       {
         double value;
         char c[8];
-      } in{}, out{};
+      } in, out;
 
       in.value = d;
       out.c[0] = in.c[7];
@@ -163,7 +163,7 @@ class RTDEUtility
     {
       double value;
       char c[8];
-    } in{}, out{};
+    } in, out;
 
     in.value = d;
     out.c[0] = in.c[7];

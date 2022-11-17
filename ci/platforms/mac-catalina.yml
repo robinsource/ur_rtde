@@ -1,0 +1,31 @@
+
+build-mac-catalina:
+  extends: .mac-build
+  tags:
+    - Catalina
+    - sdur
+    - mac 
+
+
+examples-mac-catalina:
+  extends: .mac-build-examples
+  tags:
+    - Catalina
+    - sdur
+    - mac
+  dependencies:
+    - build-mac-catalina
+  needs: ["build-mac-catalina"]
+
+cibuildwheel-mac:
+  extends: .mac-cibuildwheel
+  tags:
+    - Catalina
+    - sdur
+    - mac
+  dependencies:
+    - build-mac-catalina
+  needs: ["build-mac-catalina"]
+
+
+
