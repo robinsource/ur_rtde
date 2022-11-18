@@ -46,10 +46,7 @@ deploy_wheels:
   stage: deploy
   image: python:3.8
   variables:
-    GIT_STRATEGY: none
-  only:
-    refs:
-      - master
+    GIT_SUBMODULE_STRATEGY: recursive
   dependencies:
     - cibuildwheel-linux
     - cibuildwheel-windows
