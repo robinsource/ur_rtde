@@ -10,6 +10,9 @@ examples-windows10-vs16:
 
 cibuildwheel-windows:
   extends: .windows-cibuildwheel
+  only:
+    refs:
+      - release
   tags:
     - sdur-windows
   dependencies:

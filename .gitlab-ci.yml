@@ -23,30 +23,14 @@ include:
 #                  Test                    #
 ############################################
 
-build_wheels:
-  stage: build_wheels
-  image: gitlab.sdu.dk:5050/sdurobotics/docker-images/ur_rtde-build:manylinux
-  when: manual
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  script:
-    - ./ci/build-wheels.sh
-  dependencies:
-    - build-ubuntu-1804
-  tags:
-    - linux
-    - sdur
-
-.build_cibuildwheel:
-  extends: .linux-cibuildwheel
-  dependencies:
-    - build-ubuntu-2004
-
 deploy_wheels:
   stage: deploy
   image: python:3.8
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+  only:
+    refs:
+      - release
   dependencies:
     - cibuildwheel-linux
     - cibuildwheel-windows

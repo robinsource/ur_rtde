@@ -19,6 +19,9 @@ examples-mac-catalina:
 
 cibuildwheel-mac:
   extends: .mac-cibuildwheel
+  only:
+    refs:
+      - release
   tags:
     - Catalina
     - sdur
