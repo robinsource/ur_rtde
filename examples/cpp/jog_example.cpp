@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 
   while ((c = getch()) != 'q')
   {
+    steady_clock::time_point t_start = rtde_control.initPeriod();
     c = getch();
     switch (c)
     {
@@ -54,7 +55,7 @@ int main(int argc, char* argv[])
         rtde_control.jogStart(speed_vector, RTDEControlInterface::FEATURE_TOOL);
         break;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    rtde_control.waitPeriod(t_start);
   }
 
   endwin();
