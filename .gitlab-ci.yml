@@ -23,7 +23,7 @@ include:
 #                  Test                    #
 ############################################
 
-deploy_wheels:
+wheels:
   stage: deploy
   image: python:3.8
   variables:
@@ -45,7 +45,7 @@ deploy_wheels:
     - linux
     - sdur
 
-deploy_docs:
+pages:
   stage: deploy
   variables:
     GIT_STRATEGY: none
