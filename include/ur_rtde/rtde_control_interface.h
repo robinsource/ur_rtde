@@ -79,6 +79,101 @@ struct Versions {
   uint32_t build;
 };
 
+
+/**
+ * Allows access to the single parts of the async operation status word.
+   This function provides extended progress information in an async progress
+   status register. The following bits are used
+
+   | Bit 31 | Bit 30 - 24 | Bit 23 | Bit 9 - 22     | Bit 15  | Bit 14 - 0 |
+    +--------+-------------+--------+----------------+---------+------------+
+   | rsv    | async_op_id | rsv    | async_wr_count | running | progress   |
+
+   running: 1 - async op. running, 0 - async op. finished
+   progress: progress of running async. operation.
+ */
+class CAsyncOperationStatus
+{
+private:
+	uint32_t status_; // the status word received from robot
+
+public:
+	/**
+	 * Create status object from received status word
+	 */
+	CAsyncOperationStatus(int Value = 0) : status_(Value)
+	{
+
+	}
+
+	/**
+	 * Access the raw status value
+	 */
+	uint32_t value() const
+	{
+		return status_;
+	}
+
+	/**
+	 * Returns true if async operation is running - tests if the running bit
+	 * is set
+	 */
+	bool isAsyncOperationRunning() const
+	{
+		return status_ & 0x8000;
+	}
+
+	/**
+	 * Returns the identifier of the async operation.
+	 * The identifier of the async operation is incremented each time a new
+	 * async operation is started. That means, as long as an async operation
+	 * is running, the operation id does not change.
+	 * The application can use this ID to detect if progress information belongs
+	 * to the current operation or to a new operation.
+	 */
+	int operationId() const
+	{
+		return (status_ >> 24) & 0x7F;
+	}
+
+	/**
+	 * Returns the change counter of the async status
+	 * Whenever the asynchronous status changes, the counter is incremented.
+	 * That means, whenever the control scripts writes something into the
+	 * async progress status register, the change counter is incremented.
+	 */
+	int changeCount() const
+	{
+		return (status_ >> 16) & 0xFF;
+	}
+
+	/**
+	 * Returns the progress or -1 if no async operation is running.
+	 * The progress value indicates the progress of an operation in the range
+	 * from 0 to 32767
+	 */
+	int progress() const
+	{
+		if (isAsyncOperationRunning())
+		{
+			return status_ & 0x7FFF; // return async operation progress
+		}
+		else
+		{
+			return -1; // -1 indicates no async operation running
+		}
+	}
+
+	/**
+	 * Test, if async operation progress changed
+	 */
+	bool equals(const CAsyncOperationStatus& other) const
+	{
+		return this->status_ == other.status_;
+	}
+};
+
+
 /**
  * This class provides the interface to control the robot and to execute robot
  * movements.
@@ -622,8 +717,19 @@ class RTDEControlInterface
    * value is updated, before a step is executed. When the last step has been
    * executed, the value will change to -1 to indicate the end of the async
    * operation.
+   * @deprecated Use getAsyncOperationProgress() instead.
    */
   RTDE_EXPORT int getAsyncOperationProgress();
+
+  /**
+   * Returns extended async operation progress information for asynchronous 
+   * operations that supports progress feedback (such as movePath).
+   * It also returns the status of any async operation such as moveJ, moveL,
+   * stopJ or stopL.
+   * @see CAsyncOperationStatus for a detailed description of the progress
+   *      status.
+   */
+  RTDE_EXPORT CAsyncOperationStatus getAsyncOperationProgressEx();
 
   /**
    * @brief Enable a watchdog for the communication with a specified minimum frequency for which an input update is
