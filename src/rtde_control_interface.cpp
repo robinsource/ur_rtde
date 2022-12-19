@@ -659,7 +659,13 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
 void RTDEControlInterface::receiveCallback()
 {
   bool should_reconnect = false;
-  while (!stop_thread_)
+  // If someone calls disconnect() stop_thread_ is set to false, so we only
+  // execute the while loop as long as stop_thread_ is true. But this check is
+  // not sufficient bnecause in case of a network connection loss, the rtde_
+  // connection is closed. Therefore we also need to check, if rtde_ is still
+  // connected. only if these two requirements are met, it is safe to access
+  // the rtde_ functions.
+  while (!stop_thread_ && rtde_->isConnected())
   {
     // Receive and update the robot state
     try
@@ -736,7 +742,10 @@ void RTDEControlInterface::receiveCallback()
       {
         std::cerr << "RTDEControlInterface Exception: " << e.what() << std::endl;
         stop_thread_ = true;
-        throw std::runtime_error("RTDEControlInterface: Could not reconnect to robot...");
+        return;
+        // is it save to throw exceptions in an ASIO async handler? If this line
+        // is not disables, it will crash the application
+        //throw std::runtime_error("RTDEControlInterface: Could not reconnect to robot...");
       }
     }
   }
