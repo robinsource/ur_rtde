@@ -239,14 +239,20 @@ class RTDEControlInterface
   /**
    * @brief Stop (linear in tool space) - decelerate tool speed to zero
    * @param a tool acceleration [m/s^2] (rate of deceleration of the tool)
+   * @param asynchronous a bool specifying if the stop command should be asynchronous.
+   * Stopping a fast move with a stopL with a low deceleration may block the
+   * caller for some seconds. To avoid blocking set asynchronous = true
    */
-  RTDE_EXPORT void stopL(double a = 10.0);
+  RTDE_EXPORT void stopL(double a = 10.0, bool asynchronous = false);
 
   /**
    * @brief Stop (linear in joint space) - decelerate joint speeds to zero
    * @param a joint acceleration [rad/s^2] (rate of deceleration of the leading axis).
+    * @param asynchronous a bool specifying if the stop command should be asynchronous.
+   * Stopping a fast move with a stopJ with a low deceleration may block the
+   * caller for some seconds. To avoid blocking set asynchronous = true
    */
-  RTDE_EXPORT void stopJ(double a = 2.0);
+  RTDE_EXPORT void stopJ(double a = 2.0, bool asynchronous = false);
 
   /**
    * @brief Move to joint position (linear in joint-space)

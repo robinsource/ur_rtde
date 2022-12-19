@@ -688,6 +688,10 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
                                                    inDoubleReg(4), inDoubleReg(5), inDoubleReg(6)};
   rtde_->sendInputSetup(ft_rtde_input_enable);
 
+  // Recipe 20 - STOPL and STOPJ
+  std::vector<std::string> stopl_stopj_input = {inIntReg(0), inDoubleReg(0), inIntReg(1)};
+  rtde_->sendInputSetup(stopl_stopj_input);
+
   return true;
 }
 
@@ -785,20 +789,28 @@ void RTDEControlInterface::stopScript()
   sendCommand(robot_cmd);
 }
 
-void RTDEControlInterface::stopL(double a)
+void RTDEControlInterface::stopL(double a, bool async)
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::STOPL;
-  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_8;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_20;
+  if (async)
+    robot_cmd.async_ = 1;
+  else
+    robot_cmd.async_ = 0;
   robot_cmd.val_.push_back(a);
   sendCommand(robot_cmd);
 }
 
-void RTDEControlInterface::stopJ(double a)
+void RTDEControlInterface::stopJ(double a, bool async)
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::STOPJ;
-  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_8;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_20;
+  if (async)
+    robot_cmd.async_ = 1;
+  else
+    robot_cmd.async_ = 0;
   robot_cmd.val_.push_back(a);
   sendCommand(robot_cmd);
 }
