@@ -672,7 +672,7 @@ void RTDEControlInterface::receiveCallback()
         {
           if(ec == boost::asio::error::eof)
           {
-            std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+            std::cerr << "RTDEControlInterface: Robot closed the connection!" << std::endl;
           }
           throw std::system_error(ec);
         }
@@ -689,7 +689,7 @@ void RTDEControlInterface::receiveCallback()
           {
             if (ec == boost::asio::error::eof)
             {
-              std::cerr << "RTDEReceiveInterface: Robot closed the connection!" << std::endl;
+              std::cerr << "RTDEControlInterface: Robot closed the connection!" << std::endl;
             }
             throw std::system_error(ec);
           }
