@@ -32,6 +32,10 @@
     global move_vel = 1.2
     global move_acc = 0.25
 
+    global stop_thrd = 0
+    global stop_type = 0 # 0 = stopj, 1 = stopl
+    global stop_dec = 0
+
     global servo_thrd = 0
     global servoc_thrd = 0
     global speed_thrd = 0
@@ -84,6 +88,27 @@
 
     def reset_async_progress():
       async_finished = -2
+      signal_async_operation_finished()
+    end
+
+      # asynchronous stop thread
+    # stopping a move with a low deceleration may take quite some time, so
+    # async execution may prevent blocking the caller
+    thread stop_thread():
+      textmsg("stop_thread started")
+      signal_async_operation_started()
+      while (True):
+          if stop_type == 0:
+              stopj(stop_dec)
+          elif stop_type == 1:
+              stopl(stop_dec)
+          end
+          enter_critical
+          stop_thrd = 0
+          textmsg("stop_thread finished")
+          exit_critical
+          break
+      end
       signal_async_operation_finished()
     end
 
@@ -620,17 +645,35 @@ $5.3        pose_to_output_float_registers(0, target_waypoint)
             textmsg("protective_stop")
 $3.8        protective_stop()
             textmsg("protective_stop done")
-        elif cmd == 33:
-            textmsg("stopl")
+          elif cmd == 33:
             deceleration_rate = read_input_float_reg(0)
+            async = read_input_integer_reg(1)
+            textmsg("stopl async=", async)
             stop_async_move()
-            stopl(deceleration_rate)
+            if async == 1:
+                enter_critical
+                stop_type = 1
+                stop_dec = deceleration_rate
+                exit_critical
+                stop_thrd = run stop_thread()
+            else:
+                stopl(deceleration_rate)
+            end
             textmsg("stopl done")
         elif cmd == 34:
-            textmsg("stopj")
             deceleration_rate = read_input_float_reg(0)
+            async = read_input_integer_reg(1)
+            textmsg("stopj async=", async)
             stop_async_move()
-            stopj(deceleration_rate)
+            if async == 1:
+                enter_critical
+                stop_type = 0
+                stop_dec = deceleration_rate
+                exit_critical
+                stop_thrd = run stop_thread()
+            else:
+                stopj(deceleration_rate)
+            end
             textmsg("stopj done")
         elif cmd == 35:
             textmsg("set_watchdog")

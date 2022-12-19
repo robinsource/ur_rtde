@@ -126,7 +126,8 @@ class RTDE
       RECIPE_16 = 16,
       RECIPE_17 = 17,
       RECIPE_18 = 18,
-      RECIPE_19 = 19
+      RECIPE_19 = 19,
+      RECIPE_20 = 20
     };
 
     RobotCommand() : type_(NO_CMD), recipe_id_(1)
