@@ -89,10 +89,13 @@ void RTDE::connect()
 
 void RTDE::disconnect()
 {
+  if (ConnectionState::CONNECTED == conn_state_)
+  {
+   sendPause();
+  }
   /* We use reset() to safely close the socket,
    * see: https://stackoverflow.com/questions/3062803/how-do-i-cleanly-reconnect-a-boostsocket-following-a-disconnect
    */
-  sendPause();
   socket_.reset();
   conn_state_ = ConnectionState::DISCONNECTED;
   if (verbose_)
@@ -503,7 +506,7 @@ std::size_t RTDE::async_read_some(AsyncReadStream &s, const MutableBufferSequenc
   while (ec == boost::asio::error::would_block);
   if (ec)
   {
-    throw std::system_error(ec);
+    throw boost::system::system_error(ec);
   }
 
   return bytes_received;
@@ -682,7 +685,6 @@ void RTDE::check_deadline()
     socket_->close(ignored_ec);
     conn_state_ = ConnectionState::DISCONNECTED;
     socket_.reset();
-    std::cerr << "RTDE: socket timeout!" << std::endl;
 
     // There is no longer an active deadline. The expiry is set to positive
     // infinity so that the actor takes no action until a new deadline is set.
