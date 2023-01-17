@@ -165,7 +165,7 @@ void RobotiqGripper::autoCalibrate(float fSpeed)
   {
     throw std::runtime_error("Gripper calibration failed");
   }
-  max_position_ = std::min(getCurrentDevicePosition(), max_position_);
+  max_position_ = getCurrentDevicePosition();
   if (STOPPED_INNER_OBJECT == status)
   {
     max_position_ -= 5;
@@ -182,7 +182,7 @@ void RobotiqGripper::autoCalibrate(float fSpeed)
   {
     min_position_ -= 5;
   }
-  min_position_ = std::max(getCurrentDevicePosition(), min_position_);
+  min_position_ = getCurrentDevicePosition();
   if (verbose_)
   {
     std::cout << "Gripper auto-calibrated to " << min_position_ << ", " << max_position_ << std::endl;
