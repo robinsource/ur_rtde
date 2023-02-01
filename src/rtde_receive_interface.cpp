@@ -557,6 +557,13 @@ uint64_t RTDEReceiveInterface::getActualDigitalInputBits()
     throw std::runtime_error("unable to get state data for specified key: actual_digital_input_bits");
 }
 
+bool RTDEReceiveInterface::getDigitalInState(std::uint8_t input_id)
+{
+  uint64_t input_bits = getActualDigitalInputBits();
+  std::bitset<std::numeric_limits<uint64_t>::digits> input_bitset(input_bits);
+  return input_bitset.test(input_id);
+}
+
 std::vector<double> RTDEReceiveInterface::getJointTemperatures()
 {
   std::vector<double> joint_temperatures;
