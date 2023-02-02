@@ -266,6 +266,7 @@ PYBIND11_MODULE(rtde_receive, m)
            DOC(ur_rtde, RTDEReceiveInterface, getTargetTCPSpeed), py::call_guard<py::gil_scoped_release>())
       .def("getActualDigitalInputBits", &RTDEReceiveInterface::getActualDigitalInputBits,
            DOC(ur_rtde, RTDEReceiveInterface, getActualDigitalInputBits), py::call_guard<py::gil_scoped_release>())
+      .def("getDigitalInState", &RTDEReceiveInterface::getDigitalInState, py::call_guard<py::gil_scoped_release>())
       .def("getJointTemperatures", &RTDEReceiveInterface::getJointTemperatures,
            DOC(ur_rtde, RTDEReceiveInterface, getJointTemperatures), py::call_guard<py::gil_scoped_release>())
       .def("getActualExecutionTime", &RTDEReceiveInterface::getActualExecutionTime,

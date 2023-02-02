@@ -261,6 +261,13 @@ class RTDEReceiveInterface
    */
   RTDE_EXPORT uint64_t getActualDigitalInputBits();
 
+  /** @brief Test if a digital input is set 'high' or 'low' the range is
+   * 0-7: Standard, 8-15: Configurable, 16-17: Tool
+   * @param input_id the id of the digital input to test
+   * @returns a bool indicating the state of the digital input
+   */
+  RTDE_EXPORT bool getDigitalInState(std::uint8_t input_id);
+
   /**
    * @returns Temperature of each joint in degrees Celsius
    */
