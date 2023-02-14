@@ -305,12 +305,12 @@ float RobotiqGripper::getCurrentPosition()
 
 bool RobotiqGripper::isOpen()
 {
-  return getCurrentDevicePosition() == min_position_;
+  return getCurrentDevicePosition() <= min_position_;
 }
 
 bool RobotiqGripper::isClosed()
 {
-  return getCurrentDevicePosition() == max_position_;
+  return getCurrentDevicePosition() >= max_position_;
 }
 
 void RobotiqGripper::reset()
@@ -417,12 +417,12 @@ int RobotiqGripper::move_impl(int Position, int Speed, int Force, eMoveMode Move
 
 int RobotiqGripper::open(float NormSpeed, float NormForce, eMoveMode MoveMode)
 {
-  return move(getOpenPosition(), NormSpeed, NormForce, MoveMode);
+  return move(convertValueUnit((float)0, POSITION, FROM_DEVICE_UNIT), NormSpeed, NormForce, MoveMode);
 }
 
 int RobotiqGripper::close(float NormSpeed, float NormForce, eMoveMode MoveMode)
 {
-  return move(getClosedPosition(), NormSpeed, NormForce, MoveMode);
+  return move(convertValueUnit((float)255, POSITION, FROM_DEVICE_UNIT), NormSpeed, NormForce, MoveMode);
 }
 
 RobotiqGripper::eObjectStatus RobotiqGripper::objectDetectionStatus()
