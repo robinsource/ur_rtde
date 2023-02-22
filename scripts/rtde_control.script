@@ -62,34 +62,70 @@
         write_output_integer_register(register_index + reg_offset_int, value)
     end
 
-    global async_finished = -2
 
-    def exec_move_path():
-      textmsg("exec_move_path")
-      # inject move path
-    end
+    global async_wr_count = 0 # is incremented each time the register is written
+    global async_op_id = 0 # is incremented each time a new async operation is started
 
-    def signal_async_progress(value):
-      write_output_integer_reg(2, value)
-    end
+    # Write async progress register
+    # This function provides extended progress information in an async progress 
+    # status register. The following bits are used
+    #
+    # | Bit 31 | Bit 30 - 24 | Bit 23 | Bit 9 - 22     | Bit 15  | Bit 14 - 0 |
+    # +--------+-------------+--------+----------------+---------+------------+
+    # | rsv    | async_op_id | rsv    | async_wr_count | running | progress   | 
+    #
+    # running: 1 - async op. running, 0 - async op. finished
+    # progress: progress of running async. operation
+    #
+    def write_async_progress_register(value):
+        # we use 7 bits for the change count - that means 127 is our maximum
+        async_wr_count = async_wr_count + 1
+        if async_wr_count > 127:
+            async_wr_count = 0
+        end
 
-    def signal_async_operation_started():
-      write_output_integer_reg(2, 0) # 0 indicates operation started
-    end
+        # 0 means new async operation started - we increment the opration id
+        # we use 7 bits for the operation id - that means 127 is our maximum
+        if value == 0:
+            async_op_id = async_op_id + 1
+            if async_op_id > 127:
+                async_op_id = 0
+            end
+        end
 
-    def signal_async_operation_finished():
-      if async_finished == -1:
-        async_finished = -2
-      else:
-        async_finished = -1
+        reg_value = async_wr_count * 65536 # shift change counter to bits 16 - 23
+        reg_value = reg_value + (async_op_id * 16777216) # shift opration id to bits 24 - 30
+
+        # if an async operation is active, we set the bit 15 (value 32768) and
+        # store the progress value into the lower 15 bit
+        if value >= 0:
+            # ensure that the progress value only uses 15 bit bacause bit 15
+            # is used for indication of runnin state
+            if value > 32767:
+                value = 32767
+            end
+            reg_value = reg_value + value + 32768 # store the progress in the lower 16 bits            
+        end
+        textmsg("async_wr_count: ", async_wr_count)
+        textmsg("async_op_id: ", async_op_id)
+        write_output_integer_reg(2, reg_value)
       end
-      write_output_integer_reg(2, async_finished) # negative values indicate operation finished
-    end
 
-    def reset_async_progress():
-      async_finished = -2
-      signal_async_operation_finished()
-    end
+      def signal_async_progress(value):
+        write_async_progress_register(value)
+      end
+  
+      def signal_async_operation_started():
+        write_async_progress_register(0) # 0 indicates operation started
+      end
+  
+      def signal_async_operation_finished():
+        write_async_progress_register(-1) # negative values indicate operation finished
+      end
+  
+      def reset_async_progress():
+        signal_async_operation_finished()
+      end
 
       # asynchronous stop thread
     # stopping a move with a low deceleration may take quite some time, so
@@ -140,6 +176,9 @@
             textmsg("stopping async movement - killing move_thrd")
             kill move_thrd
             move_thrd = 0
+            # If the move thread is killed, it cannot trigger the 
+            #  signal_async_operation_finished() signal - so we do it here
+            signal_async_operation_finished()
         end
         exit_critical
     end
@@ -907,7 +946,7 @@ $5.9          ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset,
         # RTDE Control script - Main loop #
         ###################################
 
-        textmsg("RTDE Control Script Loaded (13.10.2021-13:55)")
+        textmsg("RTDE Control Script Loaded (07.12.2022-15:50)")
 
         # Initialize gain and damping for force mode to a more stable default
 $5.0    force_mode_set_gain_scaling(0.5)
