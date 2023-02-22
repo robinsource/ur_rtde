@@ -62,6 +62,11 @@
         write_output_integer_register(register_index + reg_offset_int, value)
     end
 
+    def exec_move_path():
+        textmsg("exec_move_path")
+        # inject move path
+    end
+
 
     global async_wr_count = 0 # is incremented each time the register is written
     global async_op_id = 0 # is incremented each time a new async operation is started
@@ -177,7 +182,7 @@
             kill move_thrd
             move_thrd = 0
             # If the move thread is killed, it cannot trigger the 
-            #  signal_async_operation_finished() signal - so we do it here
+            # signal_async_operation_finished() signal - so we do it here
             signal_async_operation_finished()
         end
         exit_critical
@@ -946,7 +951,7 @@ $5.9          ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset,
         # RTDE Control script - Main loop #
         ###################################
 
-        textmsg("RTDE Control Script Loaded (07.12.2022-15:50)")
+        textmsg("RTDE Control Script Loaded (22.02.2022-14:42)")
 
         # Initialize gain and damping for force mode to a more stable default
 $5.0    force_mode_set_gain_scaling(0.5)
