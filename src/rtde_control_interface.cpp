@@ -1724,6 +1724,41 @@ bool RTDEControlInterface::isPoseWithinSafetyLimits(const std::vector<double> &p
   }
 }
 
+
+bool RTDEControlInterface::startContactDetection(const std::vector<double> &direction)
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::START_CONTACT_DETECTION;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_6;
+  robot_cmd.val_ = direction;
+  return sendCommand(robot_cmd);
+}
+
+
+bool RTDEControlInterface::stopContactDetection()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::STOP_CONTACT_DETECTION;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+
+  if (sendCommand(robot_cmd))
+  {
+    if (robot_state_ != nullptr)
+    {
+      return getOutputIntReg(1) != 0;
+    }
+    else
+    {
+      throw std::logic_error("Please initialize the RobotState, before using it!");
+    }
+  }
+  else
+  {
+    return false;
+  }
+}
+
+
 bool RTDEControlInterface::isJointsWithinSafetyLimits(const std::vector<double> &q)
 {
   RTDE::RobotCommand robot_cmd;
