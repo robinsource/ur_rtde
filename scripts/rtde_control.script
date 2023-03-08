@@ -188,6 +188,47 @@
         exit_critical
     end
 
+    # Execute an sync or async stopl or stopj command.
+    def exec_stopl_stopj(cmd, message):
+      deceleration_rate = read_input_float_reg(0)
+      async = read_input_integer_reg(1)
+      textmsg(message, async)
+      # if a stop thread is already running, we kill it so that we can restart it
+      # with the new parameters in the code below
+      stop_move = True
+      enter_critical
+      if stop_thrd != 0:
+          stop_move = False # if a stop thread is running then someone already called async stop before
+          textmsg("killing stop_thrd")
+          kill stop_thrd
+          stop_thrd = 0
+          signal_async_operation_finished()
+      end
+      exit_critical
+
+      # We only need to stop robot movement, if it has not been stopped by a
+      # previous running async stop command
+      if stop_move == True:
+        stop_async_move()
+      end
+
+      # If this is an async stop, then start the stop thread now. If not, then
+      # we stop synchronously
+      if async == 1:
+          enter_critical
+          stop_type = 1
+          stop_dec = deceleration_rate
+          exit_critical
+          stop_thrd = run stop_thread()
+      else:
+          if stop_type == 0:
+            stopj(deceleration_rate)
+          elif stop_type == 1:
+            stopl(deceleration_rate)
+          end
+      end
+    end
+
     thread force_thread():
         while (True):
             force_mode(task_frame, selection_vector, wrench, force_mode_type, limits)
@@ -689,35 +730,11 @@ $5.3        pose_to_output_float_registers(0, target_waypoint)
             textmsg("protective_stop")
 $3.8        protective_stop()
             textmsg("protective_stop done")
-          elif cmd == 33:
-            deceleration_rate = read_input_float_reg(0)
-            async = read_input_integer_reg(1)
-            textmsg("stopl async=", async)
-            stop_async_move()
-            if async == 1:
-                enter_critical
-                stop_type = 1
-                stop_dec = deceleration_rate
-                exit_critical
-                stop_thrd = run stop_thread()
-            else:
-                stopl(deceleration_rate)
-            end
+        elif cmd == 33:
+            exec_stopl_stopj(cmd, "stopl async=")
             textmsg("stopl done")
         elif cmd == 34:
-            deceleration_rate = read_input_float_reg(0)
-            async = read_input_integer_reg(1)
-            textmsg("stopj async=", async)
-            stop_async_move()
-            if async == 1:
-                enter_critical
-                stop_type = 0
-                stop_dec = deceleration_rate
-                exit_critical
-                stop_thrd = run stop_thread()
-            else:
-                stopj(deceleration_rate)
-            end
+            exec_stopl_stopj(cmd, "stopj async=")
             textmsg("stopj done")
         elif cmd == 35:
             textmsg("set_watchdog")
@@ -951,7 +968,7 @@ $5.9          ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset,
         # RTDE Control script - Main loop #
         ###################################
 
-        textmsg("RTDE Control Script Loaded (22.02.2022-14:42)")
+        textmsg("RTDE Control Script Loaded (06.03.2023-15:00)")
 
         # Initialize gain and damping for force mode to a more stable default
 $5.0    force_mode_set_gain_scaling(0.5)
