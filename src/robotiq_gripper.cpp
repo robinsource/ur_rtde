@@ -381,7 +381,7 @@ int RobotiqGripper::move(float fPosition, float fSpeed, float fForce, eMoveMode 
   int Force = (int)convertValueUnit(fForce, FORCE, TO_DEVICE_UNIT);
   Speed = (fSpeed < 0) ? speed_ : Speed;
   Force = (fForce < 0) ? force_ : Force;
-  Position = boost::algorithm::clamp(Position, min_position_, max_position_);
+  Position = boost::algorithm::clamp(Position, 0, 255);
   Speed = boost::algorithm::clamp(Speed, min_speed_, max_speed_);
   Force = boost::algorithm::clamp(Force, min_force_, max_force_);
 
