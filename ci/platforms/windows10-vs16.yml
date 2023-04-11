@@ -12,7 +12,7 @@ cibuildwheel-windows:
   extends: .windows-cibuildwheel
   only:
     refs:
-      - release
+      - tags
   tags:
     - sdur-windows
   dependencies:

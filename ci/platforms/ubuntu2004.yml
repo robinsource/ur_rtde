@@ -61,7 +61,7 @@ cibuildwheel-linux:
   extends: .linux-cibuildwheel
   only:
     refs:
-      - release
+      - tags
   tags:
     - sdur-dind
     - linux
