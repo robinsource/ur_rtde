@@ -2122,7 +2122,8 @@ bool RTDEControlInterface::sendCommand(const RTDE::RobotCommand &cmd)
           cmd.type_ == RTDE::RobotCommand::Type::SPEEDL || cmd.type_ == RTDE::RobotCommand::Type::FORCE_MODE ||
           cmd.type_ == RTDE::RobotCommand::Type::WATCHDOG || cmd.type_ == RTDE::RobotCommand::Type::GET_JOINT_TORQUES ||
           cmd.type_ == RTDE::RobotCommand::Type::TOOL_CONTACT || cmd.type_ == RTDE::RobotCommand::Type::GET_STEPTIME ||
-          cmd.type_ == RTDE::RobotCommand::Type::GET_ACTUAL_JOINT_POSITIONS_HISTORY)
+          cmd.type_ == RTDE::RobotCommand::Type::GET_ACTUAL_JOINT_POSITIONS_HISTORY ||
+          cmd.type_ == RTDE::RobotCommand::Type::SET_EXTERNAL_FORCE_TORQUE)
       {
         // Send command to the controller
         rtde_->send(cmd);
