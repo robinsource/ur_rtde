@@ -44,11 +44,11 @@ if(${CODE})
 
 endif()
 
-project(ur_rtde VERSION 1.5.5 LANGUAGES ${PROJECT_LANGUAGES})
+project(ur_rtde VERSION 1.5.6 LANGUAGES ${PROJECT_LANGUAGES})
 set(PROJECT_VERSION_SUFFIX "") # alpha/beta/rc, e.g. "-rc0"
 set(PROJECT_VERSION "${PROJECT_VERSION}${PROJECT_VERSION_SUFFIX}")
 set(PROJECT_AUTHOR "Anders Prier Lindvig")
-set(PROJECT_COPYRIGHT "2022")
+set(PROJECT_COPYRIGHT "2023")
 set(PROJECT_MAIL "anpl@mmmi.sdu.dk")
 
 if(${CODE})
@@ -71,7 +71,7 @@ if(${CODE})
 		if(NOT PYBIND11_PYTHON_VERSION)
 			set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 		endif()
-		set(Python_ADDITIONAL_VERSIONS 3.9 3.8 3.7 3.6 3.5 3.4)
+		set(Python_ADDITIONAL_VERSIONS 3.10 3.9 3.8 3.7 3.6 3.5 3.4)
 		find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 		if(${CMAKE_VERSION} VERSION_LESS 3.11)
