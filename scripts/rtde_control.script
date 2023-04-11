@@ -949,6 +949,30 @@ $5.9          ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset,
               gravity_direction[2] = read_input_float_reg(2)
               set_gravity(gravity_direction)
               textmsg("set_gravity done")
+        elif cmd == 60:
+              textmsg("get_inverse_kin_has_solution_default")
+$5.10|3.15    x = pose_from_input_float_registers(0)
+$5.10|3.15    has_solution = get_inverse_kin_has_solution(x)
+$5.10|3.15    if has_solution == True:
+$5.10|3.15       write_output_integer_reg(1, 1)
+$5.10|3.15    else:
+$5.10|3.15       write_output_integer_reg(1, 0)
+$5.10|3.15    end
+              textmsg("get_inverse_kin_has_solution_default done")
+        elif cmd == 61:
+              textmsg("get_inverse_kin_has_solution_args")
+$5.10|3.15    x = pose_from_input_float_registers(0)
+$5.10|3.15    qnear = q_from_input_float_registers(6)
+$5.10|3.15    maxPositionError = read_input_float_reg(12)
+$5.10|3.15    maxOrientationError = read_input_float_reg(13)
+
+$5.10|3.15    has_solution = get_inverse_kin_has_solution(x, qnear, maxPositionError, maxOrientationError)
+$5.10|3.15    if has_solution == True:
+$5.10|3.15        write_output_integer_reg(1, 1)
+$5.10|3.15    else:
+$5.10|3.15        write_output_integer_reg(1, 0)
+$5.10|3.15    end
+              textmsg("get_inverse_kin_has_solution_args done")
         elif cmd == 255:
               textmsg("Received stop script!")
         end

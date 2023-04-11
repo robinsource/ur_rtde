@@ -211,6 +211,10 @@ PYBIND11_MODULE(rtde_control, m)
   control.def("setGravity", &RTDEControlInterface::setGravity, py::call_guard<py::gil_scoped_release>());
   control.def("initPeriod", &RTDEControlInterface::initPeriod, py::call_guard<py::gil_scoped_release>());
   control.def("waitPeriod", &RTDEControlInterface::waitPeriod, py::call_guard<py::gil_scoped_release>());
+  control.def("getInverseKinematicsHasSolution", &RTDEControlInterface::getInverseKinematicsHasSolution,
+              py::arg("x"), py::arg("qnear") = std::vector<double>(),
+              py::arg("max_position_error") = 1e-10, py::arg("max_orientation_error") = 1e-10,
+              py::call_guard<py::gil_scoped_release>());
   control.def("__repr__", [](const RTDEControlInterface &a) { return "<rtde_control.RTDEControlInterface>"; });
 }
 };  // namespace rtde_control

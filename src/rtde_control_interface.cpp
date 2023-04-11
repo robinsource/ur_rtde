@@ -2002,6 +2002,36 @@ bool RTDEControlInterface::setGravity(const std::vector<double> &direction)
   return sendCommand(robot_cmd);
 }
 
+bool RTDEControlInterface::getInverseKinematicsHasSolution(const std::vector<double> &x, const std::vector<double> &qnear, double max_position_error, double max_orientation_error)
+{
+  RTDE::RobotCommand robot_cmd;
+  if (!qnear.empty())
+  {
+    robot_cmd.type_ = RTDE::RobotCommand::Type::GET_INVERSE_KINEMATICS_HAS_SOLUTION_ARGS;
+    robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_10;
+    robot_cmd.val_ = x;
+    robot_cmd.val_.insert(robot_cmd.val_.end(), qnear.begin(), qnear.end());
+    robot_cmd.val_.push_back(max_position_error);
+    robot_cmd.val_.push_back(max_orientation_error);
+  }
+  else
+  {
+    robot_cmd.type_ = RTDE::RobotCommand::Type::GET_INVERSE_KINEMATICS_HAS_SOLUTION_DEFAULT;
+    robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_6;
+    robot_cmd.val_ = x;
+  }
+
+  if (sendCommand(robot_cmd))
+  {
+    // check status of output integer register 1, indicates if a solution was found
+    return getOutputIntReg(1) == 1;
+  }
+  else
+  {
+    throw std::runtime_error("getInverseKinematicsHasSolution() function did not succeed!");
+  }
+}
+
 void RTDEControlInterface::unlockProtectiveStop()
 {
   db_client_->unlockProtectiveStop();
