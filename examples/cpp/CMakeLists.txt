@@ -31,3 +31,6 @@ target_link_libraries(move_async PUBLIC ur_rtde::rtde)
 
 add_executable(robotiq_gripper_example robotiq_gripper_example.cpp)
 target_link_libraries(robotiq_gripper_example PUBLIC ur_rtde::rtde)
+
+add_executable(contact_detection_excample contact_detection_example.cpp)
+target_link_libraries(contact_detection_example PUBLIC ur_rtde::rtde)

@@ -44,6 +44,7 @@ namespace ur_rtde
 class RTDEReceiveInterface
 {
  public:
+  int RxSleep = 0;
   RTDE_EXPORT explicit RTDEReceiveInterface(std::string hostname, double frequency = -1.0,
                                             std::vector<std::string> variables = {},
                                             bool verbose = false, bool use_upper_range_registers = false,
