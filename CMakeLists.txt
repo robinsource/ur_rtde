@@ -44,11 +44,11 @@ if(${CODE})
 
 endif()
 
-project(ur_rtde VERSION 1.5.5 LANGUAGES ${PROJECT_LANGUAGES})
+project(ur_rtde VERSION 1.5.6 LANGUAGES ${PROJECT_LANGUAGES})
 set(PROJECT_VERSION_SUFFIX "") # alpha/beta/rc, e.g. "-rc0"
 set(PROJECT_VERSION "${PROJECT_VERSION}${PROJECT_VERSION_SUFFIX}")
 set(PROJECT_AUTHOR "Anders Prier Lindvig")
-set(PROJECT_COPYRIGHT "2022")
+set(PROJECT_COPYRIGHT "2023")
 set(PROJECT_MAIL "anpl@mmmi.sdu.dk")
 
 if(${CODE})
@@ -71,7 +71,7 @@ if(${CODE})
 		if(NOT PYBIND11_PYTHON_VERSION)
 			set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 		endif()
-		set(Python_ADDITIONAL_VERSIONS 3.9 3.8 3.7 3.6 3.5 3.4)
+		set(Python_ADDITIONAL_VERSIONS 3.10 3.9 3.8 3.7 3.6 3.5 3.4)
 		find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 		if(${CMAKE_VERSION} VERSION_LESS 3.11)
@@ -317,6 +317,10 @@ if(${CODE})
 		target_include_directories(realtime_control_example PUBLIC ${Boost_INCLUDE_DIRS} $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 		target_link_libraries(realtime_control_example PRIVATE rtde ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY})
 
+		add_executable(contact_detection_example examples/cpp/contact_detection_example.cpp)
+		target_include_directories(contact_detection_example PUBLIC ${Boost_INCLUDE_DIRS} $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+		target_link_libraries(contact_detection_example PRIVATE rtde ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
+
 		if (UNIX)
 			find_package(Curses)
 			if(Curses_FOUND)
@@ -331,7 +335,7 @@ if(${CODE})
 			endif()
 		endif (UNIX)
 
-		set_target_properties(servoj_example forcemode_example speedj_example movej_path_with_blend_example io_example move_async_example move_path_async_example robotiq_gripper_example move_until_contact_example record_data_example realtime_control_example
+		set_target_properties(servoj_example forcemode_example speedj_example movej_path_with_blend_example io_example move_async_example move_path_async_example robotiq_gripper_example move_until_contact_example record_data_example realtime_control_example contact_detection_example
 				PROPERTIES
 				RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
 				)

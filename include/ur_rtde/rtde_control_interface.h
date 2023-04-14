@@ -65,9 +65,11 @@ namespace ur_rtde
 {
 class Path;
 
-struct Versions {
+struct Versions
+{
   using RawVersions = std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>;
-  void operator=(const RawVersions& raw) {
+  void operator=(const RawVersions &raw)
+  {
     major = std::get<0>(raw);
     minor = std::get<1>(raw);
     bugfix = std::get<2>(raw);
@@ -78,7 +80,6 @@ struct Versions {
   uint32_t bugfix;
   uint32_t build;
 };
-
 
 /**
  * Allows access to the single parts of the async operation status word.
@@ -94,85 +95,83 @@ struct Versions {
  */
 class CAsyncOperationStatus
 {
-private:
-	uint32_t status_; // the status word received from robot
+ private:
+  uint32_t status_;  // the status word received from robot
 
-public:
-	/**
-	 * Create status object from received status word
-	 */
-	CAsyncOperationStatus(int Value = 0) : status_(Value)
-	{
+ public:
+  /**
+   * Create status object from received status word
+   */
+  CAsyncOperationStatus(int Value = 0) : status_(Value)
+  {
+  }
 
-	}
+  /**
+   * Access the raw status value
+   */
+  uint32_t value() const
+  {
+    return status_;
+  }
 
-	/**
-	 * Access the raw status value
-	 */
-	uint32_t value() const
-	{
-		return status_;
-	}
+  /**
+   * Returns true if async operation is running - tests if the running bit
+   * is set
+   */
+  bool isAsyncOperationRunning() const
+  {
+    return status_ & 0x8000;
+  }
 
-	/**
-	 * Returns true if async operation is running - tests if the running bit
-	 * is set
-	 */
-	bool isAsyncOperationRunning() const
-	{
-		return status_ & 0x8000;
-	}
+  /**
+   * Returns the identifier of the async operation.
+   * The identifier of the async operation is incremented each time a new
+   * async operation is started. That means, as long as an async operation
+   * is running, the operation id does not change.
+   * The application can use this ID to detect if progress information belongs
+   * to the current operation or to a new operation.
+   */
+  int operationId() const
+  {
+    return (status_ >> 24) & 0x7F;
+  }
 
-	/**
-	 * Returns the identifier of the async operation.
-	 * The identifier of the async operation is incremented each time a new
-	 * async operation is started. That means, as long as an async operation
-	 * is running, the operation id does not change.
-	 * The application can use this ID to detect if progress information belongs
-	 * to the current operation or to a new operation.
-	 */
-	int operationId() const
-	{
-		return (status_ >> 24) & 0x7F;
-	}
+  /**
+   * Returns the change counter of the async status
+   * Whenever the asynchronous status changes, the counter is incremented.
+   * That means, whenever the control scripts writes something into the
+   * async progress status register, the change counter is incremented.
+   */
+  int changeCount() const
+  {
+    return (status_ >> 16) & 0xFF;
+  }
 
-	/**
-	 * Returns the change counter of the async status
-	 * Whenever the asynchronous status changes, the counter is incremented.
-	 * That means, whenever the control scripts writes something into the
-	 * async progress status register, the change counter is incremented.
-	 */
-	int changeCount() const
-	{
-		return (status_ >> 16) & 0xFF;
-	}
+  /**
+   * Returns the progress or -1 if no async operation is running.
+   * The progress value indicates the progress of an operation in the range
+   * from 0 to 32767
+   */
+  int progress() const
+  {
+    if (isAsyncOperationRunning())
+    {
+      return status_ & 0x7FFF;  // return async operation progress
+    }
+    else
+    {
+      return -1;  // -1 indicates no async operation running
+    }
+  }
 
-	/**
-	 * Returns the progress or -1 if no async operation is running.
-	 * The progress value indicates the progress of an operation in the range
-	 * from 0 to 32767
-	 */
-	int progress() const
-	{
-		if (isAsyncOperationRunning())
-		{
-			return status_ & 0x7FFF; // return async operation progress
-		}
-		else
-		{
-			return -1; // -1 indicates no async operation running
-		}
-	}
-
-	/**
-	 * Test, if async operation progress changed
-	 */
-	bool equals(const CAsyncOperationStatus& other) const
-	{
-		return this->status_ == other.status_;
-	}
+  /**
+   * Test, if async operation progress changed
+   */
+  bool equals(const CAsyncOperationStatus &other) const
+  {
+    return this->status_ == other.status_;
+  }
 };
-
 
 /**
  * This class provides the interface to control the robot and to execute robot
@@ -343,7 +342,7 @@ class RTDEControlInterface
   /**
    * @brief Stop (linear in joint space) - decelerate joint speeds to zero
    * @param a joint acceleration [rad/s^2] (rate of deceleration of the leading axis).
-    * @param asynchronous a bool specifying if the stop command should be asynchronous.
+   * @param asynchronous a bool specifying if the stop command should be asynchronous.
    * Stopping a fast move with a stopJ with a low deceleration may block the
    * caller for some seconds. To avoid blocking set asynchronous = true
    */
@@ -531,7 +530,7 @@ class RTDEControlInterface
    * is FEATURE_CUSTOM
    */
   RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE,
-	  const std::vector<double>& custom_frame = {});
+                            const std::vector<double> &custom_frame = {});
 
   /**
    * Stops jogging that has been started start_jog
@@ -728,7 +727,7 @@ class RTDEControlInterface
   RTDE_EXPORT int getAsyncOperationProgress();
 
   /**
-   * Returns extended async operation progress information for asynchronous 
+   * Returns extended async operation progress information for asynchronous
    * operations that supports progress feedback (such as movePath).
    * It also returns the status of any async operation such as moveJ, moveL,
    * stopJ or stopL.
@@ -833,6 +832,7 @@ class RTDEControlInterface
    * direction=get_target_tcp_speed() in which case it will detect contacts in the direction of the TCP movement.
    * @param acceleration tool position acceleration [m/s^2]
    * @returns True once the robot is in contact.
+   * @see startContactDetection() function for async contact detection
    */
   RTDE_EXPORT bool moveUntilContact(const std::vector<double> &xd,
                                     const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
@@ -955,8 +955,8 @@ class RTDEControlInterface
    * are optional (zero if not provided).
    */
   RTDE_EXPORT bool enableExternalFtSensor(bool enable, double sensor_mass = 0.0,
-                                     const std::vector<double> &sensor_measuring_offset = {0.0, 0.0, 0.0},
-                                     const std::vector<double> &sensor_cog = {0.0, 0.0, 0.0});
+                                          const std::vector<double> &sensor_measuring_offset = {0.0, 0.0, 0.0},
+                                          const std::vector<double> &sensor_cog = {0.0, 0.0, 0.0});
 
   /**
    * @brief Returns the current measured tool flange pose
@@ -984,7 +984,21 @@ class RTDEControlInterface
   RTDE_EXPORT bool setGravity(const std::vector<double> &direction);
 
   /**
-   * @brief Starts contact detection thread
+   * @brief Check if get_inverse_kin has a solution and return boolean (true) or (false).
+   * This can be used to avoid the runtime exception of getInverseKin() when no solution exists.
+   *
+   * @param x tool pose
+   * @param qnear list of joint positions (Optional)
+   * @param maxPositionError the maximum allowed positionerror (Optional)
+   * @param maxOrientationError the maximum allowed orientationerror (Optional)
+   * @returns true if getInverseKin has a solution, false otherwise (bool)
+   */
+  RTDE_EXPORT bool getInverseKinematicsHasSolution(const std::vector<double> &x, const std::vector<double> &qnear = {},
+                                                   double max_position_error = 1e-10,
+                                                   double max_orientation_error = 1e-10);
+
+  /**
+   * @brief Starts async contact detection thread
    *
    * Move the robot until contact, with specified speed and contact detection direction.
    * The robot will automatically retract to the initial point of contact.
@@ -1002,23 +1016,39 @@ class RTDEControlInterface
    *
    *  // now wait until the robot stops - it either stops if it has reached
    *  // the target pose or if a contact has been detected
+   *  // you can use the readContactDetection() function, to check if a contact
+   *  // has been detected.
+   *  bool contact_detected = rtde_control.readContactDetection();
    *
-   *  bool contact_detected = rtde_control.stopContactDetection();
+   *
+   *  contact_detected = rtde_control.stopContactDetection();
    * \endcode
    *
    * @param direction List of six floats.
    * The first three elements are interpreted as a 3D vector
-   * (in the robot base coordinate system) giving the direction in which contacts should be detected. If all elements
-   * of the list are zero, direction will be set to direction=get_target_tcp_speed()
-   * in which case it will detect contacts in the direction of the TCP movement.
+   * (in the robot base coordinate system) giving the direction in which contacts should be detected.
+   * If all elements of the list are zero, direction will be set to
+   * direction=get_target_tcp_speed() in which case it will detect contacts in
+   * the direction of the TCP movement.
    *
    * @return Returns true, if a contact has been detected
    */
   RTDE_EXPORT bool startContactDetection(const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
 
   /**
+   * Reads the current async contact detection state.
+   * The function returns true, when a contact between the tool and an object
+   * has been detected.
+   */
+  RTDE_EXPORT bool readContactDetection();
+
+  /**
    * @brief Stop contact monitoring
-   * This function stops contact monitoring and returns
+   * This function stops contact monitoring and returns true, if a contact has
+   * been detected. Normally the contact
+   * detection is stopped, as soon as a contact ha been detected. If you would
+   * like to stop the contact detection manually, i.e. because of a timeout,
+   * the you can use this function.
    */
   RTDE_EXPORT bool stopContactDetection();
 
@@ -1026,9 +1056,15 @@ class RTDEControlInterface
   void unlockProtectiveStop();
 
   // Returns the version numbers of the robot.
-  const Versions& versions() const { return versions_; }
+  const Versions &versions() const
+  {
+    return versions_;
+  }
   // Returns the serial number acquired by dashboard client upon connection.
-  const std::string& serial_number() const { return serial_number_; }
+  const std::string &serial_number() const
+  {
+    return serial_number_;
+  }
 
  private:
   bool setupRecipes(const double &frequency);

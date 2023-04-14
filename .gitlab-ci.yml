@@ -30,7 +30,7 @@ wheels:
     GIT_SUBMODULE_STRATEGY: recursive
   only:
     refs:
-      - release
+      - tags
   dependencies:
     - cibuildwheel-linux
     - cibuildwheel-windows

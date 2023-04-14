@@ -70,6 +70,10 @@ class ScriptClient
   RTDE_EXPORT std::string getScript();
 
  private:
+  RTDE_EXPORT bool removeUnsupportedFunctions(std::string& ur_script);
+  RTDE_EXPORT bool scanAndInjectAdditionalScriptCode(std::string& ur_script);
+
+ private:
   std::string hostname_;
   uint32_t major_control_version_;
   uint32_t minor_control_version_;

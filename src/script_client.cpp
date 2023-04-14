@@ -106,48 +106,51 @@ static bool loadScript(const std::string& file_name, std::string& str)
   }
 }
 
-bool ScriptClient::sendScript()
+bool ScriptClient::removeUnsupportedFunctions(std::string& ur_script)
 {
-  std::string ur_script;
-  // If the user assigned a custom control script, then we use this one instead
-  // of the internal compiled one.
-  if (!script_file_name_.empty())
-  {
-    // If loading fails, we fall back to the default script file
-    if (!loadScript(script_file_name_, ur_script))
-    {
-      std::cerr << "Error loading custom script file. Falling back to internal script file." << std::endl;
-      ur_script = std::string();
-    }
-  }
-
-  if (ur_script.empty())
-  {
-    ur_script = "def rtde_control():\n";
-    ur_script += UR_SCRIPT;
-    ur_script += "end\n";
-  }
-
   // Remove lines not fitting for the specific version of the controller
   auto n = ur_script.find("$");
 
   while (n != std::string::npos)
   {
-    const std::string version_str = ur_script.substr(n+1, 4);
+    const std::string version_str = ur_script.substr(n+1, 9);
     const std::string major_str(1, version_str.at(0));
     const std::string minor_str = version_str.substr(2, 4);
+    const std::string extra_major_str(1, version_str.at(5));
+    const std::string extra_minor_str = version_str.substr(7, 2);
 
     if (!major_str.empty() && !minor_str.empty() && major_str != " " && minor_str != " ")
     {
       uint32_t major_version_needed = uint32_t(std::stoi(major_str));
       uint32_t minor_version_needed = uint32_t(std::stoi(minor_str));
+      uint32_t extra_major_version_needed = 0;
+      uint32_t extra_minor_version_needed = 0;
+      bool additional_version_specified = false;
+
+      if (version_str.at(4) == '|') // Look for an additionally supported CB version.
+      {
+        if (!extra_major_str.empty())
+          extra_major_version_needed = uint32_t(std::stoi(extra_major_str));
+        if (!extra_minor_str.empty())
+          extra_minor_version_needed = uint32_t(std::stoi(extra_minor_str));
+        additional_version_specified = true;
+      }
 
       if ((major_control_version_ > major_version_needed) ||
-          (major_control_version_ == major_version_needed && minor_control_version_ >= minor_version_needed))
+          (major_control_version_ == major_version_needed && minor_control_version_ >= minor_version_needed) ||
+          (major_control_version_ == extra_major_version_needed && minor_control_version_ >= extra_minor_version_needed))
       {
         // Keep the line
-        ur_script.erase(n, 5);
-        ur_script.insert(n, "     ");
+        if (additional_version_specified)
+        {
+          ur_script.erase(n, 10);
+          ur_script.insert(n, "          ");
+        }
+        else
+        {
+          ur_script.erase(n, 5);
+          ur_script.insert(n, "     ");
+        }
       }
       else
       {
@@ -163,7 +166,12 @@ bool ScriptClient::sendScript()
 
     n = ur_script.find("$");
   }
+  return true;
+}
 
+bool ScriptClient::scanAndInjectAdditionalScriptCode(std::string& ur_script)
+{
+  unsigned long n = 0;
   // Now scan the script for injection points where we can inject additional
   // script code
   for (const auto& script_injection : script_injections_)
@@ -186,6 +194,36 @@ bool ScriptClient::sendScript()
                 << std::endl;
     }
   }
+  return true;
+}
+
+bool ScriptClient::sendScript()
+{
+  std::string ur_script;
+  // If the user assigned a custom control script, then we use this one instead
+  // of the internal compiled one.
+  if (!script_file_name_.empty())
+  {
+    // If loading fails, we fall back to the default script file
+    if (!loadScript(script_file_name_, ur_script))
+    {
+      std::cerr << "Error loading custom script file. Falling back to internal script file." << std::endl;
+      ur_script = std::string();
+    }
+  }
+
+  if (ur_script.empty())
+  {
+    ur_script = "def rtde_control():\n";
+    ur_script += UR_SCRIPT;
+    ur_script += "end\n";
+  }
+
+  // Remove if any, functions not supported on this version of the controller
+  if (!removeUnsupportedFunctions(ur_script))
+    return false;
+  // Scan the script for injection points where additional script code can be injected.
+  scanAndInjectAdditionalScriptCode(ur_script);
 
   if (isConnected() && !ur_script.empty())
   {
@@ -236,7 +274,7 @@ void ScriptClient::setScriptInjection(const std::string& search_string, const st
   }
   else
   {
-    script_injections_.push_back({search_string, inject_string});
+    script_injections_.emplace_back(search_string, inject_string);
   }
 }
 
@@ -260,63 +298,11 @@ std::string ScriptClient::getScript()
     ur_script = UR_SCRIPT;
   }
 
-  // Remove lines not fitting for the specific version of the controller
-  auto n = ur_script.find("$");
-
-  while (n != std::string::npos)
-  {
-    const std::string version_str = ur_script.substr(n+1, 4);
-    const std::string major_str(1, version_str.at(0));
-    const std::string minor_str = version_str.substr(2, 4);
-
-    if (!major_str.empty() && !minor_str.empty() && major_str != " " && minor_str != " ")
-    {
-      uint32_t major_version_needed = uint32_t(std::stoi(major_str));
-      uint32_t minor_version_needed = uint32_t(std::stoi(minor_str));
-
-      if ((major_control_version_ > major_version_needed) ||
-          (major_control_version_ == major_version_needed && minor_control_version_ >= minor_version_needed))
-      {
-        // Keep the line
-        ur_script.erase(n, 5);
-        ur_script.insert(n, "     ");
-      }
-      else
-      {
-        // Erase the line
-        ur_script.erase(n, ur_script.find("\n", n) - n + 1);
-      }
-    }
-    else
-    {
-      std::cerr << "Could not read the control version required from the control script!" << std::endl;
-    }
-
-    n = ur_script.find("$");
-  }
-
-  // Now scan the script for injection points where we can inject additional
-  // script code
-  for (const auto& script_injection : script_injections_)
-  {
-    n = ur_script.find(script_injection.search_string);
-    if (std::string::npos == n)
-    {
-      if (verbose_)
-        std::cout << "script_injection [" << script_injection.search_string << "] not found in script" << std::endl;
-      continue;
-    }
-
-    // Now inject custom script code into the script
-    ur_script.insert(n + script_injection.search_string.length(), script_injection.inject_string);
-    if (verbose_)
-    {
-      std::cout << "script_injection [" << script_injection.search_string << "] found at pos " << n << std::endl;
-      std::cout << ur_script.substr(n - 100, n + script_injection.search_string.length() +
-                                             script_injection.inject_string.length() + 100)
-                << std::endl;
-    }
-  }
+  // Remove if any, functions not supported on this version of the controller
+  if (!removeUnsupportedFunctions(ur_script))
+    std::cerr << "Error removing unsupported functions from control script!" << std::endl;
+  // Scan the script for injection points where additional script code can be injected.
+  scanAndInjectAdditionalScriptCode(ur_script);
 
   return ur_script;
 }

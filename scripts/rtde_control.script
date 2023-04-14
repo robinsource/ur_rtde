@@ -45,12 +45,6 @@
     global jog_speed_pose = p[0, 0, 0, 0, 0, 0]
     global jog_custom_feature = p[0, 0, 0, 0, 0, 0]
     global jog_thrd = 0
-
-    global contact_direction = p[0, 0, 0, 0, 0, 0]
-    global contact_step_back = 0
-    global contact_thrd = 0
-
-    global internal_cmd = 0
     
     def read_input_float_reg(register_index):
         return read_input_float_register(register_index + reg_offset_float)
@@ -138,7 +132,7 @@
         signal_async_operation_finished()
       end
 
-    # asynchronous stop thread
+      # asynchronous stop thread
     # stopping a move with a low deceleration may take quite some time, so
     # async execution may prevent blocking the caller
     thread stop_thread():
@@ -284,49 +278,6 @@
         end
     end
 
-    thread contact_thread():
-      textmsg("contact_thread started")
-      enter_critical
-      contact_step_back = 0
-      dir = contact_direction
-      exit_critical
-
-      textmsg("direction:", dir)
-      use_speed_vector = pose_is_null(dir)
-      if use_speed_vector:
-          textmsg("Using speed vector")
-      end
-
-      step_back = 1
-      # First we wait until there is not contact
-      while step_back > 0:
-          if use_speed_vector:
-              step_back = tool_contact(direction=get_target_tcp_speed())
-          else:
-              step_back = tool_contact(direction=dir)
-          end
-          sync()
-      end
-
-      # Now we can wait for a contact
-      while step_back == 0:
-          if use_speed_vector:
-              step_back = tool_contact(direction=get_target_tcp_speed())
-          else:
-              step_back = tool_contact(direction=dir)
-          end
-          sync()
-      end
-      textmsg("step_back:", step_back)
-      textmsg("target_tcp_speed: ", get_target_tcp_speed())
-      enter_critical
-      contact_thrd = 0
-      contact_step_back = step_back
-      internal_cmd = 254 # delegate processing of contact detection to main thread
-      exit_critical
-      textmsg("contact_thread finished")
-  end
-
     def q_from_input_float_registers(register_index):
       q = [0, 0, 0, 0, 0, 0]
       q[0] = read_input_float_reg(register_index + 0)
@@ -386,11 +337,6 @@
       p[4] = p[4] * factor
       p[5] = p[5] * factor
       return p
-    end
-
-    def pose_is_null(p):
-      sum = p[0] + p[1] + p[2] + p[3] + p[4] + p[5]
-      return (sum < 0.0000000001)
     end
 
     # convert tool_speed expressed in the frame_wrt_base in the robot base frame
@@ -463,19 +409,12 @@
     end
 
     def rtde_cmd():
-      cmd = read_input_integer_reg(0)
-      # only if command is 0 - that means we are idle, we process ionternal
-      # commands
-      if cmd == 0:
-          enter_critical
-          cmd = internal_cmd
-          internal_cmd = 0
-          exit_critical
-      end
-      return cmd
+        return read_input_integer_reg(0)
     end
 
-    def process_cmd(cmd):
+    def process_cmd():
+        cmd = read_input_integer_reg(0)
+
         if cmd == 1:
             textmsg("movej")
             q = q_from_input_float_registers(0)
@@ -1010,39 +949,30 @@ $5.9          ft_rtde_input_enable(enable, sensor_mass, sensor_measuring_offset,
               gravity_direction[2] = read_input_float_reg(2)
               set_gravity(gravity_direction)
               textmsg("set_gravity done")
-            elif cmd == 60:
-              textmsg("start_contact_detection")
-              enter_critical
-              if contact_thrd != 0:
-                  textmsg("killing contact_thrd")
-                  kill contact_thrd
-                  contact_thrd = 0
-              end
-              exit_critical
-              contact_direction = pose_from_input_float_registers(0)
-              contact_thrd = run contact_thread()
-              textmsg("start_contact_detection done")
-          elif cmd == 61:
-              textmsg("stop_contact_detection")
-              enter_critical
-              if contact_thrd != 0:
-                  textmsg("killing contact_thrd")
-                  kill contact_thrd
-                  contact_thrd = 0
-              end
-              exit_critical
-              write_output_integer_reg(1, contact_step_back)
-              textmsg("stop_contact_detection done")
-          elif cmd == 254: # internal command
-              textmsg("cmd == 254 - contact detected") 
-              stop_async_move()
-              # Get q for when the contact was first seen
-              q = get_actual_joint_positions_history(contact_step_back)
-              # Stop the movement
-              stopl(3)
-              # Move to the initial contact point
-              movel(q) 
-              textmsg("cmd == 254 - contact detected done")
+        elif cmd == 60:
+              textmsg("get_inverse_kin_has_solution_default")
+$5.10|3.15    x = pose_from_input_float_registers(0)
+$5.10|3.15    has_solution = get_inverse_kin_has_solution(x)
+$5.10|3.15    if has_solution == True:
+$5.10|3.15       write_output_integer_reg(1, 1)
+$5.10|3.15    else:
+$5.10|3.15       write_output_integer_reg(1, 0)
+$5.10|3.15    end
+              textmsg("get_inverse_kin_has_solution_default done")
+        elif cmd == 61:
+              textmsg("get_inverse_kin_has_solution_args")
+$5.10|3.15    x = pose_from_input_float_registers(0)
+$5.10|3.15    qnear = q_from_input_float_registers(6)
+$5.10|3.15    maxPositionError = read_input_float_reg(12)
+$5.10|3.15    maxOrientationError = read_input_float_reg(13)
+
+$5.10|3.15    has_solution = get_inverse_kin_has_solution(x, qnear, maxPositionError, maxOrientationError)
+$5.10|3.15    if has_solution == True:
+$5.10|3.15        write_output_integer_reg(1, 1)
+$5.10|3.15    else:
+$5.10|3.15        write_output_integer_reg(1, 0)
+$5.10|3.15    end
+              textmsg("get_inverse_kin_has_solution_args done")
         elif cmd == 255:
               textmsg("Received stop script!")
         end
@@ -1077,7 +1007,7 @@ $3.5    force_mode_set_damping(0.025)
             cmd = rtde_cmd()
             if cmd == 24 or cmd == 11 or cmd == 9 or cmd == 10 or cmd == 6 or cmd == 25 or cmd == 26 or cmd == 27 or cmd == 38 or cmd == 58:
                 # for realtime commands simply process and signal ready.
-                keep_running = process_cmd(cmd)
+                keep_running = process_cmd()
                 signal_ready()
             else:
                 # regular mode
@@ -1086,7 +1016,7 @@ $3.5    force_mode_set_damping(0.025)
                     signal_ready()
                 else:
                     if not executing_cmd:
-                        keep_running = process_cmd(cmd)
+                        keep_running = process_cmd()
                     end
                     executing_cmd = True
                 end

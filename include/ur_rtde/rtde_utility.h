@@ -371,7 +371,7 @@ class RTDEUtility
       std::this_thread::sleep_for(milliseconds(1));
       auto end = high_resolution_clock::now();
 
-      double observed = duration<double>(end - start).count() / 1e9;
+      double observed = duration<double>(end - start).count();
       seconds -= observed;
 
       ++count;
@@ -384,7 +384,7 @@ class RTDEUtility
 
     // spin lock
     auto start = high_resolution_clock::now();
-    while (duration<double>((high_resolution_clock::now() - start)).count() / 1e9 < seconds)
+    while (duration<double>((high_resolution_clock::now() - start)).count() < seconds)
       ;
   }
 

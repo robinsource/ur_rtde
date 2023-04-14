@@ -2,9 +2,10 @@ Source: ur-rtde
 Priority: optional
 Maintainer: Anders Prier Lindvig <anpl@mmmi.sdu.dk>
 Build-Depends: 
-  debhelper (>= 10), 
+  debhelper (>= 9),
   cmake(>= 3.5), 
-  libboost-system-dev (>= 1.54), 
+  libboost-system-dev (>= 1.54),
+  libboost-program-options-dev (>= 1.54),
   libboost-thread-dev (>= 1.54), 
 Standards-Version: 4.1.2
 Section: libs
