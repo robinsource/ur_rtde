@@ -513,7 +513,6 @@ void RobotiqGripper::getNativePositionRange(int& MinPosition, int& MaxPosition)
 
 void RobotiqGripper::setNativePositionRange(int MinPosition, int MaxPostion)
 {
-	std::cout << "setNativePositionRange " << MinPosition << " " << MaxPostion << std::endl;
 	min_position_ = MinPosition;
 	max_position_ = MaxPostion;
 }

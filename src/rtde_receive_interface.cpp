@@ -264,14 +264,6 @@ void RTDEReceiveInterface::receiveCallback()
         std::this_thread::yield();
         std::this_thread::sleep_for(std::chrono::microseconds(100));
 #endif
-      }
-
-      // We do an RX sleep here to test if we can properly detect desynchronization
-      // of the RTDE protocol
-      if (RxSleep)
-      {
-    	  std::this_thread::sleep_for(std::chrono::milliseconds(RxSleep));
-    	  RxSleep = 0;
       }     
     }
     catch (std::exception& e)
