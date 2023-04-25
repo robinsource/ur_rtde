@@ -24,13 +24,13 @@ print("Move path asynchronously with progress feedback...")
 rtde_c.movePath(path, True)
 
 # Wait for start of asynchronous operation
-while rtde_c.getAsyncOperationProgress() < 0:
+while not rtde_c.getAsyncOperationProgressEx().isAsyncOperationRunning():
     time.sleep(0.010)
 print("Async path started.. ")
 
 # Wait for end of asynchronous operation
 waypoint = -1
-while rtde_c.getAsyncOperationProgress() >= 0:
+while rtde_c.getAsyncOperationProgressEx().isAsyncOperationRunning():
     time.sleep(0.2)
     new_waypoint = rtde_c.getAsyncOperationProgress()
     if new_waypoint != waypoint:
