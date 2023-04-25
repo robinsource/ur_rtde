@@ -172,9 +172,9 @@ PYBIND11_MODULE(rtde_control, m)
   control.def("triggerProtectiveStop", &RTDEControlInterface::triggerProtectiveStop,
            DOC(ur_rtde, RTDEControlInterface, triggerProtectiveStop), py::call_guard<py::gil_scoped_release>());
   control.def("stopL", &RTDEControlInterface::stopL,
-           DOC(ur_rtde, RTDEControlInterface, stopL), py::call_guard<py::gil_scoped_release>());
+           DOC(ur_rtde, RTDEControlInterface, stopL), py::arg("a") = 10.0, py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("stopJ", &RTDEControlInterface::stopJ,
-           DOC(ur_rtde, RTDEControlInterface, stopJ), py::call_guard<py::gil_scoped_release>());
+           DOC(ur_rtde, RTDEControlInterface, stopJ), py::arg("a") = 2.0, py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("setWatchdog", &RTDEControlInterface::setWatchdog,
            DOC(ur_rtde, RTDEControlInterface, setWatchdog), py::arg("min_frequency") = 10.0,
            py::call_guard<py::gil_scoped_release>());
