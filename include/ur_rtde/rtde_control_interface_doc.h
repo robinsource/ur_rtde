@@ -51,7 +51,15 @@ progress 0 @retval >= 0 Indicates the progress of an async operation.
 For example, if an operation has 3 steps, the progress ranges from 0 -
 2. The progress value is updated, before a step is executed. When the
 last step has been executed, the value will change to -1 to indicate
-the end of the async operation.)doc";
+the end of the async operation. @deprecated The function is deprecated and only
+here for backward compatibility. Use getAsyncOperationProgressEx() instead.)doc";
+
+
+static const char *__doc_ur_rtde_RTDEControlInterface_getAsyncOperationProgressEx =
+R"doc(Returns extended async operation progress information for asynchronous
+operations that supports progress feedback (such as movePath).
+@see AsyncOperationStatus documentation for a detailed description of the
+returned status.)doc";
 
 
 static const char *__doc_ur_rtde_RTDEControlInterface_getRobotStatus =
@@ -70,7 +78,6 @@ R"doc(Returns:
     read the robot status or program running state, then you should always
     use the getRobotStatus() function from RTDE Control if you need a status
     that is in sync with the program uploading or reuploading of this object.)doc";
-
 
 
 static const char *__doc_ur_rtde_RTDEControlInterface_forceMode =

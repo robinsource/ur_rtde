@@ -93,7 +93,7 @@ struct Versions
    running: 1 - async op. running, 0 - async op. finished
    progress: progress of running async. operation.
  */
-class CAsyncOperationStatus
+class AsyncOperationStatus
 {
  private:
   uint32_t status_;  // the status word received from robot
@@ -102,7 +102,7 @@ class CAsyncOperationStatus
   /**
    * Create status object from received status word
    */
-  CAsyncOperationStatus(int Value = 0) : status_(Value)
+  AsyncOperationStatus(int Value = 0) : status_(Value)
   {
   }
 
@@ -167,7 +167,7 @@ class CAsyncOperationStatus
   /**
    * Test, if async operation progress changed
    */
-  bool equals(const CAsyncOperationStatus &other) const
+  bool equals(const AsyncOperationStatus &other) const
   {
     return this->status_ == other.status_;
   }
@@ -731,10 +731,10 @@ class RTDEControlInterface
    * operations that supports progress feedback (such as movePath).
    * It also returns the status of any async operation such as moveJ, moveL,
    * stopJ or stopL.
-   * @see CAsyncOperationStatus for a detailed description of the progress
+   * @see AsyncOperationStatus class for a detailed description of the progress
    *      status.
    */
-  RTDE_EXPORT CAsyncOperationStatus getAsyncOperationProgressEx();
+  RTDE_EXPORT AsyncOperationStatus getAsyncOperationProgressEx();
 
   /**
    * @brief Enable a watchdog for the communication with a specified minimum frequency for which an input update is

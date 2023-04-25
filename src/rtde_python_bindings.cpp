@@ -46,6 +46,16 @@ PYBIND11_MODULE(rtde_control, m)
       .def("toScriptCode", &Path::toScriptCode, "", py::call_guard<py::gil_scoped_release>())
       .def("__repr__", [](const Path &a) { return "<rtde_control.Path>"; });
 
+  py::class_<AsyncOperationStatus>(m, "AsyncOperationStatus")
+	.def(py::init<int>())
+	.def("value", &AsyncOperationStatus::value, "", py::call_guard<py::gil_scoped_release>())
+	.def("isAsyncOperationRunning", &AsyncOperationStatus::isAsyncOperationRunning, "", py::call_guard<py::gil_scoped_release>())
+	.def("operationId", &AsyncOperationStatus::operationId, "", py::call_guard<py::gil_scoped_release>())
+	.def("changeCount", &AsyncOperationStatus::changeCount, "", py::call_guard<py::gil_scoped_release>())
+	.def("progress", &AsyncOperationStatus::progress, "", py::call_guard<py::gil_scoped_release>())
+	.def("equals", &AsyncOperationStatus::equals, py::arg("other"), py::call_guard<py::gil_scoped_release>())
+	.def("__repr__", [](const AsyncOperationStatus &a) { return "<rtde_control.AsyncOperationStatus>"; });
+
 
   py::class_<RTDEControlInterface> control(m, "RTDEControlInterface");
   py::enum_<RTDEControlInterface::Flags>(control, "Flags", py::arithmetic())
@@ -206,6 +216,7 @@ PYBIND11_MODULE(rtde_control, m)
               py::call_guard<py::gil_scoped_release>());
   control.def("setExternalForceTorque", &RTDEControlInterface::setExternalForceTorque, py::call_guard<py::gil_scoped_release>());
   control.def("getAsyncOperationProgress", &RTDEControlInterface::getAsyncOperationProgress, DOC(ur_rtde, RTDEControlInterface, getAsyncOperationProgress), py::call_guard<py::gil_scoped_release>());
+  control.def("getAsyncOperationProgressEx", &RTDEControlInterface::getAsyncOperationProgressEx, DOC(ur_rtde, RTDEControlInterface, getAsyncOperationProgressEx), py::call_guard<py::gil_scoped_release>());
   control.def("getRobotStatus", &RTDEControlInterface::getRobotStatus, DOC(ur_rtde, RTDEControlInterface, getRobotStatus), py::call_guard<py::gil_scoped_release>());
   control.def("getActualToolFlangePose", &RTDEControlInterface::getActualToolFlangePose, py::call_guard<py::gil_scoped_release>());
   control.def("setGravity", &RTDEControlInterface::setGravity, py::call_guard<py::gil_scoped_release>());

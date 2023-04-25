@@ -303,12 +303,12 @@ int RTDEControlInterface::getAsyncOperationProgress()
 }
 
 
-CAsyncOperationStatus RTDEControlInterface::getAsyncOperationProgressEx()
+AsyncOperationStatus RTDEControlInterface::getAsyncOperationProgressEx()
 {
   std::string output_int_register_key = "output_int_register_" + std::to_string(2+register_offset_);
   int32_t output_int_register_val;
   if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
-    return CAsyncOperationStatus(output_int_register_val);
+    return AsyncOperationStatus(output_int_register_val);
   else
     throw std::runtime_error("unable to get state data for specified key: " + output_int_register_key);
 }
