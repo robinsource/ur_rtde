@@ -298,7 +298,7 @@ int RTDEControlInterface::getAsyncOperationProgress()
   }
   else
   {
-	  return 0 - (AsyncStatus.operationId() % 2); // toggle between -1 and -2 to mimic the old progress info scheme
+	  return (AsyncStatus.operationId() % 2) - 2; // toggle between -1 and -2 to mimic the old progress info scheme
   }
 }
 
