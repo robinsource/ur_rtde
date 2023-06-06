@@ -45,6 +45,8 @@
     global jog_speed_pose = p[0, 0, 0, 0, 0, 0]
     global jog_custom_feature = p[0, 0, 0, 0, 0, 0]
     global jog_thrd = 0
+    global jog_acc = 0.5
+
     
     def read_input_float_reg(register_index):
         return read_input_float_register(register_index + reg_offset_float)
@@ -396,7 +398,7 @@
         speed_pose = jog_speed_pose
         exit_critical
         speed_wrt_base = get_speed_wrt_base(speed_pose, frame_wrt_base)
-        speedl(speed_wrt_base, 0.5)
+        speedl(speed_wrt_base, jog_acc)
       end
     end
 
@@ -790,13 +792,15 @@ $3.6        pose_to_output_float_registers(0, tcp_offset)
               enter_critical
               jog_speed_pose = pose_from_input_float_registers(0)
               jog_feature = read_input_float_reg(6)
-              jog_custom_feature = pose_from_input_float_registers(7)
+              jog_acc = read_input_float_reg(7)
+              jog_custom_feature = pose_from_input_float_registers(8)
               if jog_thrd == 0:
                 jog_thrd = run jog_speed_thread()
               end
               exit_critical
               textmsg("jog_feature: ", jog_feature)
               textmsg("jog_custom_feature: ", jog_custom_feature)
+              textmsg("jog_acc: ", jog_acc)
               textmsg("start_jog done")
         elif cmd == 42:
               textmsg("stop_jog")
@@ -992,7 +996,7 @@ $5.10|3.15    end
         # RTDE Control script - Main loop #
         ###################################
 
-        textmsg("RTDE Control Script Loaded (06.03.2023-15:00)")
+        textmsg("RTDE Control Script Loaded (06.06.2023-13:52)")
 
         # Initialize gain and damping for force mode to a more stable default
 $5.0    force_mode_set_gain_scaling(0.5)

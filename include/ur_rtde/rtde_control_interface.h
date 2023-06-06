@@ -529,7 +529,7 @@ class RTDEControlInterface
    * @param custom_frame The custom_frame given as pose if the selected feature
    * is FEATURE_CUSTOM
    */
-  RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE,
+  RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE, double acc = 0.5,
                             const std::vector<double> &custom_frame = {});
 
   /**
