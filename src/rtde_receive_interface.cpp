@@ -264,7 +264,7 @@ void RTDEReceiveInterface::receiveCallback()
         std::this_thread::yield();
         std::this_thread::sleep_for(std::chrono::microseconds(100));
 #endif
-      }
+      }     
     }
     catch (std::exception& e)
     {
