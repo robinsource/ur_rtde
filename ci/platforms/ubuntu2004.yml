@@ -12,7 +12,7 @@ examples-ubuntu-2004:
 polyscope-5.12.4:
   extends: .linux-polyscopetest
   variables:
-    DOCKER_HOST: tcp://localhost:2375/
+    DOCKER_HOST: tcp://docker:2375/
     # Use the overlayfs driver for improved performance:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
@@ -28,7 +28,7 @@ polyscope-5.12.4:
 polyscope-5.5.1:
   extends: .linux-polyscopetest
   variables:
-    DOCKER_HOST: tcp://localhost:2375/
+    DOCKER_HOST: tcp://docker:2375/
     # Use the overlayfs driver for improved performance:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
@@ -44,7 +44,7 @@ polyscope-5.5.1:
 polyscope-3.15.8:
   extends: .linux-polyscopetest
   variables:
-    DOCKER_HOST: tcp://localhost:2375/
+    DOCKER_HOST: tcp://docker:2375/
     # Use the overlayfs driver for improved performance:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
@@ -60,7 +60,7 @@ polyscope-3.15.8:
 polyscope-3.7.2:
   extends: .linux-polyscopetest
   variables:
-    DOCKER_HOST: tcp://localhost:2375/
+    DOCKER_HOST: tcp://docker:2375/
     # Use the overlayfs driver for improved performance:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
