@@ -12,6 +12,10 @@ examples-ubuntu-2004:
 polyscope-5.12.4:
   extends: .linux-polyscopetest
   variables:
+    DOCKER_HOST: tcp://localhost:2375/
+    # Use the overlayfs driver for improved performance:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
     POLYSCOPE_TYPE: "e-series"
     POLYSCOPE_IMAGE: "universalrobots/ursim_e-series:5.12.4"
     POLYSCOPE_VER_DOTTED: "5.12.4"
@@ -24,6 +28,10 @@ polyscope-5.12.4:
 polyscope-5.5.1:
   extends: .linux-polyscopetest
   variables:
+    DOCKER_HOST: tcp://localhost:2375/
+    # Use the overlayfs driver for improved performance:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
     POLYSCOPE_TYPE: "e-series"
     POLYSCOPE_IMAGE: "universalrobots/ursim_e-series:5.5.1"
     POLYSCOPE_VER_DOTTED: "5.5.1"
@@ -36,6 +44,10 @@ polyscope-5.5.1:
 polyscope-3.15.8:
   extends: .linux-polyscopetest
   variables:
+    DOCKER_HOST: tcp://localhost:2375/
+    # Use the overlayfs driver for improved performance:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
     POLYSCOPE_TYPE: "cb-series"
     POLYSCOPE_IMAGE: "universalrobots/ursim_cb3:3.15.8"
     POLYSCOPE_VER_DOTTED: "3.15.8"
@@ -48,6 +60,10 @@ polyscope-3.15.8:
 polyscope-3.7.2:
   extends: .linux-polyscopetest
   variables:
+    DOCKER_HOST: tcp://localhost:2375/
+    # Use the overlayfs driver for improved performance:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
     POLYSCOPE_TYPE: "cb-series"
     POLYSCOPE_IMAGE: "universalrobots/ursim_cb3:3.7.2"
     POLYSCOPE_VER_DOTTED: "3.7.2"
