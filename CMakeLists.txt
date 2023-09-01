@@ -138,8 +138,11 @@ else()
 			src/rtde_receive_interface.cpp
 			src/rtde_io_interface.cpp
 			src/robotiq_gripper.cpp
-			src/urcl/server.cpp
-			src/urcl/tcp_socket.cpp)
+			src/urcl/script_sender.cpp
+			src/urcl/tcp_server.cpp
+			src/urcl/log.cpp
+			src/urcl/default_log_handler.cpp
+            )
 
 	set(LIB_HEADER_FILES
 			include/ur_rtde/rtde.h
@@ -157,8 +160,10 @@ else()
 			include/ur_rtde/robotiq_gripper.h)
 
 	set(LIB_URCL_HEADER_FILES
+			include/urcl/log.h
+			include/urcl/default_log_handler.h
 			include/urcl/script_sender.h
-			include/urcl/server.h
+			include/urcl/tcp_server.h
 			include/urcl/tcp_socket.h)
 
 endif()

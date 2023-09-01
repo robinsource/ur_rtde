@@ -212,8 +212,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
   if (!upload_script_ && use_external_control_ur_cap_)
   {
     // Create a connection to the ExternalControl UR cap for sending scripts to the cap
-    urcl_script_sender_.reset(new urcl::comm::ScriptSender(ur_cap_port_, script_client_->getScript(), false));
-    urcl_script_sender_->start();
+    urcl_script_sender_.reset(new urcl::control::ScriptSender(ur_cap_port_, script_client_->getScript()));
 
     if (!no_wait_)
     {
@@ -480,8 +479,7 @@ bool RTDEControlInterface::reconnect()
   if (!upload_script_ && use_external_control_ur_cap_)
   {
     // Create a connection to the ExternalControl UR cap for sending scripts to the cap
-    urcl_script_sender_.reset(new urcl::comm::ScriptSender(ur_cap_port_, script_client_->getScript(), false));
-    urcl_script_sender_->start();
+    urcl_script_sender_.reset(new urcl::control::ScriptSender(ur_cap_port_, script_client_->getScript()));
 
     if (!no_wait_)
     {

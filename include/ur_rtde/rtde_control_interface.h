@@ -1145,11 +1145,11 @@ class RTDEControlInterface
   std::shared_ptr<ScriptClient> script_client_;
   std::shared_ptr<RobotState> robot_state_;
 #if !defined(_WIN32) && !defined(__APPLE__)
-  std::unique_ptr<urcl::comm::ScriptSender> urcl_script_sender_;
+  std::unique_ptr<urcl::control::ScriptSender> urcl_script_sender_;
 #endif
   std::vector<std::string> state_names_;
   // major, minor, bugfix, build numbers.
-  Versions versions_;
+  Versions versions_{};
   std::string serial_number_;
   size_t no_bytes_avail_cnt_;
 };

@@ -299,24 +299,24 @@
 
       step_back = 1
       # First we wait until there is not contact
-      while step_back > 0:
-          if use_speed_vector:
-              step_back = tool_contact(direction=get_target_tcp_speed())
-          else:
-              step_back = tool_contact(direction=dir)
-          end
-          sync()
-      end
+$5.4  while step_back > 0:
+$5.4      if use_speed_vector:
+$5.4          step_back = tool_contact(direction=get_target_tcp_speed())
+$5.4      else:
+$5.4          step_back = tool_contact(direction=dir)
+$5.4      end
+$5.4      sync()
+$5.4  end
 
       # Now we can wait for a contact
-      while step_back == 0:
-          if use_speed_vector:
-              step_back = tool_contact(direction=get_target_tcp_speed())
-          else:
-              step_back = tool_contact(direction=dir)
-          end
-          sync()
-      end
+$5.4  while step_back == 0:
+$5.4      if use_speed_vector:
+$5.4          step_back = tool_contact(direction=get_target_tcp_speed())
+$5.4      else:
+$5.4          step_back = tool_contact(direction=dir)
+$5.4      end
+$5.4      sync()
+$5.4  end
       textmsg("step_back:", step_back)
       textmsg("target_tcp_speed: ", get_target_tcp_speed())
       enter_critical
@@ -1066,14 +1066,14 @@ $5.10|3.15    end
               textmsg("read_contact_detection done")
           elif cmd == 254: # internal command
               textmsg("cmd == 254 - contact detected") 
-              stop_async_move()
-              # Get q for when the contact was first seen
-              q = get_actual_joint_positions_history(contact_step_back)
-              # Stop the movement
-              stopl(3)
-              # Move to the initial contact point
-              movel(q) 
-              textmsg("cmd == 254 - contact detected done")
+$5.4          stop_async_move()
+$5.4          # Get q for when the contact was first seen
+$5.4          q = get_actual_joint_positions_history(contact_step_back)
+$5.4          # Stop the movement
+$5.4          stopl(3)
+$5.4          # Move to the initial contact point
+$5.4          movel(q)
+$5.4          textmsg("cmd == 254 - contact detected done")
         elif cmd == 255:
               textmsg("Received stop script!")
         end
