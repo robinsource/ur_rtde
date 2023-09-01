@@ -325,7 +325,7 @@ $5.4  end
       internal_cmd = 254 # delegate processing of contact detection to main thread
       exit_critical
       textmsg("contact_thread finished")
-  end
+    end
 
     def q_from_input_float_registers(register_index):
       q = [0, 0, 0, 0, 0, 0]
