@@ -299,24 +299,24 @@
 
       step_back = 1
       # First we wait until there is not contact
-      while step_back > 0:
-          if use_speed_vector:
-              step_back = tool_contact(direction=get_target_tcp_speed())
-          else:
-              step_back = tool_contact(direction=dir)
-          end
-          sync()
-      end
+$5.4  while step_back > 0:
+$5.4      if use_speed_vector:
+$5.4          step_back = tool_contact(direction=get_target_tcp_speed())
+$5.4      else:
+$5.4          step_back = tool_contact(direction=dir)
+$5.4      end
+$5.4      sync()
+$5.4  end
 
       # Now we can wait for a contact
-      while step_back == 0:
-          if use_speed_vector:
-              step_back = tool_contact(direction=get_target_tcp_speed())
-          else:
-              step_back = tool_contact(direction=dir)
-          end
-          sync()
-      end
+$5.4  while step_back == 0:
+$5.4      if use_speed_vector:
+$5.4          step_back = tool_contact(direction=get_target_tcp_speed())
+$5.4      else:
+$5.4          step_back = tool_contact(direction=dir)
+$5.4      end
+$5.4      sync()
+$5.4  end
       textmsg("step_back:", step_back)
       textmsg("target_tcp_speed: ", get_target_tcp_speed())
       enter_critical
@@ -325,7 +325,7 @@
       internal_cmd = 254 # delegate processing of contact detection to main thread
       exit_critical
       textmsg("contact_thread finished")
-  end
+    end
 
     def q_from_input_float_registers(register_index):
       q = [0, 0, 0, 0, 0, 0]
