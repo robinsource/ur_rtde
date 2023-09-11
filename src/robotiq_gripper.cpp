@@ -199,7 +199,20 @@ int RobotiqGripper::getVar(const std::string& var)
     send(cmd);
     rx_string = receive();
   }
+
+  // In case of connection loss we may get empty string here and need to catch
+  // this in order to avoid a crash
+  if (rx_string.empty())
+  {
+	 throw std::logic_error("Empty response");
+  }
+
   auto data = split(rx_string);
+  if (data.empty())
+  {
+	  throw std::logic_error("Invalid or empty response data");
+  }
+
   if (data[0] != var)
   {
     throw std::logic_error("Unexpected response: data " + data[0] + " does not match " + var);
@@ -516,6 +529,7 @@ void RobotiqGripper::check_deadline()
     // connect(), read_line() or write_line() functions to return.
     boost::system::error_code ignored_ec;
     socket_->close(ignored_ec);
+    conn_state_ = ConnectionState::DISCONNECTED;
 
     // There is no longer an active deadline. The expiry is set to positive
     // infinity so that the actor takes no action until a new deadline is set.

@@ -212,8 +212,7 @@ RTDEControlInterface::RTDEControlInterface(std::string hostname, double frequenc
   if (!upload_script_ && use_external_control_ur_cap_)
   {
     // Create a connection to the ExternalControl UR cap for sending scripts to the cap
-    urcl_script_sender_.reset(new urcl::comm::ScriptSender(ur_cap_port_, script_client_->getScript(), false));
-    urcl_script_sender_->start();
+    urcl_script_sender_.reset(new urcl::control::ScriptSender(ur_cap_port_, script_client_->getScript()));
 
     if (!no_wait_)
     {
@@ -298,17 +297,17 @@ int RTDEControlInterface::getAsyncOperationProgress()
   }
   else
   {
-	  return 0 - (AsyncStatus.operationId() % 2); // toggle between -1 and -2 to mimic the old progress info scheme
+	  return (AsyncStatus.operationId() % 2) - 2; // toggle between -1 and -2 to mimic the old progress info scheme
   }
 }
 
 
-CAsyncOperationStatus RTDEControlInterface::getAsyncOperationProgressEx()
+AsyncOperationStatus RTDEControlInterface::getAsyncOperationProgressEx()
 {
   std::string output_int_register_key = "output_int_register_" + std::to_string(2+register_offset_);
   int32_t output_int_register_val;
   if (robot_state_->getStateData(output_int_register_key, output_int_register_val))
-    return CAsyncOperationStatus(output_int_register_val);
+    return AsyncOperationStatus(output_int_register_val);
   else
     throw std::runtime_error("unable to get state data for specified key: " + output_int_register_key);
 }
@@ -480,8 +479,7 @@ bool RTDEControlInterface::reconnect()
   if (!upload_script_ && use_external_control_ur_cap_)
   {
     // Create a connection to the ExternalControl UR cap for sending scripts to the cap
-    urcl_script_sender_.reset(new urcl::comm::ScriptSender(ur_cap_port_, script_client_->getScript(), false));
-    urcl_script_sender_->start();
+    urcl_script_sender_.reset(new urcl::control::ScriptSender(ur_cap_port_, script_client_->getScript()));
 
     if (!no_wait_)
     {
@@ -1724,6 +1722,65 @@ bool RTDEControlInterface::isPoseWithinSafetyLimits(const std::vector<double> &p
     return false;
   }
 }
+
+
+bool RTDEControlInterface::startContactDetection(const std::vector<double> &direction)
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::START_CONTACT_DETECTION;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_6;
+  robot_cmd.val_ = direction;
+  return sendCommand(robot_cmd);
+}
+
+
+bool RTDEControlInterface::stopContactDetection()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::STOP_CONTACT_DETECTION;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+
+  if (sendCommand(robot_cmd))
+  {
+    if (robot_state_ != nullptr)
+    {
+      return getOutputIntReg(1) != 0;
+    }
+    else
+    {
+      throw std::logic_error("Please initialize the RobotState, before using it!");
+    }
+  }
+  else
+  {
+    return false;
+  }
+}
+
+
+bool RTDEControlInterface::readContactDetection()
+{
+  RTDE::RobotCommand robot_cmd;
+  robot_cmd.type_ = RTDE::RobotCommand::Type::READ_CONTACT_DETECTION;
+  robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_4;
+
+  if (sendCommand(robot_cmd))
+  {
+    if (robot_state_ != nullptr)
+    {
+      return getOutputIntReg(1) != 0;
+    }
+    else
+    {
+      throw std::logic_error("Please initialize the RobotState, before using it!");
+    }
+  }
+  else
+  {
+    return false;
+  }
+}
+
 
 bool RTDEControlInterface::isJointsWithinSafetyLimits(const std::vector<double> &q)
 {

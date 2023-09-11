@@ -138,8 +138,11 @@ else()
 			src/rtde_receive_interface.cpp
 			src/rtde_io_interface.cpp
 			src/robotiq_gripper.cpp
-			src/urcl/server.cpp
-			src/urcl/tcp_socket.cpp)
+			src/urcl/script_sender.cpp
+			src/urcl/tcp_server.cpp
+			src/urcl/log.cpp
+			src/urcl/default_log_handler.cpp
+            )
 
 	set(LIB_HEADER_FILES
 			include/ur_rtde/rtde.h
@@ -157,8 +160,10 @@ else()
 			include/ur_rtde/robotiq_gripper.h)
 
 	set(LIB_URCL_HEADER_FILES
+			include/urcl/log.h
+			include/urcl/default_log_handler.h
 			include/urcl/script_sender.h
-			include/urcl/server.h
+			include/urcl/tcp_server.h
 			include/urcl/tcp_socket.h)
 
 endif()
@@ -317,6 +322,10 @@ if(${CODE})
 		target_include_directories(realtime_control_example PUBLIC ${Boost_INCLUDE_DIRS} $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 		target_link_libraries(realtime_control_example PRIVATE rtde ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY})
 
+		add_executable(contact_detection_example examples/cpp/contact_detection_example.cpp)
+		target_include_directories(contact_detection_example PUBLIC ${Boost_INCLUDE_DIRS} $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+		target_link_libraries(contact_detection_example PRIVATE rtde ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
+
 		if (UNIX)
 			find_package(Curses)
 			if(Curses_FOUND)
@@ -331,7 +340,7 @@ if(${CODE})
 			endif()
 		endif (UNIX)
 
-		set_target_properties(servoj_example forcemode_example speedj_example movej_path_with_blend_example io_example move_async_example move_path_async_example robotiq_gripper_example move_until_contact_example record_data_example realtime_control_example
+		set_target_properties(servoj_example forcemode_example speedj_example movej_path_with_blend_example io_example move_async_example move_path_async_example robotiq_gripper_example move_until_contact_example record_data_example realtime_control_example contact_detection_example
 				PROPERTIES
 				RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
 				)

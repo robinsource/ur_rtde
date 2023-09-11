@@ -93,7 +93,7 @@ struct Versions
    running: 1 - async op. running, 0 - async op. finished
    progress: progress of running async. operation.
  */
-class CAsyncOperationStatus
+class AsyncOperationStatus
 {
  private:
   uint32_t status_;  // the status word received from robot
@@ -102,7 +102,7 @@ class CAsyncOperationStatus
   /**
    * Create status object from received status word
    */
-  CAsyncOperationStatus(int Value = 0) : status_(Value)
+  AsyncOperationStatus(int Value = 0) : status_(Value)
   {
   }
 
@@ -167,7 +167,7 @@ class CAsyncOperationStatus
   /**
    * Test, if async operation progress changed
    */
-  bool equals(const CAsyncOperationStatus &other) const
+  bool equals(const AsyncOperationStatus &other) const
   {
     return this->status_ == other.status_;
   }
@@ -733,10 +733,10 @@ class RTDEControlInterface
    * operations that supports progress feedback (such as movePath).
    * It also returns the status of any async operation such as moveJ, moveL,
    * stopJ or stopL.
-   * @see CAsyncOperationStatus for a detailed description of the progress
+   * @see AsyncOperationStatus class for a detailed description of the progress
    *      status.
    */
-  RTDE_EXPORT CAsyncOperationStatus getAsyncOperationProgressEx();
+  RTDE_EXPORT AsyncOperationStatus getAsyncOperationProgressEx();
 
   /**
    * @brief Enable a watchdog for the communication with a specified minimum frequency for which an input update is
@@ -834,6 +834,7 @@ class RTDEControlInterface
    * direction=get_target_tcp_speed() in which case it will detect contacts in the direction of the TCP movement.
    * @param acceleration tool position acceleration [m/s^2]
    * @returns True once the robot is in contact.
+   * @see startContactDetection() function for async contact detection
    */
   RTDE_EXPORT bool moveUntilContact(const std::vector<double> &xd,
                                     const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
@@ -998,6 +999,61 @@ class RTDEControlInterface
                                                    double max_position_error = 1e-10,
                                                    double max_orientation_error = 1e-10);
 
+  /**
+   * @brief Starts async contact detection thread
+   *
+   * Move the robot until contact, with specified speed and contact detection direction.
+   * The robot will automatically retract to the initial point of contact.
+   *
+   * Contact monitoring should get started after a async move command has been
+   * started. That means, there should be no async move commands after this
+   * command because async move commands may cause a reupload of the script
+   * which in turn kills the contact monitoring thread. If a contact is detected,
+   * the contact monitoring thread is stopped, the robot is stopped and then
+   * retracted to the initial point of contact.
+   *
+   * \code
+   *  rtde_control.moveL(target, 0.25, 0.5, true);
+   *  rtde_control.startContactDetection(); // detect contact in direction of TCP movement
+   *
+   *  // now wait until the robot stops - it either stops if it has reached
+   *  // the target pose or if a contact has been detected
+   *  // you can use the readContactDetection() function, to check if a contact
+   *  // has been detected.
+   *  bool contact_detected = rtde_control.readContactDetection();
+   *
+   *
+   *  contact_detected = rtde_control.stopContactDetection();
+   * \endcode
+   *
+   * @param direction List of six floats.
+   * The first three elements are interpreted as a 3D vector
+   * (in the robot base coordinate system) giving the direction in which contacts should be detected.
+   * If all elements of the list are zero, direction will be set to
+   * direction=get_target_tcp_speed() in which case it will detect contacts in
+   * the direction of the TCP movement.
+   *
+   * @return Returns true, if a contact has been detected
+   */
+  RTDE_EXPORT bool startContactDetection(const std::vector<double> &direction = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+
+  /**
+   * Reads the current async contact detection state.
+   * The function returns true, when a contact between the tool and an object
+   * has been detected.
+   */
+  RTDE_EXPORT bool readContactDetection();
+
+  /**
+   * @brief Stop contact monitoring
+   * This function stops contact monitoring and returns true, if a contact has
+   * been detected. Normally the contact
+   * detection is stopped, as soon as a contact ha been detected. If you would
+   * like to stop the contact detection manually, i.e. because of a timeout,
+   * the you can use this function.
+   */
+  RTDE_EXPORT bool stopContactDetection();
+
   // Unlocks a protective stop via the dashboard client.
   void unlockProtectiveStop();
 
@@ -1091,11 +1147,11 @@ class RTDEControlInterface
   std::shared_ptr<ScriptClient> script_client_;
   std::shared_ptr<RobotState> robot_state_;
 #if !defined(_WIN32) && !defined(__APPLE__)
-  std::unique_ptr<urcl::comm::ScriptSender> urcl_script_sender_;
+  std::unique_ptr<urcl::control::ScriptSender> urcl_script_sender_;
 #endif
   std::vector<std::string> state_names_;
   // major, minor, bugfix, build numbers.
-  Versions versions_;
+  Versions versions_{};
   std::string serial_number_;
   size_t no_bytes_avail_cnt_;
 };

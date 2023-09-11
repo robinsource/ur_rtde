@@ -27,11 +27,10 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-
 #include <atomic>
-#include <memory>
 #include <mutex>
 #include <string>
+#include <memory>
 
 namespace urcl
 {
@@ -54,9 +53,9 @@ enum class SocketState
 class TCPSocket
 {
  private:
-  bool verbose_;
   std::atomic<int> socket_fd_;
   std::atomic<SocketState> state_;
+  std::chrono::seconds reconnection_time_;
 
  protected:
   virtual bool open(int socket_fd, struct sockaddr* address, size_t address_len)
@@ -73,7 +72,7 @@ class TCPSocket
   /*!
    * \brief Creates a TCPSocket object
    */
-  TCPSocket(bool verbose = false);
+  TCPSocket();
   virtual ~TCPSocket();
 
   /*!
@@ -95,19 +94,11 @@ class TCPSocket
   {
     return socket_fd_;
   }
-  /*!
-   * \brief Setter for the file descriptor of the socket.
-   *
-   * \param socket_fd The new value
-   *
-   * \returns False, if the socket is in state connected
-   */
-  bool setSocketFD(int socket_fd);
 
   /*!
-   * \brief Determines the IP address of the local machine
+   * \brief Determines the local IP address of the currently configured socket
    *
-   * \returns The IP address of the local machine.
+   * \returns The local IP address of the socket associated to the current file descriptor
    */
   std::string getIP() const;
 
@@ -153,6 +144,17 @@ class TCPSocket
    * \param timeout Timeout used for setting things up
    */
   void setReceiveTimeout(const timeval& timeout);
+
+  /*!
+   * \brief Set reconnection time, if the server is unavailable during connection this will set the time before
+   * trying connect to the server again.
+   *
+   * \param reconnection_time time in between connection attempts to the server
+   */
+  void setReconnectionTime(std::chrono::seconds reconnection_time)
+  {
+    reconnection_time_ = reconnection_time;
+  }
 };
 }  // namespace comm
 }  // namespace urcl

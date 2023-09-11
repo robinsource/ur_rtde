@@ -46,6 +46,16 @@ PYBIND11_MODULE(rtde_control, m)
       .def("toScriptCode", &Path::toScriptCode, "", py::call_guard<py::gil_scoped_release>())
       .def("__repr__", [](const Path &a) { return "<rtde_control.Path>"; });
 
+  py::class_<AsyncOperationStatus>(m, "AsyncOperationStatus")
+	.def(py::init<int>())
+	.def("value", &AsyncOperationStatus::value, "", py::call_guard<py::gil_scoped_release>())
+	.def("isAsyncOperationRunning", &AsyncOperationStatus::isAsyncOperationRunning, "", py::call_guard<py::gil_scoped_release>())
+	.def("operationId", &AsyncOperationStatus::operationId, "", py::call_guard<py::gil_scoped_release>())
+	.def("changeCount", &AsyncOperationStatus::changeCount, "", py::call_guard<py::gil_scoped_release>())
+	.def("progress", &AsyncOperationStatus::progress, "", py::call_guard<py::gil_scoped_release>())
+	.def("equals", &AsyncOperationStatus::equals, py::arg("other"), py::call_guard<py::gil_scoped_release>())
+	.def("__repr__", [](const AsyncOperationStatus &a) { return "<rtde_control.AsyncOperationStatus>"; });
+
 
   py::class_<RTDEControlInterface> control(m, "RTDEControlInterface");
   py::enum_<RTDEControlInterface::Flags>(control, "Flags", py::arithmetic())
@@ -162,9 +172,9 @@ PYBIND11_MODULE(rtde_control, m)
   control.def("triggerProtectiveStop", &RTDEControlInterface::triggerProtectiveStop,
            DOC(ur_rtde, RTDEControlInterface, triggerProtectiveStop), py::call_guard<py::gil_scoped_release>());
   control.def("stopL", &RTDEControlInterface::stopL,
-           DOC(ur_rtde, RTDEControlInterface, stopL), py::call_guard<py::gil_scoped_release>());
+           DOC(ur_rtde, RTDEControlInterface, stopL), py::arg("a") = 10.0, py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("stopJ", &RTDEControlInterface::stopJ,
-           DOC(ur_rtde, RTDEControlInterface, stopJ), py::call_guard<py::gil_scoped_release>());
+           DOC(ur_rtde, RTDEControlInterface, stopJ), py::arg("a") = 2.0, py::arg("asynchronous") = false, py::call_guard<py::gil_scoped_release>());
   control.def("setWatchdog", &RTDEControlInterface::setWatchdog,
            DOC(ur_rtde, RTDEControlInterface, setWatchdog), py::arg("min_frequency") = 10.0,
            py::call_guard<py::gil_scoped_release>());
@@ -207,6 +217,7 @@ PYBIND11_MODULE(rtde_control, m)
               py::call_guard<py::gil_scoped_release>());
   control.def("setExternalForceTorque", &RTDEControlInterface::setExternalForceTorque, py::call_guard<py::gil_scoped_release>());
   control.def("getAsyncOperationProgress", &RTDEControlInterface::getAsyncOperationProgress, DOC(ur_rtde, RTDEControlInterface, getAsyncOperationProgress), py::call_guard<py::gil_scoped_release>());
+  control.def("getAsyncOperationProgressEx", &RTDEControlInterface::getAsyncOperationProgressEx, DOC(ur_rtde, RTDEControlInterface, getAsyncOperationProgressEx), py::call_guard<py::gil_scoped_release>());
   control.def("getRobotStatus", &RTDEControlInterface::getRobotStatus, DOC(ur_rtde, RTDEControlInterface, getRobotStatus), py::call_guard<py::gil_scoped_release>());
   control.def("getActualToolFlangePose", &RTDEControlInterface::getActualToolFlangePose, py::call_guard<py::gil_scoped_release>());
   control.def("setGravity", &RTDEControlInterface::setGravity, py::call_guard<py::gil_scoped_release>());
