@@ -671,7 +671,7 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
   std::vector<std::string> jog_input = {inIntReg(0),     inDoubleReg(0), inDoubleReg(1), inDoubleReg(2),
                                         inDoubleReg(3),  inDoubleReg(4), inDoubleReg(5), inDoubleReg(6),
                                         inDoubleReg(7),  inDoubleReg(8), inDoubleReg(9), inDoubleReg(10),
-                                        inDoubleReg(11), inDoubleReg(12)};
+                                        inDoubleReg(11), inDoubleReg(12), inDoubleReg(13)};
   rtde_->sendInputSetup(jog_input);
 
   // Recipe 15
@@ -1157,13 +1157,14 @@ bool RTDEControlInterface::moveL(const std::vector<double> &transform, double sp
 }
 
 bool RTDEControlInterface::jogStart(const std::vector<double> &speeds, int feature,
-                                    const std::vector<double> &custom_frame)
+	double acc, const std::vector<double> &custom_frame)
 {
   RTDE::RobotCommand robot_cmd;
   robot_cmd.type_ = RTDE::RobotCommand::Type::JOG_START;
   robot_cmd.recipe_id_ = RTDE::RobotCommand::Recipe::RECIPE_14;
   robot_cmd.val_ = speeds;
   robot_cmd.val_.push_back(feature);
+  robot_cmd.val_.push_back(acc);
   if (!custom_frame.empty())
   {
     for (const auto &val : custom_frame)

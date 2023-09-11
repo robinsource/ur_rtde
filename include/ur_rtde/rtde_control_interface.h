@@ -526,10 +526,12 @@ class RTDEControlInterface
    * (FEATURE_BASE), tool frame (FEATURE_TOOL) or custom frame (FEATURE_CUSTOM)
    * If the feature is FEATURE_CUSTOM then the custom_frame parameter needs to
    * be a valid pose.
+   * @param acc Acceleration value. If you need to manually jog items that
+   *        require a lower acceleration, then you can provide a custom value here.
    * @param custom_frame The custom_frame given as pose if the selected feature
    * is FEATURE_CUSTOM
    */
-  RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE,
+  RTDE_EXPORT bool jogStart(const std::vector<double> &speeds, int feature = FEATURE_BASE, double acc = 0.5,
                             const std::vector<double> &custom_frame = {});
 
   /**
