@@ -53,7 +53,7 @@ RTDEReceiveInterface::RTDEReceiveInterface(std::string hostname, double frequenc
   rtde_->connect();
   rtde_->negotiateProtocolVersion();
   auto controller_version = rtde_->getControllerVersion();
-  uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
+  uint32_t major_version = std::get<UR_MAJOR_VERSION>(controller_version);
 
   if (frequency_ < 0) // frequency not specified, set it based on controller version.
   {
@@ -161,8 +161,8 @@ bool RTDEReceiveInterface::setupRecipes(const double& frequency)
                   "safety_status_bits"};
 
     auto controller_version = rtde_->getControllerVersion();
-    uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
-    uint32_t minor_version = std::get<MINOR_VERSION>(controller_version);
+    uint32_t major_version = std::get<UR_MAJOR_VERSION>(controller_version);
+    uint32_t minor_version = std::get<UR_MINOR_VERSION>(controller_version);
     uint32_t bugfix_version = std::get<BUGFIX_VERSION>(controller_version);
 
     // Some RTDE variables depends on a minimum PolyScope version, check is performed here
@@ -285,7 +285,7 @@ bool RTDEReceiveInterface::reconnect()
     rtde_->connect();
     rtde_->negotiateProtocolVersion();
     auto controller_version = rtde_->getControllerVersion();
-    uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
+    uint32_t major_version = std::get<UR_MAJOR_VERSION>(controller_version);
 
     frequency_ = 125;
     // If e-Series Robot set frequency to 500Hz

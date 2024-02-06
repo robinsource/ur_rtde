@@ -14,8 +14,8 @@
 #include <map>
 #include <functional>
 
-#define MAJOR_VERSION 0
-#define MINOR_VERSION 1
+#define UR_MAJOR_VERSION 0
+#define UR_MINOR_VERSION 1
 #define BUGFIX_VERSION 2
 #define BUILD_VERSION 3
 #define CB3_MAJOR_VERSION 3

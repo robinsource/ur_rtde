@@ -557,8 +557,8 @@ bool RTDEControlInterface::setupRecipes(const double &frequency)
   // Setup output
   state_names_ = {"robot_status_bits", "safety_status_bits", "runtime_state"};
   auto controller_version = rtde_->getControllerVersion();
-  uint32_t major_version = std::get<MAJOR_VERSION>(controller_version);
-  uint32_t minor_version = std::get<MINOR_VERSION>(controller_version);
+  uint32_t major_version = std::get<UR_MAJOR_VERSION>(controller_version);
+  uint32_t minor_version = std::get<UR_MINOR_VERSION>(controller_version);
 
   if (use_upper_range_registers_)
   {

@@ -12,8 +12,8 @@
 #include <map>
 #include <tuple>
 
-#define MAJOR_VERSION 0
-#define MINOR_VERSION 1
+#define UR_MAJOR_VERSION 0
+#define UR_MINOR_VERSION 1
 #define CB3_MAJOR_VERSION 3
 #define UR_CONTROLLER_RDY_FOR_CMD 1
 #define UR_CONTROLLER_DONE_WITH_CMD 2
